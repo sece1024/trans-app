@@ -95,3 +95,52 @@ button:last-child {
 button:last-child:hover {
   background-color: #da190b;
 }
+
+.clipboard-section {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.clipboard-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.clipboard-input textarea {
+  flex: 1;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.clipboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clipboard-item {
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.clipboard-item pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.clipboard-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}

@@ -7,6 +7,8 @@ function App() {
   const [files, setFiles] = useState([]);
   const [previewContent, setPreviewContent] = useState('');
   const [previewFileName, setPreviewFileName] = useState('');
+  const [clips, setClips] = useState([]);
+  const [clipText, setClipText] = useState('');
 
   // 获取文件列表
   const fetchFiles = async () => {
@@ -20,9 +22,24 @@ function App() {
     }
   };
 
-  // 组件加载时获取文件列表
+  // 获取剪贴板内容
+  const fetchClips = async () => {
+    try {
+      const response = await fetch('/api/clipboard');
+      const data = await response.json();
+      setClips(data);
+    } catch (error) {
+      console.error('获取剪贴板内容失败:', error);
+    }
+  };
+
+  // 组件加载时获取文件列表和剪贴板内容
   useEffect(() => {
     fetchFiles();
+    fetchClips();
+    // 每5秒刷新一次
+    const interval = setInterval(fetchClips, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // 上传文件
@@ -90,6 +107,36 @@ function App() {
   const closePreview = () => {
     setPreviewContent('');
     setPreviewFileName('');
+  };
+
+  // 添加到剪贴板
+  const handleAddClip = async () => {
+    if (!clipText.trim()) return;
+
+    try {
+      const response = await fetch('/api/clipboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: clipText })
+      });
+      const data = await response.json();
+      setClips(data);
+      setClipText('');  // 清空输入框
+    } catch (error) {
+      console.error('添加到剪贴板失败:', error);
+    }
+  };
+
+  // 复制到剪贴板
+  const handleCopy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage('已复制到剪贴板');
+    } catch (error) {
+      setMessage('复制失败');
+    }
   };
 
   return (
@@ -165,6 +212,30 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* 共享剪贴板部分 */}
+      <div className="clipboard-section">
+        <h2>共享剪贴板</h2>
+        <div className="clipboard-input">
+          <textarea
+            value={clipText}
+            onChange={(e) => setClipText(e.target.value)}
+            placeholder="输入要分享的文本"
+          />
+          <button onClick={handleAddClip}>分享</button>
+        </div>
+        <div className="clipboard-list">
+          {clips.map((clip, index) => (
+            <div key={index} className="clipboard-item">
+              <pre>{clip.text}</pre>
+              <div className="clipboard-info">
+                <span>{new Date(clip.createTime).toLocaleString()}</span>
+                <button onClick={() => handleCopy(clip.text)}>复制</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
