@@ -14,14 +14,17 @@ class FileService {
   }
 
   saveFile(file) {
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    
     const fileInfo = {
-      originalName: file.originalname,
+      originalName: originalName,
       path: file.path,
       size: file.size,
       mimetype: file.mimetype,
       uploadTime: new Date()
     };
-    this.uploadedFiles.set(file.originalname, fileInfo);
+    
+    this.uploadedFiles.set(originalName, fileInfo);
     return fileInfo;
   }
 
