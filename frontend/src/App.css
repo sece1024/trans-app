@@ -144,3 +144,19 @@ button:last-child:hover {
   font-size: 0.9em;
   color: #666;
 }
+
+.info-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-info {
+  color: #2196F3;
+  font-weight: 500;
+}
+
+.time-info {
+  color: #666;
+  font-size: 0.9em;
+}

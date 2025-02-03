@@ -9,6 +9,7 @@ function App() {
   const [previewFileName, setPreviewFileName] = useState('');
   const [clips, setClips] = useState([]);
   const [clipText, setClipText] = useState('');
+  const [deviceInfo, setDeviceInfo] = useState('');
 
   // 获取文件列表
   const fetchFiles = async () => {
@@ -32,6 +33,45 @@ function App() {
       console.error('获取剪贴板内容失败:', error);
     }
   };
+
+  // 获取设备信息
+  useEffect(() => {
+    const getDeviceInfo = () => {
+      const ua = navigator.userAgent;
+      let deviceName = 'Unknown Device';
+
+      // 检测设备类型
+      if (/iPhone/.test(ua)) {
+        deviceName = 'iPhone';
+      } else if (/iPad/.test(ua)) {
+        deviceName = 'iPad';
+      } else if (/Android/.test(ua)) {
+        deviceName = 'Android';
+      } else if (/Windows/.test(ua)) {
+        deviceName = 'Windows';
+      } else if (/Mac/.test(ua)) {
+        deviceName = 'Mac';
+      } else if (/Linux/.test(ua)) {
+        deviceName = 'Linux';
+      }
+
+      // 检测浏览器
+      let browserInfo = '';
+      if (/Chrome/.test(ua)) {
+        browserInfo = 'Chrome';
+      } else if (/Firefox/.test(ua)) {
+        browserInfo = 'Firefox';
+      } else if (/Safari/.test(ua)) {
+        browserInfo = 'Safari';
+      } else if (/Edge/.test(ua)) {
+        browserInfo = 'Edge';
+      }
+
+      setDeviceInfo(`${deviceName} - ${browserInfo}`);
+    };
+
+    getDeviceInfo();
+  }, []);
 
   // 组件加载时获取文件列表和剪贴板内容
   useEffect(() => {
@@ -119,23 +159,70 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: clipText })
+        body: JSON.stringify({ 
+          text: clipText,
+          deviceInfo: deviceInfo  // 添加设备信息
+        })
       });
       const data = await response.json();
       setClips(data);
-      setClipText('');  // 清空输入框
+      setClipText('');
     } catch (error) {
       console.error('添加到剪贴板失败:', error);
     }
   };
 
-  // 复制到剪贴板
+  // 复制到剪贴板（兼容移动端）
   const handleCopy = async (text) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setMessage('已复制到剪贴板');
+      // 优先使用现代 Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setMessage('已复制到剪贴板');
+        return;
+      }
+
+      // 回退方案：创建临时文本区域
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      
+      // 防止滚动到底部
+      textArea.style.position = 'fixed';
+      textArea.style.left = '0';
+      textArea.style.top = '0';
+      textArea.style.opacity = '0';
+      
+      document.body.appendChild(textArea);
+      
+      // 适配手机
+      if (navigator.userAgent.match(/ipad|iphone/i)) {
+        // iOS 特殊处理
+        textArea.contentEditable = true;
+        textArea.readOnly = false;
+        
+        const range = document.createRange();
+        range.selectNodeContents(textArea);
+        
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        textArea.setSelectionRange(0, 999999);
+      } else {
+        // 其他设备
+        textArea.select();
+      }
+      
+      try {
+        document.execCommand('copy');
+        setMessage('已复制到剪贴板');
+      } catch (err) {
+        setMessage('复制失败，请手动复制');
+      }
+      
+      document.body.removeChild(textArea);
     } catch (error) {
-      setMessage('复制失败');
+      console.error('复制失败:', error);
+      setMessage('复制失败，请手动复制');
     }
   };
 
@@ -227,9 +314,14 @@ function App() {
         <div className="clipboard-list">
           {clips.map((clip, index) => (
             <div key={index} className="clipboard-item">
-              <pre>{clip.text}</pre>
+              <pre onClick={() => handleCopy(clip.text)} className="clipboard-text">
+                {clip.text}
+              </pre>
               <div className="clipboard-info">
-                <span>{new Date(clip.createTime).toLocaleString()}</span>
+                <div className="info-left">
+                  <span className="device-info">{clip.deviceInfo}</span>
+                  <span className="time-info">{new Date(clip.createTime).toLocaleString()}</span>
+                </div>
                 <button onClick={() => handleCopy(clip.text)}>复制</button>
               </div>
             </div>

@@ -9,14 +9,13 @@ router.post('/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ message: '没有文件被上传' });
   }
 
-  const fileInfo = fileService.saveFile(req.file);
   res.json({ 
     message: '文件上传成功!',
     fileId: req.file.originalname
   });
 });
 
-// get file content when file is text file
+
 router.get('/files/:fileId', async (req, res) => {
   const fileInfo = fileService.getFile(req.params.fileId);
   if (!fileInfo) {
@@ -34,7 +33,7 @@ router.get('/files', (req, res) => {
   res.json(fileService.getAllFiles());
 });
 
-// 文件预览路由
+
 router.get('/files/:fileId/preview', async (req, res) => {
   try {
     const fileId = req.params.fileId;

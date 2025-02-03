@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": ">=22.13.1"
+  },
   "scripts": {
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm start",

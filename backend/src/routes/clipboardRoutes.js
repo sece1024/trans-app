@@ -5,14 +5,14 @@ const clipboardService = require('../services/clipboardService');
 // 添加剪贴内容
 router.post('/clipboard', (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, deviceInfo } = req.body;
     const clientId = req.headers['x-client-id'] || 'anonymous';
 
     if (!text) {
       return res.status(400).json({ message: '内容不能为空' });
     }
 
-    const clips = clipboardService.addClip(text, clientId);
+    const clips = clipboardService.addClip(text, clientId, deviceInfo);
     res.json(clips);
   } catch (error) {
     res.status(500).json({ message: '保存失败', error: error.message });

@@ -1,6 +1,9 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.13.1"
+  },
   "private": true,
   "dependencies": {
     "cra-template": "1.2.0",
