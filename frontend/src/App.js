@@ -1,11 +1,22 @@
+import React, {useEffect, useState} from 'react';
 import logo from './logo.svg';
 import './App.css';
 
 function App() {
+
+	const [message, setMessage] = useState('init');
+
+	useEffect(() => {
+		fetch('/api')
+		.then((res) => res.json())
+		.then((data) => setMessage(data.message))
+		.catch((err) => setMessage(err))
+	})
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
+	  <h3>{message}</h3>
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>
