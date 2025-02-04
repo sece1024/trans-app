@@ -4,17 +4,28 @@ const upload = require('../config/multer');
 const fileService = require('../services/fileService');
 const fs = require('fs').promises;  // 使用 promises 版本的 fs
 
+// 文件上传路由
 router.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: '没有文件被上传' });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: '没有文件被上传' });
+    }
+
+    // 保存文件信息到服务
+    const fileInfo = fileService.saveFile(req.file);
+
+    res.json({ 
+      message: '文件上传成功!',
+      fileId: fileInfo.originalName
+    });
+  } catch (error) {
+    console.error('文件上传错误:', error);
+    res.status(500).json({ 
+      message: '文件上传失败', 
+      error: error.message 
+    });
   }
-
-  res.json({ 
-    message: '文件上传成功!',
-    fileId: req.file.originalname
-  });
 });
-
 
 router.get('/files/:fileId', async (req, res) => {
   const fileInfo = fileService.getFile(req.params.fileId);
