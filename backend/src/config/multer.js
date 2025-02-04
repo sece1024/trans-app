@@ -1,6 +1,6 @@
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
 // 确保上传目录存在
 const uploadDir = 'uploads/';
@@ -11,15 +11,19 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: function (req, file, cb) {
-    // 对原始文件名进行 UTF-8 编码
+    // 获取原始文件名（UTF-8编码）
     const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
     
-    // 生成时间戳，避免文件名冲突
-    const timestamp = Date.now();
-    // 使用时间戳和编码后的文件名组合
-    const fileName = `${timestamp}-${originalName}`;
+    // 检查是否存在同名文件
+    const filePath = path.join(uploadDir, originalName);
+    if (fs.existsSync(filePath)) {
+      // 如果存在，先删除旧文件
+      fs.unlinkSync(filePath);
+      console.log(`已删除旧文件: ${originalName}`);
+    }
     
-    cb(null, fileName);
+    // 使用原始文件名保存新文件
+    cb(null, originalName);
   }
 });
 
