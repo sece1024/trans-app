@@ -4,6 +4,7 @@ const fileRoutes = require('./routes/fileRoutes');
 const fileService = require('./services/fileService');
 const CleanupService = require('./utils/cleanup');
 const clipboardRoutes = require('./routes/clipboardRoutes');
+const systemRoutes = require('./routes/systemRoutes');
 
 const app = express();
 const PORT = 5000;
@@ -15,6 +16,7 @@ app.use(express.json());
 // 路由
 app.use('/api', fileRoutes);
 app.use('/api', clipboardRoutes);
+app.use('/api', systemRoutes);
 
 // 基础路由
 app.get('/api', (req, res) => {
