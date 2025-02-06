@@ -84,30 +84,45 @@ function ImageUpload() {
     <div className="image-upload-container">
       <h2>图片上传</h2>
       <div className="upload-section">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
-        <button onClick={handleUpload}>上传图片</button>
+        <label className="custom-file-upload">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
+          <i className="fa fa-image"></i> 选择图片
+        </label>
+        {selectedImage && (
+          <span className="selected-file-name">
+            已选择: {selectedImage.name}
+          </span>
+        )}
+        <button onClick={handleUpload}>上传</button>
       </div>
       {message && <p className="message">{message}</p>}
       
       <div className="image-gallery">
         {images.map((image, index) => (
-          <div key={index} className="image-item">
-            <img 
-              src={`/api/images/${image.filename}`} 
-              alt={image.originalName}
-              loading="lazy"
-            />
-            <p>{image.originalName}</p>
-            <button 
-              className="download-btn"
-              onClick={() => handleImageDownload(image.filename, image.originalName)}
-            >
-              下载图片
-            </button>
+          <div key={index} className="image-card">
+            <div className="image-wrapper">
+              <img 
+                src={`/api/images/${image.filename}`} 
+                alt={image.originalName}
+                loading="lazy"
+                onClick={() => handleImageDownload(image.filename, image.originalName)}
+                style={{
+                  cursor: 'pointer',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              />
+            </div>
+            <div className="image-info">
+              <p className="image-name">{image.originalName}</p>
+            </div>
           </div>
         ))}
       </div>
