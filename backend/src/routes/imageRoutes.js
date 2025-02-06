@@ -97,7 +97,7 @@ router.get('/images/:filename', (req, res) => {
 router.get('/images/download/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    const imagePath = path.join(__dirname, '../uploads/images', filename);
+    const imagePath = path.join(__dirname, '../../uploads/images', filename);
 
     if (!fsSync.existsSync(imagePath)) {
       return res.status(404).json({ message: '图片不存在' });
