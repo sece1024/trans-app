@@ -5,10 +5,12 @@ const path = require('path');
 const fsSync = require('fs');
 const fs = require('fs/promises');
 
+const imageDir = '../../uploads/images';
+
 // 配置图片存储
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../uploads/images');
+    const uploadDir = path.join(__dirname, imageDir);
     // 确保上传目录存在
     if (!fsSync.existsSync(uploadDir)) {
       fsSync.mkdirSync(uploadDir, { recursive: true });
@@ -58,7 +60,7 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
 // 获取图片列表
 router.get('/images', async (req, res) => {
   try {
-    const imageDir = path.join(__dirname, '../uploads/images');
+    const imageDir = path.join(__dirname, '../../uploads/images');
     if (!fsSync.existsSync(imageDir)) {
       return res.json([]);
     }
@@ -80,7 +82,7 @@ router.get('/images', async (req, res) => {
 router.get('/images/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    const imagePath = path.join(__dirname, '../uploads/images', filename);
+    const imagePath = path.join(__dirname, imageDir, filename);
 
     if (!fsSync.existsSync(imagePath)) {
       return res.status(404).json({ message: '图片不存在' });
@@ -97,7 +99,7 @@ router.get('/images/:filename', (req, res) => {
 router.get('/images/download/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    const imagePath = path.join(__dirname, '../../uploads/images', filename);
+    const imagePath = path.join(__dirname, imageDir, filename);
 
     if (!fsSync.existsSync(imagePath)) {
       return res.status(404).json({ message: '图片不存在' });
