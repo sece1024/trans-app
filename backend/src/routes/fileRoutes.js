@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const upload = require('../config/multer');
 const fileService = require('../services/fileService');
-const fs = require('fs').promises;  // 使用 promises 版本的 fs
+const path = require('path');
+const fs = require('fs/promises');
+const fsSync = require('fs');
 
 // 文件上传路由
 router.post('/upload', upload.single('file'), (req, res) => {
@@ -44,7 +46,6 @@ router.get('/files', (req, res) => {
   res.json(fileService.getAllFiles());
 });
 
-
 router.get('/files/:fileId/preview', async (req, res) => {
   try {
     const fileId = req.params.fileId;
@@ -85,6 +86,29 @@ router.get('/files/:fileId/preview', async (req, res) => {
       message: '预览文件失败', 
       error: error.message 
     });
+  }
+});
+
+router.get('/download/:fileName', async (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    const filePath = path.join(__dirname, '../../uploads', fileName);
+
+    // 使用 fsSync 进行同步检查
+    if (!fsSync.existsSync(filePath)) {
+      return res.status(404).json({ message: '文件不存在' });
+    }
+
+    // 设置响应头
+    res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    // 使用同步 fs 创建读取流
+    const fileStream = fsSync.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('下载文件时出错:', error);
+    res.status(500).json({ message: '下载文件失败' });
   }
 });
 
