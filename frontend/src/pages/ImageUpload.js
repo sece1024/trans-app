@@ -84,14 +84,14 @@ function ImageUpload() {
     <div className="image-upload-container">
       <h2>图片上传</h2>
       <div className="upload-section">
-        <label className="custom-file-upload">
+        <label className="file-input-button">
           <input
             type="file"
             accept="image/*"
             onChange={handleImageChange}
             style={{ display: 'none' }}
           />
-          <i className="fa fa-image"></i> 选择图片
+          选择图片
         </label>
         {selectedImage && (
           <span className="selected-file-name">

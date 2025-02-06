@@ -475,13 +475,6 @@ button:hover {
   margin-bottom: 20px;
 }
 
-
-.image-upload-container .custom-file-upload:hover {
-  background: #bdc3ca;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
 /* 响应式调整 */
 @media (max-width: 768px) {
   .image-gallery {
