@@ -56,8 +56,8 @@ function SharedClipboard() {
 
     getDeviceInfo();
     fetchClips();
-    const interval = setInterval(fetchClips, 5000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchClips, 5000);
+    // return () => clearInterval(interval);
   }, []);
 
   const fetchClips = async () => {
