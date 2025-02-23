@@ -6,14 +6,14 @@ const fsSync = require('fs');
 const fs = require('fs/promises');
 const logger = require('../config/logger')
 
-const imageDir = '../../uploads/images';
+const uploadDir = path.join(process.cwd(), 'uploads/images');
 
 // 配置图片存储
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, imageDir);
     // 确保上传目录存在
     if (!fsSync.existsSync(uploadDir)) {
+      logger.info('[imageRoutes] create uploads/image')
       fsSync.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
@@ -21,7 +21,9 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     // 生成唯一文件名
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const imgName = uniqueSuffix + path.extname(file.originalname);
+    logger.info('generate image: ' + imgName)
+    cb(null, imgName);
   }
 });
 
@@ -61,7 +63,7 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
 // 获取图片列表
 router.get('/images', async (req, res) => {
   try {
-    const imageDir = path.join(__dirname, '../../uploads/images');
+    const imageDir = path.join(uploadDir);
     if (!fsSync.existsSync(imageDir)) {
       return res.json([]);
     }
@@ -83,7 +85,7 @@ router.get('/images', async (req, res) => {
 router.get('/images/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    const imagePath = path.join(__dirname, imageDir, filename);
+    const imagePath = path.join(uploadDir, filename);
 
     if (!fsSync.existsSync(imagePath)) {
       return res.status(404).json({ message: '图片不存在' });
@@ -100,7 +102,7 @@ router.get('/images/:filename', (req, res) => {
 router.get('/images/download/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    const imagePath = path.join(__dirname, imageDir, filename);
+    const imagePath = path.join(uploadDir, filename);
 
     if (!fsSync.existsSync(imagePath)) {
       return res.status(404).json({ message: '图片不存在' });
