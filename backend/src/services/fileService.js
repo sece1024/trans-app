@@ -1,4 +1,7 @@
+const logger = require('pino')();
+const path = require('path');
 const fs = require('fs');
+const outputDir = path.join(process.cwd(), 'uploads');
 
 class FileService {
   constructor() {
@@ -7,8 +10,8 @@ class FileService {
   }
 
   ensureUploadDirectory() {
-    if (!fs.existsSync('uploads/')) {
-      fs.mkdirSync('uploads/');
+    if (!fs.existsSync(outputDir)) {
+      logger.info('output dir not exist');
     }
   }
 

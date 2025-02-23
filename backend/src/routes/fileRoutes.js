@@ -5,6 +5,7 @@ const fileService = require('../services/fileService');
 const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
+const logger = require('../config/logger');
 
 // 文件上传路由
 router.post('/upload', upload.single('file'), (req, res) => {
@@ -21,7 +22,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
       fileId: fileInfo.originalName
     });
   } catch (error) {
-    console.error('文件上传错误:', error);
+    logger.error('文件上传错误:', error);
     res.status(500).json({ 
       message: '文件上传失败', 
       error: error.message 
@@ -81,7 +82,7 @@ router.get('/files/:fileId/preview', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('预览文件失败:', error);
+    logger.error('预览文件失败:', error);
     res.status(500).json({ 
       message: '预览文件失败', 
       error: error.message 
@@ -107,7 +108,7 @@ router.get('/download/:fileName', async (req, res) => {
     const fileStream = fsSync.createReadStream(filePath);
     fileStream.pipe(res);
   } catch (error) {
-    console.error('下载文件时出错:', error);
+    logger.error('下载文件时出错:', error);
     res.status(500).json({ message: '下载文件失败' });
   }
 });

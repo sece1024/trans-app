@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fsSync = require('fs');
 const fs = require('fs/promises');
+const logger = require('../config/logger')
 
 const imageDir = '../../uploads/images';
 
@@ -52,7 +53,7 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
       originalName: req.file.originalname
     });
   } catch (error) {
-    console.error('上传图片时出错:', error);
+    logger.error('上传图片时出错:', error);
     res.status(500).json({ message: '上传图片失败' });
   }
 });
@@ -73,7 +74,7 @@ router.get('/images', async (req, res) => {
 
     res.json(images);
   } catch (error) {
-    console.error('获取图片列表时出错:', error);
+    logger.error('获取图片列表时出错:', error);
     res.status(500).json({ message: '获取图片列表失败' });
   }
 });
@@ -90,7 +91,7 @@ router.get('/images/:filename', (req, res) => {
 
     res.sendFile(imagePath);
   } catch (error) {
-    console.error('获取图片时出错:', error);
+    logger.error('获取图片时出错:', error);
     res.status(500).json({ message: '获取图片失败' });
   }
 });
@@ -113,7 +114,7 @@ router.get('/images/download/:filename', (req, res) => {
     const fileStream = fsSync.createReadStream(imagePath);
     fileStream.pipe(res);
   } catch (error) {
-    console.error('下载图片时出错:', error);
+    logger.error('下载图片时出错:', error);
     res.status(500).json({ message: '下载图片失败' });
   }
 });

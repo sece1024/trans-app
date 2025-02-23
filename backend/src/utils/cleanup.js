@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('../config/logger')
 
 class CleanupService {
   constructor(fileService) {
@@ -31,9 +32,9 @@ class CleanupService {
   deleteFile(filePath) {
     fs.unlink(filePath, (err) => {
       if (err) {
-        console.error(`删除文件失败: ${filePath}`, err);
+        logger.error(`删除文件失败: ${filePath}`, err);
       } else {
-        console.log(`已删除过期文件: ${filePath}`);
+        logger.info(`已删除过期文件: ${filePath}`);
       }
     });
   }
@@ -41,7 +42,7 @@ class CleanupService {
   cleanupOrphanedFiles() {
     fs.readdir('uploads/', (err, files) => {
       if (err) {
-        console.error('读取目录失败:', err);
+        logger.error('读取目录失败:', err);
         return;
       }
 
@@ -62,7 +63,7 @@ class CleanupService {
   checkAndDeleteOrphanedFile(filePath, uploadedFiles, now) {
     fs.stat(filePath, (err, stats) => {
       if (err) {
-        console.error(`获取文件状态失败: ${filePath}`, err);
+        logger.error(`获取文件状态失败: ${filePath}`, err);
         return;
       }
 
