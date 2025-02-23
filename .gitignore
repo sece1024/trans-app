@@ -2,3 +2,5 @@ node_modules/
 frontend/build/
 backend/node_modules/
 backend/uploads/
+backend/trans-*
+backend/trans
