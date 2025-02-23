@@ -1,6 +1,6 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
+  "name": "trans",
+  "version": "0.0.1",
   "engines": {
     "node": ">=22.13.1"
   },
@@ -25,7 +25,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pkg .",
+    "build": "pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-x64",
+    "build:debug": "pkg . --debug",
     "build:linux": "pkg . --targets node18-linux-x64"
   },
   "keywords": [],
