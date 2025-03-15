@@ -55,10 +55,6 @@ function FileUpload() {
   const handleDownload = async (fileName) => {
     try {
       const response = await fetch(`${basePath}/${fileName}`);
-      if (!response.ok) {
-        throw new Error('下载失败');
-      }
-      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -73,6 +69,18 @@ function FileUpload() {
     }
   };
 
+  const handleDelete = async (fileName) => {
+    try {
+      await fetch(`${basePath}/${fileName}`, {
+        method: 'DELETE'
+      });
+
+      fetchUploadedFiles();
+    }catch (error) {
+      console.error(error);
+    }
+  }
+
   return (
     <div className="page-container">
       <h1>文件上传</h1>
@@ -81,9 +89,9 @@ function FileUpload() {
           <label className="file-input-button" htmlFor="fileInput">
             选择文件
           </label>
-          <input 
-            type="file" 
-            id="fileInput" 
+          <input
+            type="file"
+            id="fileInput"
             onChange={handleFileChange}
           />
           {fileName && <div className="selected-file">已选择: {fileName}</div>}
@@ -108,14 +116,18 @@ function FileUpload() {
                 >
                   {file.name}
                 </span>
-                <span className="file-date">
+                <span className="file-operation">
                   {file.sizeInMB} MB
+                  <button
+                      className="file-delete-button"
+                      onClick={() => handleDelete(file.name)}>delete</button>
                 </span>
+
               </li>
             ))}
           </ul>
         ) : (
-          <p>暂无上传文件</p>
+            <p>暂无上传文件</p>
         )}
       </div>
     </div>

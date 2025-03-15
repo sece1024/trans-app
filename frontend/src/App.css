@@ -210,7 +210,7 @@ button:hover {
 
 .clipboard-text {
   flex: 1;
-  text-align: 'center'
+  text-align: center
 }
 
 .clipboard-delete {
@@ -274,6 +274,7 @@ button:hover {
   border-radius: 10px;
   padding: 30px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  min-width: 680px;
 }
 
 .page-container h1 {
@@ -402,12 +403,21 @@ button:hover {
   border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
-.file-date {
+.file-operation {
   color: #666;
-  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.file-delete-button {
+  background: #b16969;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
 .image-upload-container {

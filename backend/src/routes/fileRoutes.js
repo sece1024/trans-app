@@ -128,4 +128,22 @@ router.get('/download/:fileName', async (req, res) => {
     }
 });
 
+router.delete('/files/:fileName', async (req, res) => {
+    try {
+        const fileName = req.params.fileName;
+        const filePath = path.join(uploadDir, fileName);
+
+        if (!fsSync.existsSync(filePath)) {
+            return res.status(404).json({message: 'file not found'});
+        }
+
+        await fs.unlink(filePath);
+
+        res.json({message: 'file deleted successfully'});
+    }catch (error) {
+        logger.error('delete file failed:', error);
+        res.status(500).json({message: 'delete file failed'});
+    }
+})
+
 module.exports = router; 
