@@ -7,19 +7,19 @@ const clipboardRoutes = require('./routes/clipboardRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const path = require('path');
-const fs = require('fs')
-const printDir = require('./utils/tool');
+require('dotenv').config();
 const logger = require('./config/logger');
 
 if (process.pkg) {
-  logger.info("应用正在运行在打包后的环境中");
+  logger.info("Server is running in production mode");
 } else {
-  logger.info("应用在开发环境中运行");
+  logger.info("Server is running in development mode");
 }
 
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5001;
+logger.info(`process.env.PORT: ${process.env.PORT}`);
 
 const staticDir = path.join(__dirname, '../../frontend', 'build');
 
@@ -37,10 +37,6 @@ app.use('/api', systemRoutes);
 app.use('/api', imageRoutes); 
 
 
-// 所有未匹配的路由返回 index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(staticDir, 'index.html'));
-});
 
 // 基础路由
 app.get('/api', (req, res) => {
@@ -50,6 +46,12 @@ app.get('/api', (req, res) => {
 // 初始化清理服务
 const cleanupService = new CleanupService(fileService);
 cleanupService.startCleanupTask();
+
+// 所有未匹配的路由返回 index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(staticDir, 'index.html'));
+});
+
 
 // 启动服务器
 app.listen(PORT, () => {

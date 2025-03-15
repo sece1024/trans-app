@@ -12,6 +12,9 @@ const logger = pino({
         options: {
             colorize: true,
             ignore: 'pid,hostname', // 可选：忽略某些字段
+            messageFormat: '{msg}',
+            singleLine: true,
+            translateTime: true
         },
     },
 })
