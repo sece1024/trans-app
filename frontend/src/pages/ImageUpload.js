@@ -22,6 +22,17 @@ function ImageUpload() {
         }
     }, []);
 
+    const handleDeleteImage = useCallback(async (filename) => {
+        try {
+            await fetch(`/api/images/${filename}`, {
+                method: 'DELETE'
+            });
+            getImageList();
+        }catch (error) {
+            console.error(error);
+        }
+    }, []);
+
     const handleImageChange = (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith('image/')) {
@@ -117,7 +128,8 @@ function ImageUpload() {
                             />
                         </div>
                         <div className="image-info">
-                            <p className="image-name">{image.originalName}</p>
+                            <span className="image-name">{image.originalName}</span>
+                            <button className="file-delete-button" onClick={() => handleDeleteImage(image.originalName)}>delete</button>
                         </div>
                     </div>
                 ))}

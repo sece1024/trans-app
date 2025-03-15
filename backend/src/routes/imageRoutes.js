@@ -119,4 +119,18 @@ router.get('/images/download/:filename', (req, res) => {
     }
 });
 
+router.delete('/images/:filename', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const imagePath = path.join(uploadDir, filename);
+        if (!fsSync.existsSync(imagePath)) {
+            return res.status(404).json({message: 'image not found'});
+        }
+        await fs.unlink(imagePath);
+        res.json({message:'image deleted successfully'});
+        }catch (error){
+        logger.error('delete image error:', error);
+        res.status(500).json({message: 'delete image failed'});
+    }
+})
 module.exports = router; 

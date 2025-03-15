@@ -481,10 +481,13 @@ button:hover {
 
 .image-info {
   padding: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .image-name {
-  margin: 0 0 10px 0;
   font-size: 0.9em;
   color: #333;
   white-space: nowrap;
