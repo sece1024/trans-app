@@ -14,10 +14,7 @@
     ],
     "assets": [
       "../frontend/build/**/*",
-      "uploads/**/*",
-      "node_modules/pino/**/*",
-      "node_modules/thread-stream/**/*",
-      "node_modules/pino-pretty/**/*"
+      "node_modules/sqlite3/**/*"
     ],
     "output": "dist"
   },
@@ -39,8 +36,6 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
-    "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0",
     "sequelize": "^6.37.6",
     "sqlite3": "^5.1.7"
   },

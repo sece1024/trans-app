@@ -2,20 +2,21 @@ const logger = require('../config/logger');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const printDir = require('../utils/tool');
-const outputDir = path.join(process.cwd(), 'uploads');
+const fsSync = require("fs");
+const outputDir = path.join(process.cwd(), 'data/uploads/files');
 
 // 确保上传目录存在
 const uploadDir = outputDir;
-if (!fs.existsSync(uploadDir)) {
-  logger.warn('[multer]: create dir ', uploadDir)
-  fs.mkdirSync(uploadDir, { recursive: true });
-} else {
-  printDir(outputDir);
-}
 
 const storage = multer.diskStorage({
-  destination: uploadDir,
+  destination: function (req, file, cb) {
+    // 确保上传目录存在
+    if (!fsSync.existsSync(uploadDir)) {
+      logger.info('[multer] create: ' + uploadDir)
+      fsSync.mkdirSync(uploadDir, {recursive: true});
+    }
+    cb(null, uploadDir);
+  },
   filename: function (req, file, cb) {
     // 获取原始文件名（UTF-8编码）
     const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
@@ -25,7 +26,7 @@ const storage = multer.diskStorage({
     if (fs.existsSync(filePath)) {
       // 如果存在，先删除旧文件
       fs.unlinkSync(filePath);
-      console.log(`已删除旧文件: ${originalName}`);
+      console.log(`delete existed file: ${originalName}`);
     }
 
     // 使用原始文件名保存新文件
@@ -35,4 +36,4 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-module.exports = upload; 
+module.exports = {upload, uploadDir};

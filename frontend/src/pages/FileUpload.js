@@ -4,6 +4,7 @@ function FileUpload() {
   const [message, setMessage] = useState('');
   const [fileName, setFileName] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const basePath = '/api/files'
 
   const handleUpload = async () => {
     const file = document.getElementById('fileInput').files[0];
@@ -16,7 +17,7 @@ function FileUpload() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/upload', {
+      const response = await fetch(`${basePath}/upload`, {
         method: 'POST',
         body: formData
       });
@@ -31,7 +32,7 @@ function FileUpload() {
 
   const fetchUploadedFiles = async () => {
     try {
-      const response = await fetch('/api/files');
+      const response = await fetch(`${basePath}`);
       const data = await response.json();
       console.log('fetchUploadedFiles: ', data);
       setUploadedFiles(data);
@@ -53,7 +54,7 @@ function FileUpload() {
 
   const handleDownload = async (fileName) => {
     try {
-      const response = await fetch(`/api/download/${fileName}`);
+      const response = await fetch(`${basePath}/${fileName}`);
       if (!response.ok) {
         throw new Error('下载失败');
       }
@@ -102,13 +103,13 @@ function FileUpload() {
               <li key={index}>
                 <span 
                   className="file-name" 
-                  onClick={() => handleDownload(file.originalName)}
+                  onClick={() => handleDownload(file.name)}
                   style={{ cursor: 'pointer' }}
                 >
-                  {file.originalName}
+                  {file.name}
                 </span>
                 <span className="file-date">
-                  {new Date(file.uploadTime).toLocaleString()}
+                  {file.sizeInMB} MB
                 </span>
               </li>
             ))}
