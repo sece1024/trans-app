@@ -1,0 +1,14 @@
+@host = http://localhost:5001
+
+### hello
+GET {{host}}/api
+### clipboard
+GET {{host}}/api/clipboard
+
+### get files
+GET {{host}}/api/files
+
+
+### get images
+GET {{host}}/api/images
+

@@ -1,0 +1,7 @@
+### add text to clipboard
+POST http://localhost:5001/api/clipboard
+Content-Type: application/json
+
+{
+    "text": "Hello, world!"
+}
