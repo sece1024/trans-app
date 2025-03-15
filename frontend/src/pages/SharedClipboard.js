@@ -77,22 +77,22 @@ function SharedClipboard() {
     }
 
     try {
-      const response = await fetch('/api/clipboard', {
+      await fetch('/api/clipboard', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: clipText,
-          deviceInfo 
+          deviceInfo
         })
       });
-      const data = await response.json();
-      setClips(data);
       setClipText('');
       setMessage('文本已分享');
     } catch (error) {
       setMessage('分享失败: ' + error.message);
+    } finally {
+      fetchClips();
     }
   };
 
@@ -113,7 +113,7 @@ function SharedClipboard() {
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
           document.execCommand('copy');
           textArea.remove();
@@ -132,6 +132,17 @@ function SharedClipboard() {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const handleDeleteContent = async (id) => {
+    try {
+      await fetch('/api/clipboard/' + id, {
+        method: 'DELETE'
+      });
+      fetchClips();
+    } catch (error) {
+      console.error('获取剪贴板内容失败:', error);
+    }
+  }
+
   return (
     <div className="page-container">
       <h1>共享剪贴板</h1>
@@ -148,19 +159,22 @@ function SharedClipboard() {
         <div className="clipboard-list">
           {clips.map((clip, index) => (
             <div key={index} className="clipboard-item">
-              <pre 
-                className="clipboard-text"
-                onClick={() => handleCopy(clip.text)}
+              <pre
+                className="clipboard-box"
                 style={{ cursor: 'pointer' }}
-                title="点击复制"
+                title="click to copy"
               >
-                {clip.text}
+                <div
+                  className='clipboard-text'
+                  onClick={() => handleCopy(clip.content)}
+                >{clip.content}</div>
+                <button className='clipboard-delete' onClick={() => handleDeleteContent(clip.id)}>delete</button>
               </pre>
               <div className="clipboard-info">
                 <div className="info-left">
                   <span className="device-info">{clip.deviceInfo}</span>
                   <span className="time-info">
-                    {new Date(clip.createTime).toLocaleString()}
+                    {new Date(clip.createdAt).toLocaleString()}
                   </span>
                 </div>
               </div>

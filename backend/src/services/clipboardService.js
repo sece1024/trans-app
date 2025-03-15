@@ -1,31 +1,36 @@
+const Content = require("../db/Content");
+const logger = require('../config/logger')
+
 class ClipboardService {
-  constructor() {
-    this.clips = [];
-    this.maxClips = 100;
-  }
+  async saveTextContent(content, type, deviceInfo) {
+    try {
+      const contentItem = await Content.create({
+        content,
+        type,
+        deviceInfo
+      });
 
-  // 添加新的剪贴内容
-  addClip(text, clientId, deviceInfo) {
-    const clipInfo = {
-      text,
-      clientId,
-      deviceInfo,
-      createTime: new Date()
-    };
-    
-    // 添加到数组开头
-    this.clips.unshift(clipInfo);
-    
-    if (this.clips.length > this.maxClips) {
-      this.clips.pop();  // 删除最老的内容
+      return contentItem;
+    } catch (error) {
+      throw new Error('Failed to save clipBoard');
     }
-    
-    return this.clips;
   }
 
-  // 获取所有剪贴内容
-  getAllClips() {
-    return this.clips;
+  async getTextHistory() {
+    try {
+      const history = await Content.findAll();
+      return history;
+    } catch (error) {
+      throw new Error('Failed to get clipBoard history!')
+    }
+  }
+
+  async delete(contentId) {
+    try {
+      return await Content.destroy({ where: { id: contentId } });
+    } catch (error) {
+      throw new Error('failed to delete: ' + contentId);
+    }
   }
 }
 

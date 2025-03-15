@@ -1,0 +1,4 @@
+@host = http://localhost:5001
+
+### delete content
+DELETE  {{host}}/api/clipboard/6a707139-daea-4644-afec-f3214823a57b

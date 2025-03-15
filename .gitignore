@@ -4,3 +4,5 @@ backend/node_modules/
 backend/uploads/
 backend/trans-*
 backend/trans
+backend/data
+data
