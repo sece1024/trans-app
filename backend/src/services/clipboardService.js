@@ -1,4 +1,4 @@
-const Content = require("../db/Content");
+const Content = require("../db/ContentItem");
 const logger = require('../config/logger')
 
 class ClipboardService {

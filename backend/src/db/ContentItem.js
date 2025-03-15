@@ -1,13 +1,13 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('./database');
 
-const Content = sequelize.define('Content', {
+const ContentItem = sequelize.define('Content', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
         allowNull: false,
-        comment: 'Content ID'
+        comment: 'ContentItem ID'
     },
     content: {
         type: DataTypes.TEXT,
@@ -30,4 +30,4 @@ const Content = sequelize.define('Content', {
     }
 });
 
-module.exports = Content;
+module.exports = ContentItem;

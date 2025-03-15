@@ -3,20 +3,20 @@ import React, { useState, useEffect } from 'react';
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [message, setMessage] = useState('');
-  const [images, setImages] = useState([]);
+  const [imageList, setImageList] = useState([]);
 
   useEffect(() => {
-    fetchImages();
+    getImageList();
   }, []);
 
-  const fetchImages = async () => {
+  const getImageList = async () => {
     try {
       const response = await fetch('/api/images');
       if (!response.ok) {
         throw new Error('获取图片列表失败');
       }
       const data = await response.json();
-      setImages(data);
+      setImageList(data);
     } catch (error) {
       setMessage('获取图片列表失败: ' + error.message);
     }
@@ -41,19 +41,15 @@ function ImageUpload() {
     formData.append('image', selectedImage);
 
     try {
-      const response = await fetch('/api/upload-image', {
+      const response = await fetch('/api/images/upload', {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('上传失败');
-      }
-
-      const data = await response.json();
+      await response.json();
       setMessage('图片上传成功');
       setSelectedImage(null);
-      fetchImages(); // 刷新图片列表
+      await getImageList();
     } catch (error) {
       setMessage('上传失败: ' + error.message);
     }
@@ -103,7 +99,7 @@ function ImageUpload() {
       {message && <p className="message">{message}</p>}
       
       <div className="image-gallery">
-        {images.map((image, index) => (
+        {imageList.map((image, index) => (
           <div key={index} className="image-card">
             <div className="image-wrapper">
               <img 
