@@ -12,10 +12,10 @@ const ContentItem = sequelize.define('Content', {
     content: {
         type: DataTypes.TEXT,
         allowNull: false,
-        comment: 'Text Contenti or Image Path'
+        comment: 'Text Content or Image Path'
     },
     type: {
-        type: DataTypes.STRING, // 可以是 'text', 'image' 等
+        type: DataTypes.STRING,
         allowNull: false,
         comment: 'Text or Image'
     },

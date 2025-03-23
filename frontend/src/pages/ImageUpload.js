@@ -12,9 +12,7 @@ function ImageUpload() {
     const getImageList = useCallback(async () => {
         try {
             const response = await fetch('/api/images');
-            if (!response.ok) {
-                throw new Error('获取图片列表失败');
-            }
+
             const data = await response.json();
             setImageList(data);
         } catch (error) {
@@ -69,9 +67,6 @@ function ImageUpload() {
     const handleImageDownload = async (filename, originalName) => {
         try {
             const response = await fetch(`/api/images/download/${filename}`);
-            if (!response.ok) {
-                throw new Error('下载失败');
-            }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);

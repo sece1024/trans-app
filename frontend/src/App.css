@@ -535,3 +535,9 @@ button:hover {
     background-position: -200% 0;
   }
 }
+
+.loading-spinner {
+  display: inline-block;
+  margin-left: 10px;
+  color: #999;
+}

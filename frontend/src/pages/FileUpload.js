@@ -4,6 +4,7 @@ function FileUpload() {
   const [message, setMessage] = useState('');
   const [fileName, setFileName] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(false); // 添加 isLoading 状态
   const basePath = '/api/files'
 
   const handleUpload = async () => {
@@ -16,6 +17,8 @@ function FileUpload() {
     const formData = new FormData();
     formData.append('file', file);
 
+    setIsLoading(true); // 开始上传时设置为 true
+
     try {
       const response = await fetch(`${basePath}/upload`, {
         method: 'POST',
@@ -27,6 +30,8 @@ function FileUpload() {
       fetchUploadedFiles();
     } catch (error) {
       setMessage('上传失败: ' + error.message);
+    } finally {
+      setIsLoading(false); // 上传完成后设置为 false
     }
   };
 
@@ -96,7 +101,10 @@ function FileUpload() {
           />
           {fileName && <div className="selected-file">已选择: {fileName}</div>}
         </div>
-        <button onClick={handleUpload}>上传文件</button>
+        <button onClick={handleUpload} disabled={isLoading}>
+          {isLoading ? '上传中...' : '上传文件'}
+        </button>
+        {isLoading && <div className="loading-spinner">Loading...</div>} {/* 添加 loading 样式 */}
       </div>
       {message && (
         <div className="message">
@@ -122,7 +130,6 @@ function FileUpload() {
                       className="file-delete-button"
                       onClick={() => handleDelete(file.name)}>delete</button>
                 </span>
-
               </li>
             ))}
           </ul>
