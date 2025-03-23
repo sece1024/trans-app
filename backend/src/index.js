@@ -9,6 +9,8 @@ require('dotenv').config();
 const logger = require('./config/logger');
 const sequelize = require('./db/database');
 
+require("./services/socket");
+
 const PORT = process.env.PORT || 5001;
 
 // Sync Database
