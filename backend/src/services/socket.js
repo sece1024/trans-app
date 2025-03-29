@@ -1,10 +1,6 @@
 const logger = require('../config/logger');
-const os = require('os');
-const dgram = require('dgram');
 const WebSocket = require('ws');
-const { get } = require('lodash');
 const clipboardService = require('./clipboardService');
-const dgramSocket = dgram.createSocket('udp4');
 const serverInfo = require('../utils/internet').internetInfos;
 const myIPs = serverInfo.map((s) => s.address);
 const otherIPList = [];
@@ -42,25 +38,36 @@ function validateFiles(files) {
   return true;
 }
 
-// const message = {
-//     type: 'file', // 消息类型：file/text/json/array等
-//     data: fileBuffer, // 实际数据（可以是Buffer/字符串/对象）
-//     meta: {fileName: 'test.jpg'} // 可选元数据
-// };
-
 // UDP
 const broadcastMyIP = (localData) => {
+  const dgram = require('dgram');
   const dgramSocket = dgram.createSocket('udp4');
-  dgramSocket.bind(() => {
+  dgramSocket.on('message', (data, rinfo) => {
+    console.log(`[${new Date().toISOString()}] 来自 ${rinfo.address}:${rinfo.port} 的消息:`);
+    const parsed = JSON.parse(data.toString());
+    if (parsed.type === 'sync') {
+      const remoteIp = parsed.ip;
+      if (remoteIp.join(',') !== localData.ip.join(',')) {
+        const remoteData = parsed.data;
+        syncRemoteData(remoteData, remoteIp);
+      }
+    }
+  });
+  // 监听错误事件
+  dgramSocket.on('error', (err) => {
+    console.error(`服务器错误:\n${err.stack}`);
+    dgramSocket.close();
+  });
+
+  dgramSocket.bind(8888, () => {
+    console.log('监听UDP广播端口: 8888');
     dgramSocket.setBroadcast(true);
-    let data = JSON.stringify({ ...localData, type: 'sync' });
-    console.log(data);
-    dgramSocket.send(data, PORT, BROADCAST_ADDRESS, (err) => {
+    let data = { ...localData, type: 'sync' };
+    dgramSocket.send(Buffer.from(JSON.stringify(data)), PORT, BROADCAST_ADDRESS, (err) => {
       if (err) {
         logger.error(`broadcast failed: ${err}`);
       } else {
         logger.info(`broadcast address: ${BROADCAST_ADDRESS}:${PORT}`);
-        dgramSocket.close();
       }
     });
   });
@@ -114,6 +121,16 @@ const handleUpload = (ws, uploadData) => {
   }
 };
 
+function syncRemoteData(remoteData, remoteIp) {
+  logger.info(remoteData);
+  if (remoteIp && remoteData) {
+    logger.info(`save remote data: ${remoteData}`);
+    shared.sharedData.set(remoteIp, remoteData);
+  } else {
+    logger.warn('invalid remote data, not to save');
+  }
+}
+
 // wss
 const startWebSocketServer = () => {
   const wss = new WebSocket.Server({ port: PORT });
@@ -141,13 +158,7 @@ const startWebSocketServer = () => {
       } else if (parsed.type === 'sync') {
         const remoteIp = parsed.ip;
         const remoteData = parsed.data;
-        logger.info(remoteData);
-        if (remoteIp && remoteData) {
-          logger.info(`save remote data: ${remoteData}`);
-          shared.sharedData.set(remoteIp, remoteData);
-        } else {
-          logger.warn('invalid remote data, not to save');
-        }
+        syncRemoteData(remoteData, remoteIp);
       } else {
         logger.info('other message');
       }
