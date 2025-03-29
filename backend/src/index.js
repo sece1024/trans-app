@@ -10,6 +10,8 @@ const logger = require('./config/logger');
 const sequelize = require('./db/database');
 
 require("./services/socket");
+// test code
+require("../test/udp-client")
 
 const PORT = process.env.PORT || 5001;
 

@@ -3,7 +3,6 @@ const os = require('os');
 const dgram = require('dgram');
 const WebSocket = require('ws');
 const dgramSocket = dgram.createSocket('udp4');
-const fs = require('fs');
 
 const PORT = process.env.SOCKET_PORT;
 const BROADCAST_ADDRESS = process.env.SOCKET_BOARD_CAST;
@@ -35,6 +34,7 @@ function getLocalIP() {
     for (const iface of Object.values(interfaces)) {
         for (const config of iface) {
             if (config.family === 'IPv4' && !config.internal) {
+                logger.info(`IPv4: ${config.address}`)
                 return config.address;
             }
         }
@@ -46,15 +46,16 @@ const serverIP = getLocalIP();
 
 
 // UDP
-const broadcastMyIP = () => {
+const broadcastMyIP =  () => {
     const dgramSocket = dgram.createSocket('udp4');
+    const serverInfo = require('../utils/internet').getInternetInfos();
     dgramSocket.bind(() => {
         dgramSocket.setBroadcast(true);
-        dgramSocket.send('test123', 8889, BROADCAST_ADDRESS, (err) => {
+        dgramSocket.send(JSON.stringify(serverInfo), PORT, BROADCAST_ADDRESS, (err) => {
             if (err) {
                 logger.error(`broadcast failed: ${err}`)
             } else {
-                logger.info(`broadcast address: ${serverIP}`);
+                logger.info(`broadcast address: ${BROADCAST_ADDRESS}:${PORT}`);
                 dgramSocket.close();
             }
         })
@@ -71,6 +72,10 @@ const startWebSocketServer = () => {
         ws.on('message', (data) => {
             logger.info(`Received message: ${data}`);
         })
+    })
+
+    wss.on('message', (data) => {
+        logger.info(`Received message: ${data}`);
     })
 }
 
