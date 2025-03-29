@@ -1,10 +1,14 @@
+const logger = require('../config/logger');
+const os = require('os');
 const dgram = require('dgram');
-const socket = dgram.createSocket('udp4');
+const WebSocket = require('ws');
+const dgramSocket = dgram.createSocket('udp4');
+const fs = require('fs');
 
 const PORT = process.env.SOCKET_PORT;
-const ADDRESS = process.env.SOCKET_BOARD_CAST;
+const BROADCAST_ADDRESS = process.env.SOCKET_BOARD_CAST;
 
-console.log('Start socket listener');
+console.log('Start dgramSocket listener');
 
 function validateIP(ip) {
     // 使用正则表达式校验 IP 地址
@@ -25,72 +29,94 @@ function validateFiles(files) {
     return true;
 }
 
-// 获取本机 IP 地址
+// 获取本机 IPv4 地址
 function getLocalIP() {
-    const os = require('os');
-    const networkInterfaces = os.networkInterfaces();
-    for (const interfaceName in networkInterfaces) {
-        const interfaces = networkInterfaces[interfaceName];
-        for (const iface of interfaces) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address;
+    const interfaces = os.networkInterfaces();
+    for (const iface of Object.values(interfaces)) {
+        for (const config of iface) {
+            if (config.family === 'IPv4' && !config.internal) {
+                return config.address;
             }
         }
     }
-    return '127.0.0.1'; // 如果没有找到，返回本地回环地址
+    return '127.0.0.1';
 }
 
-// 获取本机文件信息 (示例)
-function getLocalFiles() {
-    return [
-        { name: 'file1.txt', size: 1024, hash: 'abcdef1234567890' },
-        { name: 'file2.jpg', size: 2048, hash: 'fedcba0987654321' },
-    ];
+const serverIP = getLocalIP();
+
+
+// UDP
+const broadcastMyIP = () => {
+    const dgramSocket = dgram.createSocket('udp4');
+    dgramSocket.bind(() => {
+        dgramSocket.setBroadcast(true);
+        dgramSocket.send('test123', 8889, BROADCAST_ADDRESS, (err) => {
+            if (err) {
+                logger.error(`broadcast failed: ${err}`)
+            } else {
+                logger.info(`broadcast address: ${serverIP}`);
+                dgramSocket.close();
+            }
+        })
+    });
 }
 
-socket.on('message', (message, remote) => {
-    try {
-        console.log('original message: ', message.toString())
-        const data = JSON.parse(message.toString());
-        // 进行数据校验
-        if (validateIP(data.ip)) {
-            console.log('Received valid broadcast from:', remote.address);
-            // 构造回应消息
-            const response = {
-                ip: getLocalIP(),
-                files: getLocalFiles(),
-            };
-            const responseMessage = Buffer.from(JSON.stringify(response));
+// wss
+const startWebSocketServer = () => {
+    const wss = new WebSocket.Server({port: PORT});
+    logger.info(`Starting websocket server listening on port ${PORT}`);
 
-            // 发送回应消息
-            socket.send(responseMessage, remote.port, remote.address, (err) => {
-                if (err) {
-                    console.error('Error sending response:', err);
-                } else {
-                    console.log('Response sent to:', remote.address);
-                }
-            });
-        } else {
-            console.log('Received invalid data:', data);
-        }
-    } catch (error) {
-        console.error('Invalid JSON data:', message.toString());
-    }
-});
+    wss.on('connection', (ws) => {
+        logger.info('client connected');
+        ws.on('message', (data) => {
+            logger.info(`Received message: ${data}`);
+        })
+    })
+}
 
-socket.on('listening', () => {
-    const address = socket.address();
-    console.log(`UDP server listening on ${address.address}:${address.port}`);
-    socket.setBroadcast(true);
-});
 
-socket.on('error', (err) => {
-    console.log(`UDP server error:\n${err.stack}`);
-    socket.close();
-});
+// dgramSocket.on('message', (message, remote) => {
+//     try {
+//         console.log('original message: ', message.toString())
+//         const data = JSON.parse(message.toString());
+//         // 进行数据校验
+//         if (validateIP(data.ip)) {
+//             console.log('Received valid broadcast from:', remote.address);
+//             // 构造回应消息
+//             const response = {
+//                 ip: getLocalIP(),
+//                 files: getLocalFiles(),
+//             };
+//             const responseMessage = Buffer.from(JSON.stringify(response));
+//
+//             // 发送回应消息
+//             dgramSocket.send(responseMessage, remote.port, remote.address, (err) => {
+//                 if (err) {
+//                     console.error('Error sending response:', err);
+//                 } else {
+//                     console.log('Response sent to:', remote.address);
+//                 }
+//             });
+//         } else {
+//             console.log('Received invalid data:', data);
+//         }
+//     } catch (error) {
+//         console.error('Invalid JSON data:', message.toString());
+//     }
+// });
+//
+// dgramSocket.on('listening', () => {
+//     const address = dgramSocket.address();
+//     console.log(`UDP server listening on ${address.address}:${address.port}`);
+//     dgramSocket.setBroadcast(true);
+// });
+//
+// dgramSocket.on('error', (err) => {
+//     console.log(`UDP server error:\n${err.stack}`);
+//     dgramSocket.close();
+// });
 
-socket.bind(PORT, ADDRESS);
+broadcastMyIP();
+startWebSocketServer();
 
-// 在适当的时候调用 socket.close();
-
-module.exports = socket;
+module.exports = dgramSocket;
