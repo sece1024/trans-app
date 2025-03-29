@@ -1,5 +1,5 @@
-const Content = require("../db/ContentItem");
-const logger = require('../config/logger')
+const Content = require('../db/ContentItem');
+const internet = require('../utils/internet');
 
 class ClipboardService {
   async saveTextContent(content, type, deviceInfo) {
@@ -7,7 +7,7 @@ class ClipboardService {
       const contentItem = await Content.create({
         content,
         type,
-        deviceInfo
+        deviceInfo,
       });
 
       return contentItem;
@@ -21,7 +21,7 @@ class ClipboardService {
       const history = await Content.findAll();
       return history;
     } catch (error) {
-      throw new Error('Failed to get clipBoard history!')
+      throw new Error('Failed to get clipBoard history!');
     }
   }
 
@@ -34,4 +34,4 @@ class ClipboardService {
   }
 }
 
-module.exports = new ClipboardService(); 
+module.exports = new ClipboardService();

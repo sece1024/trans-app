@@ -2,7 +2,7 @@ const logger = require('../config/logger');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const fsSync = require("fs");
+const fsSync = require('fs');
 const outputDir = path.join(process.cwd(), 'data/uploads/files');
 
 // 确保上传目录存在
@@ -12,8 +12,8 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // 确保上传目录存在
     if (!fsSync.existsSync(uploadDir)) {
-      logger.info('[multer] create: ' + uploadDir)
-      fsSync.mkdirSync(uploadDir, {recursive: true});
+      logger.info('[multer] create: ' + uploadDir);
+      fsSync.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
@@ -31,9 +31,9 @@ const storage = multer.diskStorage({
 
     // 使用原始文件名保存新文件
     cb(null, originalName);
-  }
+  },
 });
 
 const upload = multer({ storage: storage });
 
-module.exports = {upload, uploadDir};
+module.exports = { upload, uploadDir };

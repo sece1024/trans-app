@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const clipboardService = require('../services/clipboardService');
-const logger = require('../config/logger')
+const internet = require('../utils/internet');
 
 router.post('/clipboard', async (req, res) => {
   try {
@@ -27,15 +27,14 @@ router.get('/clipboard', async (req, res) => {
   }
 });
 
-
 router.delete('/clipboard/:contentId', async (req, res) => {
   try {
     const contentId = req.params.contentId;
     const result = await clipboardService.delete(contentId);
-    res.json(result)
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Delete failed', error: error.message })
+    res.status(500).json({ message: 'Delete failed', error: error.message });
   }
-})
+});
 
-module.exports = router; 
+module.exports = router;

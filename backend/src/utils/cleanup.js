@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const logger = require('../config/logger')
+const logger = require('../config/logger');
 
 class CleanupService {
   constructor(fileService) {
@@ -54,7 +54,7 @@ class CleanupService {
     const now = Date.now();
     const uploadedFiles = this.fileService.getUploadedFiles();
 
-    files.forEach(file => {
+    files.forEach((file) => {
       const filePath = path.join('uploads/', file);
       this.checkAndDeleteOrphanedFile(filePath, uploadedFiles, now);
     });
@@ -68,8 +68,9 @@ class CleanupService {
       }
 
       if (now - stats.mtime.getTime() > this.maxAge) {
-        const isTracked = Array.from(uploadedFiles.values())
-          .some(fileInfo => fileInfo.path === filePath);
+        const isTracked = Array.from(uploadedFiles.values()).some(
+          (fileInfo) => fileInfo.path === filePath
+        );
 
         if (!isTracked) {
           this.deleteFile(filePath);
@@ -79,4 +80,4 @@ class CleanupService {
   }
 }
 
-module.exports = CleanupService; 
+module.exports = CleanupService;

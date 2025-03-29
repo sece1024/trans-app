@@ -9,9 +9,7 @@ require('dotenv').config();
 const logger = require('./config/logger');
 const sequelize = require('./db/database');
 
-require("./services/socket");
-// test code
-require("../test/udp-client")
+require('./services/socket');
 
 const PORT = process.env.PORT || 5001;
 
@@ -25,17 +23,15 @@ async function initDatabase() {
   }
 }
 
-
 if (process.pkg) {
-  logger.info("Server is running in production mode");
+  logger.info('Server is running in production mode');
 } else {
-  logger.info("Server is running in development mode");
+  logger.info('Server is running in development mode');
 }
 
 const app = express();
 
 const staticDir = path.join(__dirname, '../../frontend', 'build');
-
 
 app.use(express.static(staticDir));
 
@@ -47,13 +43,12 @@ app.use(express.json());
 app.use('/api', fileRoutes);
 app.use('/api', clipboardRoutes);
 app.use('/api', systemRoutes);
-app.use('/api', imageRoutes); 
+app.use('/api', imageRoutes);
 
 // 基础路由
 app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the backend!' });
 });
-
 
 // 所有未匹配的路由返回 index.html
 app.get('*', (req, res) => {

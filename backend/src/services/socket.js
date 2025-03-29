@@ -2,7 +2,17 @@ const logger = require('../config/logger');
 const os = require('os');
 const dgram = require('dgram');
 const WebSocket = require('ws');
+const { get } = require('lodash');
+const clipboardService = require('./clipboardService');
 const dgramSocket = dgram.createSocket('udp4');
+const serverInfo = require('../utils/internet').internetInfos;
+const myIPs = serverInfo.map((s) => s.address);
+const otherIPList = [];
+const sharedText = [];
+const shared = require('./socketSharedData');
+const { getLocalData } = require('./dataService');
+
+const clients = new Set();
 
 const PORT = process.env.SOCKET_PORT;
 const BROADCAST_ADDRESS = process.env.SOCKET_BOARD_CAST;
@@ -10,75 +20,178 @@ const BROADCAST_ADDRESS = process.env.SOCKET_BOARD_CAST;
 console.log('Start dgramSocket listener');
 
 function validateIP(ip) {
-    // 使用正则表达式校验 IP 地址
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    return ipRegex.test(ip);
+  // 使用正则表达式校验 IP 地址
+  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  return ipRegex.test(ip);
 }
 
 function validateFiles(files) {
-    // 校验文件信息
-    if (!Array.isArray(files)) {
-        return false;
+  // 校验文件信息
+  if (!Array.isArray(files)) {
+    return false;
+  }
+  for (const file of files) {
+    if (
+      typeof file.name !== 'string' ||
+      typeof file.size !== 'number' ||
+      typeof file.hash !== 'string'
+    ) {
+      return false;
     }
-    for (const file of files) {
-        if (typeof file.name !== 'string' || typeof file.size !== 'number' || typeof file.hash !== 'string') {
-            return false;
-        }
-    }
-    return true;
+  }
+  return true;
 }
 
-// 获取本机 IPv4 地址
-function getLocalIP() {
-    const interfaces = os.networkInterfaces();
-    for (const iface of Object.values(interfaces)) {
-        for (const config of iface) {
-            if (config.family === 'IPv4' && !config.internal) {
-                logger.info(`IPv4: ${config.address}`)
-                return config.address;
-            }
-        }
-    }
-    return '127.0.0.1';
-}
-
-const serverIP = getLocalIP();
-
+// const message = {
+//     type: 'file', // 消息类型：file/text/json/array等
+//     data: fileBuffer, // 实际数据（可以是Buffer/字符串/对象）
+//     meta: {fileName: 'test.jpg'} // 可选元数据
+// };
 
 // UDP
-const broadcastMyIP =  () => {
-    const dgramSocket = dgram.createSocket('udp4');
-    const serverInfo = require('../utils/internet').getInternetInfos();
-    dgramSocket.bind(() => {
-        dgramSocket.setBroadcast(true);
-        dgramSocket.send(JSON.stringify(serverInfo), PORT, BROADCAST_ADDRESS, (err) => {
-            if (err) {
-                logger.error(`broadcast failed: ${err}`)
-            } else {
-                logger.info(`broadcast address: ${BROADCAST_ADDRESS}:${PORT}`);
-                dgramSocket.close();
-            }
-        })
+const broadcastMyIP = (localData) => {
+  const dgramSocket = dgram.createSocket('udp4');
+  dgramSocket.bind(() => {
+    dgramSocket.setBroadcast(true);
+    let data = JSON.stringify({ ...localData, type: 'sync' });
+    console.log(data);
+    dgramSocket.send(data, PORT, BROADCAST_ADDRESS, (err) => {
+      if (err) {
+        logger.error(`broadcast failed: ${err}`);
+      } else {
+        logger.info(`broadcast address: ${BROADCAST_ADDRESS}:${PORT}`);
+        dgramSocket.close();
+      }
     });
-}
+  });
+};
+
+const handleUpload = (ws, uploadData) => {
+  let parsed = JSON.parse(uploadData);
+  const contentType = parsed.contentType;
+  const data = parsed.data;
+  logger.info(`contentType: ${contentType}`);
+  switch (contentType) {
+    case 'text':
+      console.log('收到文本上传:', data);
+      // 触发自定义upload事件
+      ws.emit('upload', {
+        type: 'text',
+        content: data,
+      });
+      break;
+
+    case 'file':
+    case 'image':
+      const buffer = Buffer.from(data, 'base64');
+      const fileName = `upload_${Date.now()}_${parsed.fileName}`;
+      const filePath = path.join(__dirname, 'uploads', fileName);
+
+      fs.writeFile(filePath, buffer, (err) => {
+        if (err) {
+          console.error('文件保存失败:', err);
+          ws.send(
+            JSON.stringify({
+              status: 'error',
+              message: '文件保存失败',
+            })
+          );
+        } else {
+          console.log(`文件保存成功: ${filePath}`);
+          // 触发自定义upload事件
+          ws.emit('upload', {
+            type: uploadData.contentType,
+            fileName: fileName,
+            filePath: filePath,
+            fileType: uploadData.fileType,
+          });
+        }
+      });
+      break;
+
+    default:
+      console.warn('未知的上传类型:', uploadData.contentType);
+  }
+};
 
 // wss
 const startWebSocketServer = () => {
-    const wss = new WebSocket.Server({port: PORT});
-    logger.info(`Starting websocket server listening on port ${PORT}`);
+  const wss = new WebSocket.Server({ port: PORT });
+  logger.info(`Starting websocket server listening on port ${PORT}`);
 
-    wss.on('connection', (ws) => {
-        logger.info('client connected');
-        ws.on('message', (data) => {
-            logger.info(`Received message: ${data}`);
-        })
-    })
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+    logger.info('new client connected');
 
-    wss.on('message', (data) => {
-        logger.info(`Received message: ${data}`);
-    })
-}
+    ws.on('message', (data) => {
+      logger.info(`Received message: ${data.toString()}`);
+      const parsed = JSON.parse(data);
 
+      if (parsed.type === 'ip' && parsed.data) {
+        const ips = parsed.data;
+        logger.info(`ips: ${ips}`);
+        for (const ip of ips) {
+          if (ip.address && !myIPs.includes(ip)) {
+            logger.info(`client ip address: ${ip.address}`);
+            otherIPList.push(ip.address);
+          }
+        }
+      } else if (parsed.type === 'upload') {
+        handleUpload(ws, data);
+      } else if (parsed.type === 'sync') {
+        const remoteIp = parsed.ip;
+        const remoteData = parsed.data;
+        logger.info(remoteData);
+        if (remoteIp && remoteData) {
+          logger.info(`save remote data: ${remoteData}`);
+          shared.sharedData.set(remoteIp, remoteData);
+        } else {
+          logger.warn('invalid remote data, not to save');
+        }
+      } else {
+        logger.info('other message');
+      }
+    });
+
+    ws.on('upload', async (uploadInfo) => {
+      console.log('收到上传:', uploadInfo.content);
+
+      // 根据不同类型处理
+      switch (uploadInfo.type) {
+        case 'text':
+          // 处理文本
+          await clipboardService.saveTextContent(uploadInfo.content, 'text', null);
+          clients.forEach((client) => {
+            client.send(JSON.stringify({ uploadInfo }));
+          });
+          break;
+        case 'image':
+          // 处理图片
+          break;
+        case 'file':
+          // 处理文件
+          break;
+      }
+    });
+
+    ws.on('close', () => {
+      clients.delete(ws);
+      console.log('client disconnected');
+    });
+
+    ws.on('error', (err) => {
+      logger.error(`connect failed: ${err}`);
+    });
+  });
+
+  wss.on('error', (err) => {
+    logger.error(`Socket error: ${err.message}`);
+  });
+
+  wss.on('close', () => {
+    logger.info(`client disconnected`);
+  });
+};
 
 // dgramSocket.on('message', (message, remote) => {
 //     try {
@@ -121,7 +234,18 @@ const startWebSocketServer = () => {
 //     dgramSocket.close();
 // });
 
-broadcastMyIP();
-startWebSocketServer();
+const startSocket = async () => {
+  const localData = await getLocalData();
+  broadcastMyIP(localData);
+  startWebSocketServer();
+};
 
-module.exports = dgramSocket;
+startSocket();
+
+const socketServer = {
+  myIPs,
+  otherIPList,
+  sharedText,
+};
+
+module.exports = socketServer;
