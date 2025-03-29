@@ -45,11 +45,34 @@ const broadcastMyIP = (localData) => {
   dgramSocket.on('message', (data, rinfo) => {
     console.log(`[${new Date().toISOString()}] 来自 ${rinfo.address}:${rinfo.port} 的消息:`);
     const parsed = JSON.parse(data.toString());
-    if (parsed.type === 'sync') {
-      const remoteIp = parsed.ip;
-      if (remoteIp.join(',') !== localData.ip.join(',')) {
-        const remoteData = parsed.data;
-        syncRemoteData(remoteData, remoteIp);
+    const remoteIp = parsed.ip.join(',');
+    const localIP = localData.ip.join(',');
+    const remoteData = parsed.data;
+
+    logger.info(`local ip: ${localIP}`);
+    logger.info(`remote ip: ${remoteIp}`);
+    if (remoteIp !== localIP) {
+      switch (parsed.type) {
+        case 'sync':
+          syncRemoteData(remoteData, remoteIp);
+          dgramSocket.send(
+            Buffer.from(JSON.stringify({ ...localData, type: 'update' })),
+            PORT,
+            rinfo.address,
+            (err) => {
+              if (err) {
+                logger.error(`broadcast failed: ${err}`);
+              } else {
+                logger.info(`broadcast address: ${BROADCAST_ADDRESS}:${PORT}`);
+              }
+            }
+          );
+          break;
+        case 'update':
+          syncRemoteData(remoteData, remoteIp);
+          break;
+        default:
+          logger.warn('invalid broadcast type');
       }
     }
   });
