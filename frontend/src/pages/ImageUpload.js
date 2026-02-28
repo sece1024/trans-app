@@ -83,8 +83,8 @@ function ImageUpload() {
     };
 
     return (
-        <div className="image-upload-container">
-            <h2>图片上传</h2>
+        <div className="page-container">
+            <h1>图片上传</h1>
             <div className="upload-section">
                 <label className="file-input-button">
                     <input
