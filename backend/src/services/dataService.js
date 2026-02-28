@@ -3,7 +3,9 @@ const path = require('path');
 const { uploadDir } = require('../config/multer');
 const fsSync = require('fs');
 const fs = require('fs/promises');
-let ip = require('../utils/internet').myIPs;
+const ip = require('../utils/internet').myIPs;
+
+const imageUploadDir = path.join(process.cwd(), 'data/uploads/images');
 
 const getLocalText = async () => clipboardService.getTextHistory();
 const getLocalFiles = async () => {
@@ -25,12 +27,11 @@ const getLocalFiles = async () => {
   return fileInfos;
 };
 const getLocalImages = async () => {
-  const imageDir = path.join(uploadDir);
-  if (!fsSync.existsSync(imageDir)) {
+  if (!fsSync.existsSync(imageUploadDir)) {
     return [];
   }
 
-  const files = await fs.readdir(imageDir);
+  const files = await fs.readdir(imageUploadDir);
   return files.map((filename) => ({
     type: 'image',
     name: filename,
