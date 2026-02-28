@@ -62,49 +62,6 @@ router.get('/files', async (req, res) => {
   res.json(fileInfos);
 });
 
-// router.get('/files/:fileId/preview', async (req, res) => {
-//   try {
-//     const fileId = req.params.fileId;
-//     const fileInfo = fileService.getFile(fileId);
-//
-//     if (!fileInfo) {
-//       return res.status(404).json({
-//         message: '文件未找到'
-//       });
-//     }
-//
-//     // 检查 MIME 类型
-//     if (fileInfo.mimetype !== 'text/plain') {
-//       return res.status(400).json({
-//         message: '只支持预览文本文件'
-//       });
-//     }
-//
-//     // 读取文件内容
-//     const content = await fs.readFile(fileInfo.path, 'utf8');
-//
-//     // 如果文件太大，只返回前1000个字符
-//     const MAX_PREVIEW_LENGTH = 1000;
-//     const truncated = content.length > MAX_PREVIEW_LENGTH;
-//     const previewContent = truncated
-//       ? content.slice(0, MAX_PREVIEW_LENGTH) + '\n... (内容已截断)'
-//       : content;
-//
-//     // 返回预览内容
-//     res.json({
-//       content: previewContent,
-//       truncated: truncated
-//     });
-//
-//   } catch (error) {
-//     logger.error('预览文件失败:', error);
-//     res.status(500).json({
-//       message: '预览文件失败',
-//       error: error.message
-//     });
-//   }
-// });
-
 router.get('/download/:fileName', async (req, res) => {
   try {
     const fileName = req.params.fileName;

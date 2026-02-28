@@ -4,7 +4,6 @@ const clipboardService = require('./clipboardService');
 const serverInfo = require('../utils/internet').internetInfos;
 const myIPs = serverInfo.map((s) => s.address);
 const otherIPList = [];
-const sharedText = [];
 const shared = require('./socketSharedData');
 const { getLocalData } = require('./dataService');
 
@@ -227,47 +226,6 @@ const startWebSocketServer = () => {
   });
 };
 
-// dgramSocket.on('message', (message, remote) => {
-//     try {
-//         console.log('original message: ', message.toString())
-//         const data = JSON.parse(message.toString());
-//         // 进行数据校验
-//         if (validateIP(data.ip)) {
-//             console.log('Received valid broadcast from:', remote.address);
-//             // 构造回应消息
-//             const response = {
-//                 ip: getLocalIP(),
-//                 files: getLocalFiles(),
-//             };
-//             const responseMessage = Buffer.from(JSON.stringify(response));
-//
-//             // 发送回应消息
-//             dgramSocket.send(responseMessage, remote.port, remote.address, (err) => {
-//                 if (err) {
-//                     console.error('Error sending response:', err);
-//                 } else {
-//                     console.log('Response sent to:', remote.address);
-//                 }
-//             });
-//         } else {
-//             console.log('Received invalid data:', data);
-//         }
-//     } catch (error) {
-//         console.error('Invalid JSON data:', message.toString());
-//     }
-// });
-//
-// dgramSocket.on('listening', () => {
-//     const address = dgramSocket.address();
-//     console.log(`UDP server listening on ${address.address}:${address.port}`);
-//     dgramSocket.setBroadcast(true);
-// });
-//
-// dgramSocket.on('error', (err) => {
-//     console.log(`UDP server error:\n${err.stack}`);
-//     dgramSocket.close();
-// });
-
 const startSocket = async () => {
   const localData = await getLocalData();
   broadcastMyIP(localData);
@@ -279,7 +237,6 @@ startSocket();
 const socketServer = {
   myIPs,
   otherIPList,
-  sharedText,
 };
 
 module.exports = socketServer;

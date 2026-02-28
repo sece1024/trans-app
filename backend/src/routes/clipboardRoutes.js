@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const clipboardService = require('../services/clipboardService');
-const internet = require('../utils/internet');
 
 router.post('/clipboard', async (req, res) => {
   try {
