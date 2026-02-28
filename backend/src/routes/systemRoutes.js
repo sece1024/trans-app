@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const internet = require('../utils/internet');
 
 // 获取服务器IP地址
 router.get('/server-info', (req, res) => {
   try {
-    const ips = require('../utils/internet').internetInfos;
+    const ips = internet.internetInfos;
 
     res.json({
       ips: ips,
