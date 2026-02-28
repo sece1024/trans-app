@@ -12,7 +12,7 @@ const clients = new Set();
 const PORT = process.env.SOCKET_PORT;
 const BROADCAST_ADDRESS = process.env.SOCKET_BOARD_CAST;
 
-console.log('Start dgramSocket listener');
+logger.info('Starting socket service');
 
 function validateIP(ip) {
   // 使用正则表达式校验 IP 地址
@@ -42,7 +42,7 @@ const broadcastMyIP = (localData) => {
   const dgram = require('dgram');
   const dgramSocket = dgram.createSocket('udp4');
   dgramSocket.on('message', (data, rinfo) => {
-    console.log(`[${new Date().toISOString()}] 来自 ${rinfo.address}:${rinfo.port} 的消息:`);
+    logger.info(`[${new Date().toISOString()}] message from ${rinfo.address}:${rinfo.port}`);
     const parsed = JSON.parse(data.toString());
     const remoteIp = parsed.ip.join(',');
     const localIP = localData.ip.join(',');
@@ -75,14 +75,13 @@ const broadcastMyIP = (localData) => {
       }
     }
   });
-  // 监听错误事件
   dgramSocket.on('error', (err) => {
-    console.error(`服务器错误:\n${err.stack}`);
+    logger.error(`UDP server error:\n${err.stack}`);
     dgramSocket.close();
   });
 
   dgramSocket.bind(8888, () => {
-    console.log('监听UDP广播端口: 8888');
+    logger.info('Listening UDP broadcast port: 8888');
     dgramSocket.setBroadcast(true);
     let data = { ...localData, type: 'sync' };
     dgramSocket.send(Buffer.from(JSON.stringify(data)), PORT, BROADCAST_ADDRESS, (err) => {
@@ -102,7 +101,7 @@ const handleUpload = (ws, uploadData) => {
   logger.info(`contentType: ${contentType}`);
   switch (contentType) {
     case 'text':
-      console.log('收到文本上传:', data);
+      logger.info('received text upload: ' + data);
       // 触发自定义upload事件
       ws.emit('upload', {
         type: 'text',
@@ -118,7 +117,7 @@ const handleUpload = (ws, uploadData) => {
 
       fs.writeFile(filePath, buffer, (err) => {
         if (err) {
-          console.error('文件保存失败:', err);
+          logger.error('file save failed: ' + err);
           ws.send(
             JSON.stringify({
               status: 'error',
@@ -126,7 +125,7 @@ const handleUpload = (ws, uploadData) => {
             })
           );
         } else {
-          console.log(`文件保存成功: ${filePath}`);
+          logger.info(`file saved: ${filePath}`);
           // 触发自定义upload事件
           ws.emit('upload', {
             type: uploadData.contentType,
@@ -139,7 +138,7 @@ const handleUpload = (ws, uploadData) => {
       break;
 
     default:
-      console.warn('未知的上传类型:', uploadData.contentType);
+      logger.warn('unknown upload type: ' + uploadData.contentType);
   }
 };
 
@@ -187,7 +186,7 @@ const startWebSocketServer = () => {
     });
 
     ws.on('upload', async (uploadInfo) => {
-      console.log('收到上传:', uploadInfo.content);
+      logger.info('received upload: ' + uploadInfo.content);
 
       // 根据不同类型处理
       switch (uploadInfo.type) {
@@ -209,7 +208,7 @@ const startWebSocketServer = () => {
 
     ws.on('close', () => {
       clients.delete(ws);
-      console.log('client disconnected');
+      logger.info('client disconnected');
     });
 
     ws.on('error', (err) => {
