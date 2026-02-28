@@ -24,10 +24,11 @@
     "style:format": "npx prettier --write .",
     "style:check": "npx prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-x64",
+    "build": "pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-arm64",
     "build:debug": "pkg . --debug",
     "build:linux": "pkg . --targets node18-linux-x64",
-    "build:arm64": "pkg . --targets node18-linux-arm64"
+    "build:arm64": "pkg . --targets node18-linux-arm64",
+    "build:macos": "pkg . --targets node18-macos-arm64"
   },
   "keywords": [],
   "author": "",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9",
+    "pkg": "^5.8.1",
     "prettier": "^3.5.3"
   }
 }
