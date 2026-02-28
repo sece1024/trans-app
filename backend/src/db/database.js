@@ -8,7 +8,7 @@ const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
 
 try {
   if (!fs.existsSync(dbDir)) {
-    logger.warn('[multer]: create dbDir ', dbDir);
+    logger.warn('[database]: create dbDir ', dbDir);
     fs.mkdirSync(dbDir, { recursive: true });
   } else {
     logger.info(`dbDir is existed: ${dbDir}`);
