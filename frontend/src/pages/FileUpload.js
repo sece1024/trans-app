@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function FileUpload() {
   const [message, setMessage] = useState('');
   const [fileName, setFileName] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // 添加 isLoading 状态
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef(null);
   const basePath = '/api/files'
 
   const handleUpload = async () => {
-    const file = document.getElementById('fileInput').files[0];
+    const file = fileInputRef.current?.files[0];
     if (!file) {
       setMessage('请选择文件');
       return;
@@ -91,14 +92,15 @@ function FileUpload() {
       <h1>文件上传</h1>
       <div className="upload-section">
         <div className="file-input-wrapper">
-          <label className="file-input-button" htmlFor="fileInput">
+          <label className="file-input-button">
             选择文件
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
           </label>
-          <input
-            type="file"
-            id="fileInput"
-            onChange={handleFileChange}
-          />
           {fileName && <div className="selected-file">已选择: {fileName}</div>}
         </div>
         <button onClick={handleUpload} disabled={isLoading}>
