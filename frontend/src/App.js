@@ -4,6 +4,7 @@ import FileUpload from './pages/FileUpload';
 import SharedClipboard from './pages/SharedClipboard';
 import ServerInfo from './components/ServerInfo';
 import ImageUpload from './pages/ImageUpload';
+import { ToastProvider } from './context/ToastContext';
 import './App.css';
 
 const THEMES = [
@@ -23,6 +24,7 @@ function App() {
   }, [theme]);
 
   return (
+    <ToastProvider>
     <Router>
       <div className="app-layout">
         <aside className="sidebar">
@@ -61,6 +63,7 @@ function App() {
         </main>
       </div>
     </Router>
+    </ToastProvider>
   );
 }
 

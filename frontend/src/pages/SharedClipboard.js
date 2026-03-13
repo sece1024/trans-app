@@ -1,189 +1,133 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07 } },
+};
+
+const cardVariants = {
+  hidden:  { opacity: 0, scale: 0.88, y: 12 },
+  visible: { opacity: 1, scale: 1,    y: 0,
+    transition: { type: 'spring', stiffness: 280, damping: 22 } },
+};
 
 function SharedClipboard() {
-  const [clips, setClips] = useState([]);
-  const [clipText, setClipText] = useState('');
-  const [message, setMessage] = useState('');
+  const [clips, setClips]         = useState([]);
+  const [clipText, setClipText]   = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
-    const getDeviceInfo = () => {
-      const ua = navigator.userAgent.toLowerCase();
-      let deviceName = '';
-      let browserInfo = '';
+    const ua = navigator.userAgent.toLowerCase();
+    let device = 'Unknown Device';
+    if      (ua.includes('iphone'))                           device = 'iPhone';
+    else if (ua.includes('ipad'))                             device = 'iPad';
+    else if (ua.includes('android'))                          device = ua.includes('mobile') ? 'Android Phone' : 'Android Tablet';
+    else if (ua.includes('windows'))                          device = 'Windows PC';
+    else if (ua.includes('macintosh') || ua.includes('mac')) device = 'Mac';
+    else if (ua.includes('linux'))                            device = 'Linux';
 
-      // 检测设备类型
-      if (ua.includes('iphone')) {
-        deviceName = 'iPhone';
-      } else if (ua.includes('ipad')) {
-        deviceName = 'iPad';
-      } else if (ua.includes('android')) {
-        // 区分手机和平板
-        if (ua.includes('mobile')) {
-          deviceName = 'Android Phone';
-        } else {
-          deviceName = 'Android Tablet';
-        }
-      } else if (ua.includes('windows')) {
-        deviceName = 'Windows PC';
-      } else if (ua.includes('macintosh') || ua.includes('mac os')) {
-        deviceName = 'Mac';
-      } else if (ua.includes('linux')) {
-        deviceName = 'Linux';
-      } else {
-        deviceName = 'Unknown Device';
-      }
+    let browser = 'Unknown Browser';
+    if      (ua.includes('firefox'))                          browser = 'Firefox';
+    else if (ua.includes('edge'))                             browser = 'Edge';
+    else if (ua.includes('chrome'))                           browser = 'Chrome';
+    else if (ua.includes('safari'))                           browser = 'Safari';
 
-      // 检测浏览器
-      if (ua.includes('chrome')) {
-        browserInfo = 'Chrome';
-      } else if (ua.includes('firefox')) {
-        browserInfo = 'Firefox';
-      } else if (ua.includes('safari') && !ua.includes('chrome')) {
-        // Chrome 的 UA 字符串也包含 'safari'，所以需要特别处理
-        browserInfo = 'Safari';
-      } else if (ua.includes('edge')) {
-        browserInfo = 'Edge';
-      } else if (ua.includes('opera') || ua.includes('opr')) {
-        browserInfo = 'Opera';
-      } else {
-        browserInfo = 'Unknown Browser';
-      }
-
-      console.log('User Agent:', ua);  // 用于调试
-      setDeviceInfo(`${deviceName} - ${browserInfo}`);
-    };
-
-    getDeviceInfo();
+    setDeviceInfo(`${device} · ${browser}`);
     fetchClips();
-    // const interval = setInterval(fetchClips, 5000);
-    // return () => clearInterval(interval);
   }, []);
 
   const fetchClips = async () => {
-    try {
-      const response = await fetch('/api/clipboard');
-      const data = await response.json();
-      setClips(data);
-    } catch (error) {
-      console.error('获取剪贴板内容失败:', error);
-    }
+    try { setClips(await (await fetch('/api/clipboard')).json()); }
+    catch { /* silent */ }
   };
 
-  const handleAddClip = async () => {
-    if (!clipText.trim()) {
-      setMessage('请输入要分享的文本');
-      return;
-    }
-
+  const handleAdd = async () => {
+    if (!clipText.trim()) { toast('请输入内容', 'error'); return; }
     try {
       await fetch('/api/clipboard', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: clipText,
-          deviceInfo
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clipText, deviceInfo }),
       });
       setClipText('');
-      setMessage('文本已分享');
-    } catch (error) {
-      setMessage('分享失败: ' + error.message);
-    } finally {
-      fetchClips();
-    }
+      await fetchClips();
+      toast('已分享', 'success');
+    } catch { toast('分享失败', 'error'); }
   };
 
-  // 添加复制功能
   const handleCopy = async (text) => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        // 优先使用 Clipboard API
-        await navigator.clipboard.writeText(text);
-        setMessage('已复制到剪贴板');
-      } else {
-        // 回退方案
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-
-        try {
-          document.execCommand('copy');
-          textArea.remove();
-          setMessage('已复制到剪贴板');
-        } catch (err) {
-          console.error('复制失败:', err);
-          setMessage('复制失败，请手动复制');
-        }
-      }
-    } catch (error) {
-      console.error('复制失败:', error);
-      setMessage('复制失败，请手动复制');
-    }
-
-    // 3秒后清除消息
-    setTimeout(() => setMessage(''), 3000);
+      await navigator.clipboard.writeText(text);
+      toast('已复制到剪贴板', 'success');
+    } catch { toast('复制失败', 'error'); }
   };
 
-  const handleDeleteContent = async (id) => {
+  const handleDelete = async (id) => {
     try {
-      await fetch('/api/clipboard/' + id, {
-        method: 'DELETE'
-      });
-      fetchClips();
-    } catch (error) {
-      console.error('获取剪贴板内容失败:', error);
-    }
-  }
+      await fetch(`/api/clipboard/${id}`, { method: 'DELETE' });
+      await fetchClips();
+      toast('已删除', 'info');
+    } catch { toast('删除失败', 'error'); }
+  };
 
   return (
-    <div className="page-container">
-      <h1>共享剪贴板</h1>
-      <div className="clipboard-section">
-        <div className="clipboard-input">
-          <textarea
-            value={clipText}
-            onChange={(e) => setClipText(e.target.value)}
-            placeholder="输入要分享的文本..."
-          />
-          <button onClick={handleAddClip}>分享文本</button>
-        </div>
-        {message && <div className="message">{message}</div>}
-        <div className="clipboard-list">
-          {clips.map((clip, index) => (
-            <div key={index} className="clipboard-item">
-              <pre
-                className="clipboard-box"
-                style={{ cursor: 'pointer' }}
-                title="click to copy"
-              >
-                <div
-                  className='clipboard-text'
-                  onClick={() => handleCopy(clip.content)}
-                >{clip.content}</div>
-                <button className='clipboard-delete' onClick={() => handleDeleteContent(clip.id)}>delete</button>
-              </pre>
-              <div className="clipboard-info">
-                <div className="info-left">
-                  <span className="device-info">{clip.deviceInfo}</span>
-                  <span className="time-info">
-                    {new Date(clip.createdAt).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+    <div className="page">
+      <h1 className="page-title">剪贴板</h1>
+
+      {/* Input zone */}
+      <div className="glass-card clipboard-input-zone">
+        <textarea
+          value={clipText}
+          onChange={(e) => setClipText(e.target.value)}
+          placeholder="输入要分享的文本..."
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAdd(); }}
+        />
+        <div className="clipboard-input-footer">
+          <span className="upload-hint">⌘ + ↵ 快速分享</span>
+          <button onClick={handleAdd}>分享</button>
         </div>
       </div>
+
+      {/* Bento grid */}
+      {clips.length > 0 && (
+        <>
+          <p className="section-header">已分享 · {clips.length} 条</p>
+          <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
+            {clips.map((clip) => {
+              const isWide = clip.content.length > 120;
+              return (
+                <motion.div
+                  key={clip.id}
+                  className={`glass-card clip-card${isWide ? ' card--wide' : ''}`}
+                  variants={cardVariants}
+                  onClick={() => handleCopy(clip.content)}
+                >
+                  <pre className="clip-text">{clip.content}</pre>
+                  <div className="clip-footer">
+                    <div>
+                      <span className="device-info">{clip.deviceInfo}</span>
+                    </div>
+                    <span className="time-info">{new Date(clip.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="card-actions">
+                    <button className="btn--icon" onClick={(e) => { e.stopPropagation(); handleCopy(clip.content); }}>
+                      复制
+                    </button>
+                    <button className="btn--icon btn--danger" onClick={(e) => { e.stopPropagation(); handleDelete(clip.id); }}>
+                      删除
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </>
+      )}
     </div>
   );
 }
 
-export default SharedClipboard; 
+export default SharedClipboard;
