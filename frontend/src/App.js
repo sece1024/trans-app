@@ -6,6 +6,14 @@ import ServerInfo from './components/ServerInfo';
 import ImageUpload from './pages/ImageUpload';
 import './App.css';
 
+const THEMES = [
+  { id: 'light',  label: '浅色' },
+  { id: 'dark',   label: '深色' },
+  { id: 'forest', label: '森林' },
+  { id: 'sunset', label: '日落' },
+  { id: 'ocean',  label: '海洋' },
+];
+
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
@@ -13,8 +21,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   return (
     <Router>
@@ -30,9 +36,19 @@ function App() {
           </nav>
           <div className="sidebar-footer">
             <ServerInfo />
-            <button className="theme-toggle" onClick={toggleTheme}>
-              {theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式'}
-            </button>
+            <div className="theme-picker">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  className="theme-swatch"
+                  data-theme={t.id}
+                  aria-label={t.label}
+                  aria-pressed={theme === t.id}
+                  onClick={() => setTheme(t.id)}
+                  title={t.label}
+                />
+              ))}
+            </div>
           </div>
         </aside>
 
