@@ -59,6 +59,25 @@ src/utils/            → internet (IP/network info), cleanup, tool helpers
 - Uploaded files: `data/uploads/files/`
 - Uploaded images: `data/uploads/images/`
 
+## CSS Architecture
+
+`frontend/src/App.css` is the single stylesheet, organised into named `@layer` blocks in this order: `tokens → reset → layout → components → utilities`.
+
+**Color system (OKLCH)**
+- Primitives: `--lch-primary`, `--lch-danger`, `--lch-accent` — raw `L% C H` values.
+- Semantic tokens: `--color-primary`, `--color-bg-card`, `--color-ink`, etc., built with `oklch(var(--lch-*))`.
+- Dark mode: `[data-theme='dark']` overrides only the primitives; everything else cascades automatically.
+- Hover/active variants: use `filter: brightness(0.92)` instead of separate color tokens. Use `color-mix()` for derived surfaces (e.g. `--color-primary-bg`).
+
+**Spacing**
+- Horizontal spacing: `--inline-space: 1ch` (character-width units).
+- Vertical spacing: `--block-space: 1rem`.
+- Responsive breakpoint: `max-width: 100ch` — "is there room for content?" not a device size.
+
+**Loading spinner**
+- Pure CSS three-dot spinner via `-webkit-mask` / `mask` with `radial-gradient` + `@keyframes spinner-bounce`.
+- Usage: `<span className="spinner" aria-label="…" />`. Inherits color via `currentColor`.
+
 ## Key Conventions
 
 - **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames.

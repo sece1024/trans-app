@@ -106,7 +106,7 @@ function FileUpload() {
         <button onClick={handleUpload} disabled={isLoading}>
           {isLoading ? '上传中...' : '上传文件'}
         </button>
-        {isLoading && <div className="loading-spinner">Loading...</div>} {/* 添加 loading 样式 */}
+        {isLoading && <span className="spinner" aria-label="上传中" />}
       </div>
       {message && (
         <div className="message">
