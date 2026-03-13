@@ -56,7 +56,6 @@ app.get('*', (req, res) => {
 // 启动服务器
 async function startServer() {
   await initDatabase();
-  require('./services/socket');
   app.listen(PORT, () => {
     logger.info(`Server is running on http://localhost:${PORT}`);
   });
