@@ -530,6 +530,25 @@
     z-index: 10;
   }
 
+  @media (max-width: 100ch) {
+    .theme-dropdown {
+      bottom: auto;
+      top: 100%;
+      left: auto;
+      right: 0;
+      margin-bottom: 0;
+      margin-top: 8px;
+      flex-direction: row;
+      min-width: auto;
+    }
+
+    .theme-label { display: none; }
+
+    .theme-option {
+      padding: 6px;
+    }
+  }
+
   .theme-option {
     display: flex;
     align-items: center;
