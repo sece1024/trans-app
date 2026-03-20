@@ -4,16 +4,9 @@ import FileUpload from './pages/FileUpload';
 import SharedClipboard from './pages/SharedClipboard';
 import ServerInfo from './components/ServerInfo';
 import ImageUpload from './pages/ImageUpload';
+import ThemePicker from './components/ThemePicker';
 import { ToastProvider } from './context/ToastContext';
 import './App.css';
-
-const THEMES = [
-  { id: 'light',  label: '浅色' },
-  { id: 'dark',   label: '深色' },
-  { id: 'forest', label: '森林' },
-  { id: 'sunset', label: '日落' },
-  { id: 'ocean',  label: '海洋' },
-];
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
@@ -38,19 +31,7 @@ function App() {
           </nav>
           <div className="sidebar-footer">
             <ServerInfo />
-            <div className="theme-picker">
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  className="theme-swatch"
-                  data-theme={t.id}
-                  aria-label={t.label}
-                  aria-pressed={theme === t.id}
-                  onClick={() => setTheme(t.id)}
-                  title={t.label}
-                />
-              ))}
-            </div>
+            <ThemePicker theme={theme} onThemeChange={setTheme} />
           </div>
         </aside>
 

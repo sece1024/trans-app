@@ -486,6 +486,90 @@
     &[data-theme='ocean']  { background: linear-gradient(135deg, oklch(10% 0.035 220) 50%, oklch(70% 0.17 200) 50%); }
   }
 
+  /* Collapsible theme picker */
+  .theme-picker-wrapper {
+    position: relative;
+  }
+
+  .theme-toggle-btn {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: oklch(100% 0 0 / 0.08);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+      background: oklch(100% 0 0 / 0.15);
+      filter: none;
+    }
+  }
+
+  .theme-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: var(--color-bg-sidebar);
+    border: 1px solid oklch(100% 0 0 / 12%);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 120px;
+    box-shadow: 0 4px 20px oklch(0% 0 0 / 0.3);
+    z-index: 10;
+  }
+
+  .theme-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: oklch(100% 0 0 / 0.1);
+      filter: none;
+    }
+
+    &.active {
+      background: oklch(100% 0 0 / 0.12);
+    }
+  }
+
+  .theme-swatch-small {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px oklch(100% 0 0 / 15%);
+
+    &[data-theme='light']  { background: linear-gradient(135deg, oklch(100% 0 0) 50%, oklch(55% 0.21 264) 50%); }
+    &[data-theme='dark']   { background: linear-gradient(135deg, oklch(12% 0.03 255) 50%, oklch(72% 0.18 264) 50%); }
+    &[data-theme='forest'] { background: linear-gradient(135deg, oklch(10% 0.025 150) 50%, oklch(65% 0.20 150) 50%); }
+    &[data-theme='sunset'] { background: linear-gradient(135deg, oklch(100% 0 0) 50%, oklch(60% 0.19 50) 50%); }
+    &[data-theme='ocean']  { background: linear-gradient(135deg, oklch(10% 0.035 220) 50%, oklch(70% 0.17 200) 50%); }
+  }
+
+  .theme-label {
+    font-size: 13px;
+    color: var(--color-ink-sidebar);
+  }
+
   /* ----- Upload zone (glass) ----- */
   .upload-zone {
     padding: calc(var(--block-space) * 2.5) calc(var(--inline-space) * 4);
