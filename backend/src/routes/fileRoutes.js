@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { upload, uploadDir } = require('../config/multer');
+const { fileUpload, fileDir: uploadDir } = require('../config/multer');
 const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const logger = require('../config/logger');
 
 // 文件上传路由
-router.post('/files/upload', upload.single('file'), (req, res) => {
+router.post('/files/upload', fileUpload.single('file'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'file not found' });
@@ -17,7 +17,8 @@ router.post('/files/upload', upload.single('file'), (req, res) => {
 
     res.json({
       message: 'file upload success!',
-      fileId: originalName,
+      fileId: req.file.filename,
+      originalName: originalName,
     });
   } catch (error) {
     logger.error('file upload failed:', error);
@@ -53,8 +54,11 @@ router.get('/files', async (req, res) => {
   for (const file of files) {
     const filePath = path.join(fileDir, file);
     const stats = await fs.stat(filePath);
+    // 分离时间戳前缀，获取原始文件名
+    const originalName = file.includes('-') ? file.substring(file.indexOf('-') + 1) : file;
     fileInfos.push({
       name: file,
+      originalName: originalName,
       sizeInMB: (stats.size / (1024 * 1024)).toFixed(1),
     });
   }

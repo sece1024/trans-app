@@ -122,9 +122,9 @@ function FileUpload() {
             {uploadedFiles.map((file) => (
               <motion.div key={file.name} className="glass-card file-card" variants={cardVariants}>
                 <div className="file-card-body">
-                  <span className="file-icon">{fileIcon(file.name)}</span>
+                  <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
                   <div>
-                    <p className="file-name">{file.name}</p>
+                    <p className="file-name">{file.originalName || file.name}</p>
                     <p className="file-meta">{file.sizeInMB} MB</p>
                   </div>
                 </div>
