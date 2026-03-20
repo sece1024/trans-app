@@ -34,14 +34,20 @@ function ServerInfo() {
     <div className="server-info">
       <div className="server-info-content">
         {serverInfo.ips.map((ip, index) => (
-          <div key={index} className="ip-item" onClick={() => handleCopy(`http://${ip.address}:${serverInfo.port}`)}>
-            <span className="ip-label">局域网地址 {index + 1}:</span>
-            <span className="ip-address">http://{ip.address}:{serverInfo.port}</span>
-            <span className="copy-hint">(点击复制)</span>
+          <div
+            key={index}
+            className="ip-item"
+            onClick={() => handleCopy(`http://${ip.address}:${serverInfo.port}`)}
+          >
+            <span className="ip-label">局域网地址 {index + 1}</span>
+            <span className="ip-address">
+              {ip.address}:{serverInfo.port}
+            </span>
+            <span className="copy-hint">点击复制</span>
           </div>
         ))}
       </div>
-      {showCopied && <div className="copy-message">已复制到剪贴板</div>}
+      {showCopied && <div className="copy-message">已复制</div>}
     </div>
   );
 }

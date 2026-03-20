@@ -1,146 +1,155 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
+import EmptyState from '../components/EmptyState';
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07 } },
+};
+
+const cardVariants = {
+  hidden:   { opacity: 0, scale: 0.88, y: 12 },
+  visible:  { opacity: 1, scale: 1,    y: 0,
+    transition: { type: 'spring', stiffness: 280, damping: 22 } },
+};
+
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  return ({
+    pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊',
+    ppt:'📋', pptx:'📋', zip:'🗜', rar:'🗜', '7z':'🗜',
+    mp4:'🎬', mov:'🎬', avi:'🎬', mp3:'🎵', wav:'🎵',
+    jpg:'🖼', jpeg:'🖼', png:'🖼', gif:'🖼', svg:'🖼', webp:'🖼',
+    js:'📜', ts:'📜', py:'🐍', html:'🌐', css:'🎨', json:'⚙️', txt:'📃',
+  })[ext] || '📁';
+}
 
 function FileUpload() {
-  const [message, setMessage] = useState('');
-  const [fileName, setFileName] = useState('');
+  const [fileName, setFileName]         = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const fileInputRef = useRef(null);
-  const basePath = '/api/files'
+  const [isLoading, setIsLoading]       = useState(false);
+  const [deletingName, setDeletingName] = useState(null);
+  const fileInputRef      = useRef(null);
+  const uploadZoneControls = useAnimation();
+  const toast = useToast();
+  const basePath = '/api/files';
 
-  const handleUpload = async () => {
-    const file = fileInputRef.current?.files[0];
-    if (!file) {
-      setMessage('请选择文件');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setIsLoading(true); // 开始上传时设置为 true
-
-    try {
-      const response = await fetch(`${basePath}/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await response.json();
-      console.log('handleUpload: ', data);
-      setMessage(data.message);
-      fetchUploadedFiles();
-    } catch (error) {
-      setMessage('上传失败: ' + error.message);
-    } finally {
-      setIsLoading(false); // 上传完成后设置为 false
-    }
-  };
+  useEffect(() => { fetchUploadedFiles(); }, []);
 
   const fetchUploadedFiles = async () => {
     try {
-      const response = await fetch(`${basePath}`);
-      const data = await response.json();
-      console.log('fetchUploadedFiles: ', data);
-      setUploadedFiles(data);
-    } catch (error) {
-      setMessage('获取文件列表失败: ' + error.message);
-    }
+      const res = await fetch(basePath);
+      setUploadedFiles(await res.json());
+    } catch { toast('获取文件列表失败', 'error'); }
   };
 
-  useEffect(() => {
-    fetchUploadedFiles();
-  }, []);
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFileName(file.name);
-    }
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setFileName(file.name);
   };
 
-  const handleDownload = async (fileName) => {
+  const handleUpload = async () => {
+    const file = fileInputRef.current?.files[0];
+    if (!file) { toast('请选择文件', 'error'); return; }
+    const formData = new FormData();
+    formData.append('file', file);
+    setIsLoading(true);
     try {
-      const response = await fetch(`${basePath}/${fileName}`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      setMessage('下载失败: ' + error.message);
-    }
-  };
-
-  const handleDelete = async (fileName) => {
-    try {
-      await fetch(`${basePath}/${fileName}`, {
-        method: 'DELETE'
+      const res  = await fetch(`${basePath}/upload`, { method: 'POST', body: formData });
+      const data = await res.json();
+      await fetchUploadedFiles();
+      setFileName('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      // Success pulse on upload zone
+      await uploadZoneControls.start({
+        scale: [1, 1.018, 1],
+        transition: { duration: 0.45, ease: 'easeOut' },
       });
+      toast(data.message || '上传成功', 'success');
+    } catch { toast('上传失败', 'error'); }
+    finally   { setIsLoading(false); }
+  };
 
-      fetchUploadedFiles();
-    }catch (error) {
-      console.error(error);
-    }
-  }
+  const handleDownload = async (name) => {
+    try {
+      const res  = await fetch(`${basePath}/${name}`);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = Object.assign(document.createElement('a'), { href: url, download: name });
+      document.body.appendChild(a); a.click();
+      URL.revokeObjectURL(url); a.remove();
+    } catch { toast('下载失败', 'error'); }
+  };
+
+  const handleCopyLink = async (name) => {
+    const url = `${window.location.origin}/api/files/${encodeURIComponent(name)}`;
+    await navigator.clipboard.writeText(url);
+    toast('链接已复制', 'success');
+  };
+
+  const handleDelete = async (name) => {
+    setDeletingName(name);
+    try {
+      await fetch(`${basePath}/${name}`, { method: 'DELETE' });
+      await fetchUploadedFiles();
+      toast('已删除', 'info');
+    } catch { toast('删除失败', 'error'); }
+    finally   { setDeletingName(null); }
+  };
 
   return (
-    <div className="page-container">
-      <h1>文件上传</h1>
-      <div className="upload-section">
-        <div className="file-input-wrapper">
-          <label className="file-input-button">
-            选择文件
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-          </label>
-          {fileName && <div className="selected-file">已选择: {fileName}</div>}
-        </div>
+    <div className="page">
+      <h1 className="page-title">文件</h1>
+
+      {/* Upload zone */}
+      <motion.div className="glass-card upload-zone" animate={uploadZoneControls}>
+        <div className="upload-icon">📂</div>
+        <label className="file-input-button">
+          选择文件
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+        </label>
+        {fileName && <span className="upload-hint">已选择：{fileName}</span>}
         <button onClick={handleUpload} disabled={isLoading}>
-          {isLoading ? '上传中...' : '上传文件'}
+          {isLoading ? <><span className="spinner" /> 上传中</> : '上传'}
         </button>
-        {isLoading && <div className="loading-spinner">Loading...</div>} {/* 添加 loading 样式 */}
-      </div>
-      {message && (
-        <div className="message">
-          {message}
-        </div>
-      )}
-      <div className="files-list">
-        <h2>已上传文件</h2>
-        {uploadedFiles.length > 0 ? (
-          <ul>
-            {uploadedFiles.map((file, index) => (
-              <li key={index}>
-                <span 
-                  className="file-name" 
-                  onClick={() => handleDownload(file.name)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {file.name}
-                </span>
-                <span className="file-operation">
-                  {file.sizeInMB} MB
-                  <button
-                      className="file-delete-button"
-                      onClick={() => handleDelete(file.name)}>delete</button>
-                </span>
-              </li>
+      </motion.div>
+
+      {/* Bento grid */}
+      {uploadedFiles.length > 0 ? (
+        <>
+          <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
+          <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
+            {uploadedFiles.map((file) => (
+              <motion.div key={file.name} className="glass-card file-card" variants={cardVariants}>
+                <div className="file-card-body">
+                  <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
+                  <div>
+                    <p className="file-name" title={file.originalName || file.name}>{file.originalName || file.name}</p>
+                    <p className="file-meta">{file.sizeInMB} MB</p>
+                  </div>
+                </div>
+                <div className="card-actions">
+                  <button className="btn--icon" onClick={() => handleCopyLink(file.name)}>🔗 复制链接</button>
+                  <button className="btn--icon" onClick={() => handleDownload(file.name)}>↓ 下载</button>
+                  <button className="btn--icon btn--danger" onClick={() => handleDelete(file.name)}>删除</button>
+                </div>
+                {deletingName === file.name && (
+                  <div className="card-loading"><span className="spinner" /></div>
+                )}
+              </motion.div>
             ))}
-          </ul>
-        ) : (
-            <p>暂无上传文件</p>
-        )}
-      </div>
+          </motion.div>
+        </>
+      ) : (
+        <EmptyState
+          icon="📂"
+          title="暂无文件"
+          description="点击上方区域上传文件"
+        />
+      )}
     </div>
   );
 }
 
-export default FileUpload; 
+export default FileUpload;

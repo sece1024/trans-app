@@ -1,136 +1,138 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
+import EmptyState from '../components/EmptyState';
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07 } },
+};
+
+const cardVariants = {
+  hidden:  { opacity: 0, scale: 0.88, y: 12 },
+  visible: { opacity: 1, scale: 1,    y: 0,
+    transition: { type: 'spring', stiffness: 280, damping: 22 } },
+};
 
 function ImageUpload() {
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [message, setMessage] = useState('');
-    const [imageList, setImageList] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageList, setImageList]         = useState([]);
+  const [isLoading, setIsLoading]         = useState(false);
+  const [deletingName, setDeletingName]   = useState(null);
+  const uploadZoneControls = useAnimation();
+  const toast = useToast();
 
-    useEffect(() => {
-        getImageList();
-    }, []);
+  useEffect(() => { getImageList(); }, []);
 
-    const getImageList = useCallback(async () => {
-        try {
-            const response = await fetch('/api/images');
+  const getImageList = useCallback(async () => {
+    try { setImageList(await (await fetch('/api/images')).json()); }
+    catch { toast('获取图片失败', 'error'); }
+  }, []);
 
-            const data = await response.json();
-            setImageList(data);
-        } catch (error) {
-            setMessage('获取图片列表失败: ' + error.message);
-        }
-    }, []);
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file?.type.startsWith('image/')) setSelectedImage(file);
+    else toast('请选择有效的图片文件', 'error');
+  };
 
-    const handleDeleteImage = useCallback(async (filename) => {
-        try {
-            await fetch(`/api/images/${filename}`, {
-                method: 'DELETE'
-            });
-            getImageList();
-        }catch (error) {
-            console.error(error);
-        }
-    }, []);
+  const handleUpload = async () => {
+    if (!selectedImage) { toast('请先选择图片', 'error'); return; }
+    const formData = new FormData();
+    formData.append('image', selectedImage);
+    setIsLoading(true);
+    try {
+      await fetch('/api/images/upload', { method: 'POST', body: formData });
+      setSelectedImage(null);
+      await getImageList();
+      await uploadZoneControls.start({
+        scale: [1, 1.018, 1],
+        transition: { duration: 0.45, ease: 'easeOut' },
+      });
+      toast('图片上传成功', 'success');
+    } catch { toast('上传失败', 'error'); }
+    finally   { setIsLoading(false); }
+  };
 
-    const handleImageChange = (event) => {
-        const file = event.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            setSelectedImage(file);
-        } else {
-            setMessage('请选择有效的图片文件');
-        }
-    };
+  const handleDownload = async (filename, originalName) => {
+    try {
+      const res  = await fetch(`/api/images/download/${filename}`);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = Object.assign(document.createElement('a'), { href: url, download: originalName });
+      document.body.appendChild(a); a.click();
+      URL.revokeObjectURL(url); a.remove();
+    } catch { toast('下载失败', 'error'); }
+  };
 
-    const handleUpload = async () => {
-        if (!selectedImage) {
-            setMessage('请先选择图片');
-            return;
-        }
+  const handleCopyLink = async (filename) => {
+    const url = `${window.location.origin}/api/images/${filename}`;
+    await navigator.clipboard.writeText(url);
+    toast('链接已复制', 'success');
+  };
 
-        const formData = new FormData();
-        formData.append('image', selectedImage);
+  const handleDelete = useCallback(async (filename) => {
+    setDeletingName(filename);
+    try {
+      await fetch(`/api/images/${filename}`, { method: 'DELETE' });
+      await getImageList();
+      toast('已删除', 'info');
+    } catch { toast('删除失败', 'error'); }
+    finally   { setDeletingName(null); }
+  }, [getImageList]);
 
-        try {
-            const response = await fetch('/api/images/upload', {
-                method: 'POST',
-                body: formData,
-            });
+  return (
+    <div className="page">
+      <h1 className="page-title">图片</h1>
 
-            await response.json();
-            setMessage('图片上传成功');
-            setSelectedImage(null);
-            await getImageList();
-        } catch (error) {
-            setMessage('上传失败: ' + error.message);
-        }
-    };
+      {/* Upload zone */}
+      <motion.div className="glass-card upload-zone" animate={uploadZoneControls}>
+        <div className="upload-icon">🖼️</div>
+        <label className="file-input-button">
+          <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+          选择图片
+        </label>
+        {selectedImage && <span className="upload-hint">已选择：{selectedImage.name}</span>}
+        <button onClick={handleUpload} disabled={isLoading}>
+          {isLoading ? <><span className="spinner" /> 上传中</> : '上传'}
+        </button>
+      </motion.div>
 
-    const handleImageDownload = async (filename, originalName) => {
-        try {
-            const response = await fetch(`/api/images/download/${filename}`);
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = originalName; // 使用原始文件名
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } catch (error) {
-            setMessage('下载失败: ' + error.message);
-        }
-    };
-
-    return (
-        <div className="image-upload-container">
-            <h2>图片上传</h2>
-            <div className="upload-section">
-                <label className="file-input-button">
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        style={{display: 'none'}}
-                    />
-                    选择图片
-                </label>
-                {selectedImage && (
-                    <span className="selected-file-name">
-            已选择: {selectedImage.name}
-          </span>
+      {/* Bento grid */}
+      {imageList.length > 0 ? (
+        <>
+          <p className="section-header">图片库 · {imageList.length} 张</p>
+          <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
+            {imageList.map((image) => (
+              <motion.div
+                key={image.filename}
+                className="glass-card image-card"
+                variants={cardVariants}
+              >
+                <img src={`/api/images/${image.filename}`} alt={image.originalName} loading="lazy" />
+                <div className="image-overlay">
+                  <p className="image-name-overlay">{image.originalName}</p>
+                  <div className="card-actions">
+                    <button className="btn--icon" onClick={() => handleCopyLink(image.filename)}>🔗 链接</button>
+                    <button className="btn--icon" onClick={() => handleDownload(image.filename, image.originalName)}>↓ 下载</button>
+                    <button className="btn--icon btn--danger" onClick={() => handleDelete(image.filename)}>删除</button>
+                  </div>
+                </div>
+                {deletingName === image.filename && (
+                  <div className="card-loading"><span className="spinner" /></div>
                 )}
-                <button onClick={handleUpload}>上传</button>
-            </div>
-            {message && <p className="message">{message}</p>}
-
-            <div className="image-gallery">
-                {imageList.map((image, index) => (
-                    <div key={index} className="image-card">
-                        <div className="image-wrapper">
-                            <img
-                                src={`/api/images/${image.filename}`}
-                                alt={image.originalName}
-                                loading="lazy"
-                                onClick={() => handleImageDownload(image.filename, image.originalName)}
-                                style={{
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.3s ease',
-                                    '&:hover': {
-                                        transform: 'scale(1.05)'
-                                    }
-                                }}
-                            />
-                        </div>
-                        <div className="image-info">
-                            <span className="image-name">{image.originalName}</span>
-                            <button className="file-delete-button" onClick={() => handleDeleteImage(image.originalName)}>delete</button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
+              </motion.div>
+            ))}
+          </motion.div>
+        </>
+      ) : (
+        <EmptyState
+          icon="🖼️"
+          title="暂无图片"
+          description="点击上方区域上传图片"
+        />
+      )}
+    </div>
+  );
 }
 
-export default ImageUpload; 
+export default ImageUpload;

@@ -4,6 +4,7 @@ const fileRoutes = require('./routes/fileRoutes');
 const clipboardRoutes = require('./routes/clipboardRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const imageRoutes = require('./routes/imageRoutes');
+const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
 require('dotenv').config();
 const logger = require('./config/logger');
@@ -48,6 +49,9 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the backend!' });
 });
 
+// 错误处理中间件
+app.use(errorHandler);
+
 // 所有未匹配的路由返回 index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'));
@@ -56,7 +60,6 @@ app.get('*', (req, res) => {
 // 启动服务器
 async function startServer() {
   await initDatabase();
-  require('./services/socket');
   app.listen(PORT, () => {
     logger.info(`Server is running on http://localhost:${PORT}`);
   });
