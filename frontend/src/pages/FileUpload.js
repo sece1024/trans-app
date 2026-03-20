@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
+import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
   hidden: {},
@@ -115,7 +116,7 @@ function FileUpload() {
       </motion.div>
 
       {/* Bento grid */}
-      {uploadedFiles.length > 0 && (
+      {uploadedFiles.length > 0 ? (
         <>
           <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
@@ -124,7 +125,7 @@ function FileUpload() {
                 <div className="file-card-body">
                   <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
                   <div>
-                    <p className="file-name">{file.originalName || file.name}</p>
+                    <p className="file-name" title={file.originalName || file.name}>{file.originalName || file.name}</p>
                     <p className="file-meta">{file.sizeInMB} MB</p>
                   </div>
                 </div>
@@ -140,6 +141,12 @@ function FileUpload() {
             ))}
           </motion.div>
         </>
+      ) : (
+        <EmptyState
+          icon="📂"
+          title="暂无文件"
+          description="点击上方区域上传文件"
+        />
       )}
     </div>
   );

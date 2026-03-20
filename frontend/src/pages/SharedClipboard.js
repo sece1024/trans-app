@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
+import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
   hidden: {},
@@ -92,7 +93,7 @@ function SharedClipboard() {
       </div>
 
       {/* Bento grid */}
-      {clips.length > 0 && (
+      {clips.length > 0 ? (
         <>
           <p className="section-header">已分享 · {clips.length} 条</p>
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
@@ -125,6 +126,12 @@ function SharedClipboard() {
             })}
           </motion.div>
         </>
+      ) : (
+        <EmptyState
+          icon="📋"
+          title="暂无剪贴板内容"
+          description="在上方输入框中输入要分享的文本"
+        />
       )}
     </div>
   );

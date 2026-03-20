@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
+import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
   hidden: {},
@@ -97,7 +98,7 @@ function ImageUpload() {
       </motion.div>
 
       {/* Bento grid */}
-      {imageList.length > 0 && (
+      {imageList.length > 0 ? (
         <>
           <p className="section-header">图片库 · {imageList.length} 张</p>
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
@@ -123,6 +124,12 @@ function ImageUpload() {
             ))}
           </motion.div>
         </>
+      ) : (
+        <EmptyState
+          icon="🖼️"
+          title="暂无图片"
+          description="点击上方区域上传图片"
+        />
       )}
     </div>
   );
