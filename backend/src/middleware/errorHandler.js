@@ -1,4 +1,4 @@
-const logger = require('./logger');
+const logger = require('../config/logger');
 
 // 全局错误处理中间件
 function errorHandler(err, req, res, next) {
