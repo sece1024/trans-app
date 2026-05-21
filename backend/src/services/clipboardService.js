@@ -1,5 +1,4 @@
 const Content = require('../db/ContentItem');
-const internet = require('../utils/internet');
 
 class ClipboardService {
   async saveTextContent(content, type, deviceInfo) {
