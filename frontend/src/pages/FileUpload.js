@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
+import { api } from '../api/client';
 import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
@@ -34,14 +35,12 @@ function FileUpload() {
   const fileInputRef      = useRef(null);
   const uploadZoneControls = useAnimation();
   const toast = useToast();
-  const basePath = '/api/files';
 
   useEffect(() => { fetchUploadedFiles(); }, []);
 
   const fetchUploadedFiles = async () => {
     try {
-      const res = await fetch(basePath);
-      setUploadedFiles(await res.json());
+      setUploadedFiles(await api.getFiles());
     } catch { toast('获取文件列表失败', 'error'); }
   };
 
@@ -57,8 +56,7 @@ function FileUpload() {
     formData.append('file', file);
     setIsLoading(true);
     try {
-      const res  = await fetch(`${basePath}/upload`, { method: 'POST', body: formData });
-      const data = await res.json();
+      const data = await api.uploadFile(formData);
       await fetchUploadedFiles();
       setFileName('');
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -94,7 +92,7 @@ function FileUpload() {
   const handleDelete = async (name) => {
     setDeletingName(name);
     try {
-      await fetch(`${basePath}/${name}`, { method: 'DELETE' });
+      await api.deleteFile(name);
       await fetchUploadedFiles();
       toast('已删除', 'info');
     } catch { toast('删除失败', 'error'); }

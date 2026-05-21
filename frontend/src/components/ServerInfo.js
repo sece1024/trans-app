@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { copyToClipboard } from '../utils/copyToClipboard';
+import { api } from '../api/client';
 
 function ServerInfo() {
   const [serverInfo, setServerInfo] = useState(null);
@@ -11,9 +12,7 @@ function ServerInfo() {
 
   const fetchServerInfo = async () => {
     try {
-      const response = await fetch('/api/server-info');
-      const data = await response.json();
-      setServerInfo(data);
+      setServerInfo(await api.getServerInfo());
     } catch (error) {
       console.error('获取服务器信息失败:', error);
     }

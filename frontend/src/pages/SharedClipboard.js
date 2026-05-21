@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
+import { api } from '../api/client';
 import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
@@ -42,18 +43,14 @@ function SharedClipboard() {
   }, []);
 
   const fetchClips = async () => {
-    try { setClips(await (await fetch('/api/clipboard')).json()); }
+    try { setClips(await api.getClipboard()); }
     catch { /* silent */ }
   };
 
   const handleAdd = async () => {
     if (!clipText.trim()) { toast('请输入内容', 'error'); return; }
     try {
-      await fetch('/api/clipboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clipText, deviceInfo }),
-      });
+      await api.addClipboard(clipText, deviceInfo);
       setClipText('');
       await fetchClips();
       toast('已分享', 'success');
@@ -69,7 +66,7 @@ function SharedClipboard() {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`/api/clipboard/${id}`, { method: 'DELETE' });
+      await api.deleteClipboard(id);
       await fetchClips();
       toast('已删除', 'info');
     } catch { toast('删除失败', 'error'); }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
+import { api } from '../api/client';
 import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
@@ -26,7 +27,7 @@ function ImageUpload() {
   useEffect(() => { getImageList(); }, []);
 
   const getImageList = useCallback(async () => {
-    try { setImageList(await (await fetch('/api/images')).json()); }
+    try { setImageList(await api.getImages()); }
     catch { toast('获取图片失败', 'error'); }
   }, []);
 
@@ -42,7 +43,7 @@ function ImageUpload() {
     formData.append('image', selectedImage);
     setIsLoading(true);
     try {
-      await fetch('/api/images/upload', { method: 'POST', body: formData });
+      await api.uploadImage(formData);
       setSelectedImage(null);
       await getImageList();
       await uploadZoneControls.start({
@@ -76,7 +77,7 @@ function ImageUpload() {
   const handleDelete = useCallback(async (filename) => {
     setDeletingName(filename);
     try {
-      await fetch(`/api/images/${filename}`, { method: 'DELETE' });
+      await api.deleteImage(filename);
       await getImageList();
       toast('已删除', 'info');
     } catch { toast('删除失败', 'error'); }
