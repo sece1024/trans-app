@@ -34,17 +34,18 @@ function ServerInfo() {
     <div className="server-info">
       <div className="server-info-content">
         {serverInfo.ips.map((ip, index) => (
-          <div
+          <button
             key={index}
             className="ip-item"
             onClick={() => handleCopy(`http://${ip.address}:${serverInfo.port}`)}
+            aria-label={`复制地址 ${ip.address}:${serverInfo.port}`}
           >
             <span className="ip-label">局域网地址 {index + 1}</span>
             <span className="ip-address">
               {ip.address}:{serverInfo.port}
             </span>
             <span className="copy-hint">点击复制</span>
-          </div>
+          </button>
         ))}
       </div>
       {showCopied && <div className="copy-message">已复制</div>}

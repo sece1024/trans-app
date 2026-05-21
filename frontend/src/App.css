@@ -179,6 +179,11 @@
     box-sizing: border-box;
   }
 
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
   body {
     margin: 0;
     background: var(--bg-gradient);
@@ -860,11 +865,16 @@
       flex-direction: column;
       gap: 1px;
       padding: calc(var(--block-space) * 0.375) calc(var(--inline-space) * 0.8);
+      border: none;
+      background: none;
+      text-align: left;
+      color: inherit;
+      font: inherit;
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: background-color 0.15s ease;
 
-      &:hover {
+      &:hover, &:focus-visible {
         background-color: oklch(100% 0 0 / 7%);
         .copy-hint { opacity: 1; }
       }
