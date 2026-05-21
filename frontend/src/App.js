@@ -36,6 +36,9 @@ function App() {
         </aside>
 
         <main className="main-content">
+          <div className="mobile-server-info">
+            <ServerInfo />
+          </div>
           <Routes>
             <Route path="/" element={<FileUpload />} />
             <Route path="/clipboard" element={<SharedClipboard />} />
