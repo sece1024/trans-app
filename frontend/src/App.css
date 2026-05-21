@@ -419,7 +419,7 @@
   }
 
   /* ----- Buttons ----- */
-  button {
+  button, .file-input-button {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--inline-space) * 0.5);
@@ -435,22 +435,6 @@
 
     &:hover { filter: brightness(0.92); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
-
-  .file-input-button {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(var(--inline-space) * 0.5);
-    padding: calc(var(--block-space) * 0.625) calc(var(--inline-space) * 2);
-    background-color: var(--color-primary);
-    color: #fff;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: filter 0.15s ease;
-
-    &:hover { filter: brightness(0.92); }
   }
 
   /* Icon-style action buttons inside cards */
