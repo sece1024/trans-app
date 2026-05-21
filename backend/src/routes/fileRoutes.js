@@ -25,7 +25,6 @@ router.post('/files/upload', fileUpload.single('file'), (req, res) => {
     logger.error('file upload failed:', error);
     res.status(500).json({
       message: 'file upload failed',
-      error: error.message,
     });
   }
 });

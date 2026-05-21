@@ -20,7 +20,7 @@ function errorHandler(err, req, res, next) {
 
   // 默认 500 错误
   res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
+    message: err.status && err.status < 500 ? err.message : 'Internal server error',
   });
 }
 

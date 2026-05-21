@@ -13,7 +13,7 @@ router.post('/clipboard', async (req, res) => {
     const clips = await clipboardService.saveTextContent(text, 'text', deviceInfo);
     res.json(clips);
   } catch (error) {
-    res.status(500).json({ message: 'Save failed', error: error.message });
+    res.status(500).json({ message: 'Save failed' });
   }
 });
 
@@ -22,7 +22,7 @@ router.get('/clipboard', async (req, res) => {
     const clips = await clipboardService.getTextHistory();
     res.json(clips);
   } catch (error) {
-    res.status(500).json({ message: 'Get failed', error: error.message });
+    res.status(500).json({ message: 'Get failed' });
   }
 });
 
@@ -32,7 +32,7 @@ router.delete('/clipboard/:contentId', async (req, res) => {
     const result = await clipboardService.delete(contentId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Delete failed', error: error.message });
+    res.status(500).json({ message: 'Delete failed' });
   }
 });
 
