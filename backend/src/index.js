@@ -33,7 +33,16 @@ const app = express();
 const staticDir = path.join(__dirname, '../../frontend', 'build');
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (same-origin, curl, mobile apps)
+    if (!origin) return callback(null, true);
+    // Allow localhost and private network IPs
+    const allowed = /^https?:\/\/(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/;
+    if (allowed.test(origin)) return callback(null, true);
+    callback(null, false);
+  },
+}));
 app.use(express.json());
 
 app.use(express.static(staticDir));
