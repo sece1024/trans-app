@@ -1,27 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
+import { containerVariants, cardVariants } from '../utils/animations';
+import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.07 } },
-};
-
-const cardVariants = {
-  hidden:  { opacity: 0, scale: 0.88, y: 12 },
-  visible: { opacity: 1, scale: 1,    y: 0,
-    transition: { type: 'spring', stiffness: 280, damping: 22 } },
-};
 
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageList, setImageList]         = useState([]);
   const [isLoading, setIsLoading]         = useState(false);
   const [deletingName, setDeletingName]   = useState(null);
-  const uploadZoneControls = useAnimation();
+  const uploadControlsRef = useRef(null);
   const toast = useToast();
 
   useEffect(() => { getImageList(); }, []);
@@ -31,8 +22,7 @@ function ImageUpload() {
     catch { toast('获取图片失败', 'error'); }
   }, []);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleImageChange = (file) => {
     if (file?.type.startsWith('image/')) setSelectedImage(file);
     else toast('请选择有效的图片文件', 'error');
   };
@@ -46,10 +36,12 @@ function ImageUpload() {
       await api.uploadImage(formData);
       setSelectedImage(null);
       await getImageList();
-      await uploadZoneControls.start({
-        scale: [1, 1.018, 1],
-        transition: { duration: 0.45, ease: 'easeOut' },
-      });
+      if (uploadControlsRef.current) {
+        await uploadControlsRef.current.start({
+          scale: [1, 1.018, 1],
+          transition: { duration: 0.45, ease: 'easeOut' },
+        });
+      }
       toast('图片上传成功', 'success');
     } catch { toast('上传失败', 'error'); }
     finally   { setIsLoading(false); }
@@ -89,17 +81,16 @@ function ImageUpload() {
       <h1 className="page-title">图片</h1>
 
       {/* Upload zone */}
-      <motion.div className="glass-card upload-zone" animate={uploadZoneControls}>
-        <div className="upload-icon">🖼️</div>
-        <label className="file-input-button">
-          <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-          选择图片
-        </label>
-        {selectedImage && <span className="upload-hint">已选择：{selectedImage.name}</span>}
-        <button onClick={handleUpload} disabled={isLoading}>
-          {isLoading ? <><span className="spinner" /> 上传中</> : '上传'}
-        </button>
-      </motion.div>
+      <UploadZone
+        icon="🖼️"
+        label="选择图片"
+        accept="image/*"
+        hint={selectedImage ? `已选择：${selectedImage.name}` : ''}
+        isLoading={isLoading}
+        onFileChange={handleImageChange}
+        onUpload={handleUpload}
+        controlsRef={uploadControlsRef}
+      />
 
       {/* Bento grid */}
       {imageList.length > 0 ? (

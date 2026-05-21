@@ -3,18 +3,8 @@ import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
+import { containerVariants, cardVariants } from '../utils/animations';
 import EmptyState from '../components/EmptyState';
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.07 } },
-};
-
-const cardVariants = {
-  hidden:  { opacity: 0, scale: 0.88, y: 12 },
-  visible: { opacity: 1, scale: 1,    y: 0,
-    transition: { type: 'spring', stiffness: 280, damping: 22 } },
-};
 
 function SharedClipboard() {
   const [clips, setClips]         = useState([]);
