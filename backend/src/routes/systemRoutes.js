@@ -9,10 +9,10 @@ router.get('/server-info', (req, res) => {
 
     res.json({
       ips: ips,
-      port: process.env.PORT || 3000, // 添加服务器端口
+      port: process.env.PORT || 5001,
     });
   } catch (error) {
-    res.status(500).json({ message: '获取服务器信息失败', error: error.message });
+    res.status(500).json({ message: '获取服务器信息失败' });
   }
 });
 
