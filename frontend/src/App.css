@@ -410,11 +410,15 @@
     }
   }
 
-  /* Mobile: always show card actions */
+  /* Mobile: always show card actions and image overlay */
   @media (max-width: 100ch) {
     .card-actions {
       opacity: 1;
       translate: 0 0;
+    }
+
+    .image-card .image-overlay {
+      opacity: 1;
     }
   }
 
@@ -756,7 +760,6 @@
     aspect-ratio: 4 / 3;
     padding: 0;
     overflow: hidden;
-    cursor: pointer;
 
     img {
       width: 100%;
