@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const logger = require('../config/logger');
+const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 
 // 文件上传路由
 router.post('/files/upload', fileUpload.single('file'), (req, res) => {
@@ -29,7 +30,7 @@ router.post('/files/upload', fileUpload.single('file'), (req, res) => {
   }
 });
 
-router.get('/files/:fileName', async (req, res) => {
+router.get('/files/:fileName', sanitizeFilename('fileName'), async (req, res) => {
   try {
     const filePath = path.join(uploadDir, req.params.fileName);
 
@@ -66,7 +67,7 @@ router.get('/files', async (req, res) => {
   res.json(fileInfos);
 });
 
-router.get('/download/:fileName', async (req, res) => {
+router.get('/download/:fileName', sanitizeFilename('fileName'), async (req, res) => {
   try {
     const fileName = req.params.fileName;
     const filePath = path.join(uploadDir, fileName);
@@ -88,7 +89,7 @@ router.get('/download/:fileName', async (req, res) => {
   }
 });
 
-router.delete('/files/:fileName', async (req, res) => {
+router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res) => {
   try {
     const fileName = req.params.fileName;
     const filePath = path.join(uploadDir, fileName);

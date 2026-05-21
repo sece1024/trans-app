@@ -5,6 +5,7 @@ const path = require('path');
 const fsSync = require('fs');
 const fs = require('fs/promises');
 const logger = require('../config/logger');
+const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 
 router.post('/images/upload', imageUpload.single('image'), async (req, res) => {
   try {
@@ -44,7 +45,7 @@ router.get('/images', async (req, res) => {
 });
 
 // 获取单张图片
-router.get('/images/:filename', (req, res) => {
+router.get('/images/:filename', sanitizeFilename('filename'), (req, res) => {
   try {
     const filename = req.params.filename;
     const imagePath = path.join(uploadDir, filename);
@@ -61,7 +62,7 @@ router.get('/images/:filename', (req, res) => {
 });
 
 // 下载图片
-router.get('/images/download/:filename', (req, res) => {
+router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res) => {
   try {
     const filename = req.params.filename;
     const imagePath = path.join(uploadDir, filename);
@@ -81,7 +82,7 @@ router.get('/images/download/:filename', (req, res) => {
   }
 });
 
-router.delete('/images/:filename', async (req, res) => {
+router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res) => {
   try {
     const filename = req.params.filename;
     const imagePath = path.join(uploadDir, filename);
