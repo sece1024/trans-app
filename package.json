@@ -3,9 +3,9 @@
     "node": ">=22.13.1"
   },
   "scripts": {
-    "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend && npm start",
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+    "start:backend": "cd backend && pnpm start",
+    "start:frontend": "cd frontend && pnpm start",
+    "start": "concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

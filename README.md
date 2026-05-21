@@ -34,19 +34,19 @@ trans-app/
 ## 环境要求
 
 - Node.js >= 22.13.1
-- npm 或 yarn
+- pnpm
 
 ## 安装依赖
 
 ```bash
 # 安装根目录依赖
-npm install
+pnpm install
 
 # 安装前端依赖
-cd frontend && npm install
+cd frontend && pnpm install
 
 # 安装后端依赖
-cd backend && npm install
+cd backend && pnpm install
 ```
 
 ## 运行项目
@@ -55,11 +55,11 @@ cd backend && npm install
 
 ```bash
 # 同时启动前后端（推荐）
-npm start
+pnpm start
 
 # 或者分别启动
-cd backend && npm run dev
-cd frontend && npm start
+cd backend && pnpm run dev
+cd frontend && pnpm start
 ```
 
 - 前端：http://localhost:3000
@@ -69,10 +69,10 @@ cd frontend && npm start
 
 ```bash
 # 构建前端
-cd frontend && npm run build
+cd frontend && pnpm run build
 
 # 构建后端
-cd backend && npm run build
+cd backend && pnpm run build
 
 # 运行构建后的程序
 cd backend
@@ -133,12 +133,12 @@ PORT=5001
 
 ```bash
 # 构建所有平台
-cd backend && npm run build
+cd backend && pnpm run build
 
 # 构建特定平台
-cd backend && npm run build:linux
-cd backend && npm run build:macos
-cd backend && npm run build:arm64
+cd backend && pnpm run build:linux
+cd backend && pnpm run build:macos
+cd backend && pnpm run build:arm64
 ```
 
 ## 相关链接
