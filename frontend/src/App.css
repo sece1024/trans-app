@@ -734,6 +734,24 @@
       white-space: pre-wrap;
       margin: 0;
       flex: 1;
+
+      &.clip-text--expanded {
+        -webkit-line-clamp: unset;
+        display: block;
+      }
+    }
+
+    .btn--expand {
+      align-self: flex-start;
+      padding: calc(var(--block-space) * 0.2) calc(var(--inline-space) * 0.8);
+      background: oklch(100% 0 0 / 0.1);
+      color: var(--color-primary);
+      border: 1px solid var(--glass-border);
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+
+      &:hover { background: oklch(100% 0 0 / 0.2); filter: none; }
     }
 
     .clip-footer {

@@ -10,7 +10,10 @@ function SharedClipboard() {
   const [clips, setClips]         = useState([]);
   const [clipText, setClipText]   = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
+  const [expandedIds, setExpandedIds] = useState(new Set());
   const toast = useToast();
+
+  const LONG_TEXT_THRESHOLD = 200;
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
@@ -62,6 +65,16 @@ function SharedClipboard() {
     } catch { toast('删除失败', 'error'); }
   };
 
+  const toggleExpand = (id, e) => {
+    e.stopPropagation();
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className="page">
       <h1 className="page-title">剪贴板</h1>
@@ -87,6 +100,8 @@ function SharedClipboard() {
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
             {clips.map((clip) => {
               const isWide = clip.content.length > 120;
+              const isLong = clip.content.length > LONG_TEXT_THRESHOLD;
+              const isExpanded = expandedIds.has(clip.id);
               return (
                 <motion.div
                   key={clip.id}
@@ -94,7 +109,12 @@ function SharedClipboard() {
                   variants={cardVariants}
                   onClick={() => handleCopy(clip.content)}
                 >
-                  <pre className="clip-text">{clip.content}</pre>
+                  <pre className={`clip-text${isExpanded ? ' clip-text--expanded' : ''}`}>{clip.content}</pre>
+                  {isLong && (
+                    <button className="btn--expand" onClick={(e) => toggleExpand(clip.id, e)}>
+                      {isExpanded ? '收起' : '展开全文'}
+                    </button>
+                  )}
                   <div className="clip-footer">
                     <div>
                       <span className="device-info">{clip.deviceInfo}</span>
