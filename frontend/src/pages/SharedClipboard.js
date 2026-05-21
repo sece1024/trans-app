@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
+import { copyToClipboard } from '../utils/copyToClipboard';
 import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
@@ -61,7 +62,7 @@ function SharedClipboard() {
 
   const handleCopy = async (text) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       toast('已复制到剪贴板', 'success');
     } catch { toast('复制失败', 'error'); }
   };

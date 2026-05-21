@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { copyToClipboard } from '../utils/copyToClipboard';
 
 function ServerInfo() {
   const [serverInfo, setServerInfo] = useState(null);
@@ -20,7 +21,7 @@ function ServerInfo() {
 
   const handleCopy = async (text) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);
     } catch (error) {

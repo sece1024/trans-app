@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
+import { copyToClipboard } from '../utils/copyToClipboard';
 import EmptyState from '../components/EmptyState';
 
 const containerVariants = {
@@ -84,8 +85,10 @@ function FileUpload() {
 
   const handleCopyLink = async (name) => {
     const url = `${window.location.origin}/api/files/${encodeURIComponent(name)}`;
-    await navigator.clipboard.writeText(url);
-    toast('链接已复制', 'success');
+    try {
+      await copyToClipboard(url);
+      toast('链接已复制', 'success');
+    } catch { toast('复制失败', 'error'); }
   };
 
   const handleDelete = async (name) => {
