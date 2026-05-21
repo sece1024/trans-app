@@ -39,7 +39,8 @@ router.get('/files/:fileName', sanitizeFilename('fileName'), async (req, res) =>
 
     res.sendFile(filePath);
   } catch (error) {
-    logger.error('file upload failed:', error);
+    logger.error('file retrieval failed:', error);
+    res.status(500).json({ message: 'file retrieval failed' });
   }
 });
 
