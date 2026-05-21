@@ -964,5 +964,19 @@
     87.5% { -webkit-mask-position: 0% 0%,   50% 0%,   100% 50%;  mask-position: 0% 0%,   50% 0%,   100% 50%  }
     100%  { -webkit-mask-position: 0% 0%,   50% 0%,   100% 0%;   mask-position: 0% 0%,   50% 0%,   100% 0%   }
   }
+
+  /* Reduced motion: disable animations and heavy effects */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .glass-card, .toast, .btn--icon, .card-loading {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
 }
 
