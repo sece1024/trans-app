@@ -8,6 +8,7 @@
 - 🖼️ **图片共享**：上传、查看、下载、删除图片
 - 📋 **剪贴板同步**：在不同设备间同步文本内容
 - 🌐 **局域网访问**：支持局域网内多设备访问
+- 🎨 **多主题切换**：支持亮色、暗色、森林、日落、海洋五种主题
 
 ## 技术栈
 
@@ -18,22 +19,30 @@
 
 ### 后端
 - Express.js
-- SQLite + Sequelize
+- better-sqlite3（轻量级 SQLite 驱动）
 - Multer（文件上传）
 
 ## 项目结构
 
 ```
 trans-app/
-├── frontend/          # React前端应用
-├── backend/           # Express后端服务
+├── frontend/          # React 前端应用
+├── backend/           # Express 后端服务
+│   ├── src/           # 源代码
+│   │   ├── db/        # 数据库（better-sqlite3）
+│   │   ├── routes/    # API 路由
+│   │   ├── services/  # 业务逻辑层
+│   │   ├── middleware/ # 中间件（安全、错误处理）
+│   │   └── config/    # 配置（multer、logger）
+│   └── scripts/       # 构建脚本
+├── doc/               # 项目文档
 ├── package.json       # 根项目配置
 └── README.md
 ```
 
 ## 环境要求
 
-- Node.js >= 22.13.1
+- Node.js >= 22.0.0
 - pnpm
 
 ## 安装依赖
@@ -68,17 +77,52 @@ cd frontend && pnpm start
 ### 生产模式
 
 ```bash
-# 构建前端
+# 1. 构建前端
 cd frontend && pnpm run build
 
-# 构建后端
-cd backend && pnpm run build
-
-# 运行构建后的程序
-cd backend
-chmod +x ./trans
-./trans
+# 2. 启动后端（直接运行）
+cd backend && pnpm start
 ```
+
+Express 会自动托管 `frontend/build/` 中的静态文件。
+
+## 构建独立二进制
+
+使用 Node.js 22 的 [Single Executable Application (SEA)](https://nodejs.org/docs/latest-v22.x/api/single-executable-applications.html) 将应用打包为独立可执行文件。
+
+### 前置条件
+
+- Node.js 22（推荐使用 [fnm](https://github.com/Schniz/fnm) 管理版本）
+- 已构建前端（`cd frontend && pnpm run build`）
+- better-sqlite3 原生插件需为目标 Node 版本编译
+
+### 构建步骤
+
+```bash
+# 确保前端已构建
+cd frontend && pnpm run build
+
+# 为 Node 22 重新编译原生插件
+cd backend
+BETTER_DIR=$(node -e "console.log(require.resolve('better-sqlite3/package.json').replace('/package.json',''))")
+fnm exec --using=22 npx node-gyp rebuild --directory="$BETTER_DIR"
+
+# 构建 SEA 二进制
+fnm exec --using=22 node scripts/build.mjs
+```
+
+### 产物
+
+```
+backend/dist/
+├── trans                    # 独立可执行文件（~85 MB）
+├── better_sqlite3.node      # 原生插件（需随二进制分发）
+└── public/                  # 前端静态文件
+```
+
+运行：`cd backend/dist && ./trans`
+
+> **注意**：二进制体积主要来自嵌入的 Node.js 运行时（~85 MB），应用代码经 ncc 打包后仅约 3 MB。
 
 ## API 文档
 
@@ -124,21 +168,16 @@ chmod +x ./trans
 PORT=5001
 ```
 
-## 构建说明
+## 数据存储
 
-支持的平台：
-- Linux x64
-- Windows x64
-- macOS ARM64
+运行时数据存储在工作目录下的 `data/` 文件夹：
 
-```bash
-# 构建所有平台
-cd backend && pnpm run build
-
-# 构建特定平台
-cd backend && pnpm run build:linux
-cd backend && pnpm run build:macos
-cd backend && pnpm run build:arm64
+```
+data/
+├── database.sqlite        # SQLite 数据库
+└── uploads/
+    ├── files/             # 上传的文件
+    └── images/            # 上传的图片
 ```
 
 ## 相关链接
