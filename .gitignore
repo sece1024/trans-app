@@ -8,4 +8,4 @@ backend/data
 data
 
 .idea
-tmp/backend/dist/
+backend/dist/
