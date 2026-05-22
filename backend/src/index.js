@@ -15,15 +15,19 @@ logger.info('Database initialized successfully');
 
 const PORT = process.env.PORT || 5001;
 
-if (process.pkg) {
-  logger.info('Server is running in production mode');
+const isSea = (() => { try { return require('node:sea').isSea(); } catch { return false; } })();
+
+if (isSea) {
+  logger.info('Server is running in production mode (SEA)');
 } else {
   logger.info('Server is running in development mode');
 }
 
 const app = express();
 
-const staticDir = path.join(__dirname, '../../frontend', 'build');
+const staticDir = isSea
+  ? path.join(path.dirname(process.execPath), 'public')
+  : path.join(__dirname, '../../frontend', 'build');
 
 // 中间件
 app.use(cors({

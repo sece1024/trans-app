@@ -1,7 +1,8 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../config/logger');
+
+const isSea = (() => { try { return require('node:sea').isSea(); } catch { return false; } })();
 
 const dbDir = path.join(process.cwd(), 'data');
 const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
@@ -17,7 +18,17 @@ try {
   logger.error(`Failed to create dbDir: ${error.message}`);
 }
 
-const db = new Database(dbPath);
+// In SEA mode, load the native addon from alongside the executable
+let nativeBinding;
+if (isSea) {
+  const addonPath = path.join(path.dirname(process.execPath), 'better_sqlite3.node');
+  const mod = { exports: {} };
+  process.dlopen(mod, addonPath);
+  nativeBinding = mod.exports;
+}
+
+const Database = require('better-sqlite3');
+const db = new Database(dbPath, { nativeBinding });
 
 // Enable WAL mode for better concurrency
 db.pragma('journal_mode = WAL');

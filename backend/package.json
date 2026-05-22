@@ -2,33 +2,16 @@
   "name": "trans",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22.13.1"
+    "node": ">=22.0.0"
   },
-  "main": "index.js",
-  "bin": "src/index.js",
-  "pkg": {
-    "targets": [
-      "node18-win-x64",
-      "node18-linux-x64",
-      "node18-macos-x64"
-    ],
-    "assets": [
-      "../frontend/build/**/*",
-      "node_modules/better-sqlite3/**/*"
-    ],
-    "output": "dist"
-  },
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "style:format": "npx prettier --write .",
     "style:check": "npx prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-arm64",
-    "build:debug": "pkg . --debug",
-    "build:linux": "pkg . --targets node18-linux-x64",
-    "build:arm64": "pkg . --targets node18-linux-arm64",
-    "build:macos": "pkg . --targets node18-macos-arm64"
+    "build": "node scripts/build.mjs"
   },
   "keywords": [],
   "author": "",
@@ -42,8 +25,8 @@
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
+    "@vercel/ncc": "^0.38.4",
     "nodemon": "^3.1.9",
-    "pkg": "^5.8.1",
     "prettier": "^3.5.3"
   }
 }
