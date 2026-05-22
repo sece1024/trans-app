@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../config/logger');
@@ -17,10 +17,21 @@ try {
   logger.error(`Failed to create dbDir: ${error.message}`);
 }
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: dbPath,
-  logging: false, // 设置为 true 可以看到 SQL 查询日志
-});
+const db = new Database(dbPath);
 
-module.exports = sequelize;
+// Enable WAL mode for better concurrency
+db.pragma('journal_mode = WAL');
+
+// Create table if it doesn't exist (compatible with old Sequelize schema)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS Contents (
+    id TEXT PRIMARY KEY NOT NULL,
+    content TEXT NOT NULL,
+    type TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    deviceInfo TEXT
+  )
+`);
+
+module.exports = db;

@@ -1,33 +1,34 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('./database');
+const { randomUUID } = require('crypto');
+const db = require('./database');
 
-const ContentItem = sequelize.define('Content', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-    allowNull: false,
-    comment: 'ContentItem ID',
+// Prepared statements (cached for performance)
+const insertStmt = db.prepare(`
+  INSERT INTO Contents (id, content, type, createdAt, updatedAt, deviceInfo)
+  VALUES (?, ?, ?, ?, ?, ?)
+`);
+
+const selectAllStmt = db.prepare(
+  'SELECT * FROM Contents ORDER BY createdAt DESC'
+);
+
+const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
+
+const ContentItem = {
+  create({ content, type, deviceInfo }) {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    insertStmt.run(id, content, type, now, now, deviceInfo || null);
+    return { id, content, type, createdAt: now, updatedAt: now, deviceInfo };
   },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    comment: 'Text Content or Image Path',
+
+  findAll() {
+    return selectAllStmt.all();
   },
-  type: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Text or Image',
+
+  destroy(id) {
+    const result = deleteStmt.run(id);
+    return result.changes;
   },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    comment: 'Create Time',
-  },
-  deviceInfo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-});
+};
 
 module.exports = ContentItem;

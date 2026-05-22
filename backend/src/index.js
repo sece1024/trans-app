@@ -8,19 +8,12 @@ const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
 require('dotenv').config();
 const logger = require('./config/logger');
-const sequelize = require('./db/database');
+
+// Initialize database (creates table if needed)
+require('./db/database');
+logger.info('Database initialized successfully');
 
 const PORT = process.env.PORT || 5001;
-
-// Sync Database
-async function initDatabase() {
-  try {
-    await sequelize.sync();
-    logger.info('Database synchronized successfully');
-  } catch (error) {
-    logger.error('Unable to sync database:', error);
-  }
-}
 
 if (process.pkg) {
   logger.info('Server is running in production mode');
@@ -67,11 +60,6 @@ app.get('*', (req, res) => {
 });
 
 // 启动服务器
-async function startServer() {
-  await initDatabase();
-  app.listen(PORT, () => {
-    logger.info(`Server is running on http://localhost:${PORT}`);
-  });
-}
-
-startServer();
+app.listen(PORT, () => {
+  logger.info(`Server is running on http://localhost:${PORT}`);
+});

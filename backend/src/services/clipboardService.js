@@ -1,15 +1,9 @@
-const Content = require('../db/ContentItem');
+const ContentItem = require('../db/ContentItem');
 
 class ClipboardService {
   async saveTextContent(content, type, deviceInfo) {
     try {
-      const contentItem = await Content.create({
-        content,
-        type,
-        deviceInfo,
-      });
-
-      return contentItem;
+      return ContentItem.create({ content, type, deviceInfo });
     } catch (error) {
       throw new Error('Failed to save clipBoard');
     }
@@ -17,8 +11,7 @@ class ClipboardService {
 
   async getTextHistory() {
     try {
-      const history = await Content.findAll();
-      return history;
+      return ContentItem.findAll();
     } catch (error) {
       throw new Error('Failed to get clipBoard history!');
     }
@@ -26,7 +19,7 @@ class ClipboardService {
 
   async delete(contentId) {
     try {
-      return await Content.destroy({ where: { id: contentId } });
+      return ContentItem.destroy(contentId);
     } catch (error) {
       throw new Error('failed to delete: ' + contentId);
     }
