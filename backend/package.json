@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "style:format": "npx prettier --write .",
-    "style:check": "npx prettier --check .",
+    "style:format": "prettier --write .",
+    "style:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node scripts/build.mjs"
   },

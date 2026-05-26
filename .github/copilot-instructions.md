@@ -2,60 +2,73 @@
 
 ## Project Overview
 
-**TransApp** is a local-network file/clipboard/image sharing tool. It runs as a single server (Express) that serves the React frontend as static files and exposes a REST + WebSocket API. The app can be packaged into a standalone binary (`trans`) using `pkg`.
+**TransApp** is a local-network file/clipboard/image sharing tool. It runs as a single Express server that serves the React frontend as static files and exposes a REST API. The app can be packaged into a standalone binary (`trans`) using Node.js 22 Single Executable Application (SEA).
 
 ## Monorepo Structure
 
 - `backend/` — Node.js/Express server (entry: `src/index.js`)
 - `frontend/` — React CRA app (proxies API to `http://localhost:5001`)
 - Root `package.json` — runs both with `concurrently`
+- Package manager: **pnpm** (Node.js >= 22 required)
 
 ## Commands
 
 ### Development
 ```bash
 # Run both frontend and backend together (from repo root)
-npm start
+pnpm start
 
 # Backend only (port 5001, hot-reload via nodemon)
-cd backend && npm run dev
+cd backend && pnpm run dev
 
 # Frontend only (CRA dev server, port 3000)
-cd frontend && npm start
+cd frontend && pnpm start
 ```
 
-### Formatting
+### Formatting (backend only)
 ```bash
-cd backend && npm run style:check   # check Prettier
-cd backend && npm run style:format  # auto-fix
+cd backend && pnpm run style:check   # check Prettier
+cd backend && pnpm run style:format  # auto-fix
 ```
 
 ### Building the standalone binary
 ```bash
-cd frontend && npm run build        # build React into frontend/build/
-cd backend && npm run build         # package into backend/dist/ via pkg
+cd frontend && pnpm run build        # build React into frontend/build/
+cd backend && pnpm run build         # package via Node.js SEA into backend/dist/
 ```
+
+The SEA build uses `@vercel/ncc` to bundle, then Node.js 22's `node:sea` API to create the binary. The native `better-sqlite3` addon (`better_sqlite3.node`) must be distributed alongside the binary.
 
 ## Architecture
 
 ### Request flow (production)
-Express serves `frontend/build/` as static files. All API routes are prefixed `/api`. Any unmatched route returns `frontend/build/index.html` (SPA fallback).
+Express serves a `public/` directory (next to the binary) as static files. All API routes are prefixed `/api`. Any unmatched route returns `index.html` (SPA fallback).
 
 ### Request flow (development)
 Frontend CRA dev server (`localhost:3000`) proxies `/api` calls to `localhost:5001` via the `"proxy"` field in `frontend/package.json`.
 
 ### Backend layers
 ```
-src/index.js          → bootstraps Express, calls sequelize.sync(), starts WebSocket
-src/routes/           → thin Express routers, one file per feature (file, clipboard, image, system)
-src/services/         → business logic (clipboardService, dataService, socket)
-src/db/               → Sequelize instance (database.js) + models (ContentItem.js)
-src/config/           → multer storage config, logger wrapper
-src/utils/            → internet (IP/network info), cleanup, tool helpers
+src/index.js          → bootstraps Express, registers routes, error handler
+src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
+src/services/         → business logic (clipboardService singleton, FileService class)
+src/db/               → better-sqlite3 instance (database.js) + active-record-style model (ContentItem.js)
+src/config/           → multer storage factories (multer.js), logger wrapper (logger.js)
+src/middleware/       → errorHandler.js, sanitizeFilename.js
+src/utils/            → IP/network info, helpers
+```
+
+### Frontend layers
+```
+src/pages/            → route-level components (FileUpload, ImageUpload, SharedClipboard)
+src/components/       → reusable UI (Toast, UploadZone, EmptyState, ThemePicker, ServerInfo)
+src/api/client.js     → single fetch wrapper (api object); throws ApiError on non-OK responses
+src/context/          → ToastContext (useToast hook; toast(message, type))
+src/utils/            → shared helpers
 ```
 
 ### Data persistence
-- SQLite database: `data/database.sqlite` (created at `process.cwd()` at runtime, not committed)
+- SQLite database: `data/database.sqlite` (at `process.cwd()` at runtime, not committed)
 - Uploaded files: `data/uploads/files/`
 - Uploaded images: `data/uploads/images/`
 
@@ -66,7 +79,7 @@ src/utils/            → internet (IP/network info), cleanup, tool helpers
 **Color system (OKLCH)**
 - Primitives: `--lch-primary`, `--lch-danger`, `--lch-accent` — raw `L% C H` values.
 - Semantic tokens: `--color-primary`, `--color-bg-card`, `--color-ink`, etc., built with `oklch(var(--lch-*))`.
-- Dark mode: `[data-theme='dark']` overrides only the primitives; everything else cascades automatically.
+- Five themes via `[data-theme]`: `light`, `dark`, `forest`, `sunset`, `ocean` — each overrides only the primitives.
 - Hover/active variants: use `filter: brightness(0.92)` instead of separate color tokens. Use `color-mix()` for derived surfaces (e.g. `--color-primary-bg`).
 
 **Spacing**
@@ -80,11 +93,14 @@ src/utils/            → internet (IP/network info), cleanup, tool helpers
 
 ## Key Conventions
 
-- **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames.
-- **Production vs. dev detection**: use `process.pkg` (truthy when running as a `pkg` binary).
-- **Logger**: `src/config/logger.js` is a thin wrapper over `console`—not a real logging library. Use `logger.info/warn/error`.
+- **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames. This happens inside `createStorage` in `src/config/multer.js`.
+- **Uploaded file naming**: files get a `Date.now()-originalName` prefix; images get a random `timestamp-random.ext` name.
+- **Production vs. dev detection**: use `require('node:sea').isSea()` (not `process.pkg`). Wrapped in try/catch since the module only exists in Node 22+.
+- **Logger**: `src/config/logger.js` is a thin wrapper over `console`. Use `logger.info/warn/error`.
 - **All API routes** are registered under the `/api` prefix in `index.js`.
-- **Uploading duplicate files**: multer config silently deletes the existing file before saving the new one with the same name.
+- **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
+- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll()`, `ContentItem.destroy(id)`.
+- **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
+- **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
 - **No tests**: the test script is a placeholder. There are no test files to run.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
-- **Sequelize model name**: the model is defined as `'Content'` (table: `Contents`), exported as `ContentItem`.
