@@ -7,9 +7,7 @@ const insertStmt = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
-const selectAllStmt = db.prepare(
-  'SELECT * FROM Contents ORDER BY createdAt DESC'
-);
+const selectAllStmt = db.prepare('SELECT * FROM Contents ORDER BY createdAt DESC');
 
 const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
 

@@ -16,15 +16,7 @@
  */
 
 import { execSync } from 'child_process';
-import {
-  copyFileSync,
-  cpSync,
-  writeFileSync,
-  mkdirSync,
-  existsSync,
-  rmSync,
-  statSync,
-} from 'fs';
+import { copyFileSync, cpSync, writeFileSync, mkdirSync, existsSync, rmSync, statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -36,9 +28,7 @@ const frontendBuild = path.resolve(root, '..', 'frontend', 'build');
 // Parse --node flag
 const args = process.argv.slice(2);
 const nodeIdx = args.indexOf('--node');
-const nodeBin = nodeIdx !== -1 && args[nodeIdx + 1]
-  ? args[nodeIdx + 1]
-  : process.execPath;
+const nodeBin = nodeIdx !== -1 && args[nodeIdx + 1] ? args[nodeIdx + 1] : process.execPath;
 
 // Clean & create dist
 if (existsSync(dist)) rmSync(dist, { recursive: true });
@@ -98,7 +88,7 @@ if (process.platform === 'darwin') {
 const machoFlag = process.platform === 'darwin' ? '--macho-segment-name NODE_SEA' : '';
 execSync(
   `npx --yes postject "${outputBin}" NODE_SEA_BLOB "${path.join(dist, 'sea-prep.blob')}" ` +
-  `--sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 ${machoFlag}`,
+    `--sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 ${machoFlag}`,
   { stdio: 'inherit', cwd: root }
 );
 
@@ -107,10 +97,16 @@ if (process.platform === 'darwin') {
   try {
     execSync(`codesign --remove-signature "${outputBin}" 2>/dev/null`, { stdio: 'inherit' });
     execSync(`strip "${outputBin}"`, { stdio: 'inherit' });
-  } catch { /* strip optional */ }
+  } catch {
+    /* strip optional */
+  }
   execSync(`codesign --sign - "${outputBin}"`, { stdio: 'inherit' });
 } else {
-  try { execSync(`strip "${outputBin}"`, { stdio: 'inherit' }); } catch { /* optional */ }
+  try {
+    execSync(`strip "${outputBin}"`, { stdio: 'inherit' });
+  } catch {
+    /* optional */
+  }
 }
 
 console.log('  ✓ Binary created: dist/trans');
