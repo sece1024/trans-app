@@ -2,14 +2,15 @@
 
 ## Project Overview
 
-**TransApp** is a local-network file/clipboard/image sharing tool. It runs as a single Express server that serves the React frontend as static files and exposes a REST API. The app can be packaged into a standalone binary (`trans`) using Node.js 22 Single Executable Application (SEA).
+**TransApp** is a local-network file/clipboard/image sharing tool. It runs as a single Express server that serves the React frontend as static files and exposes a REST API. The app can be packaged into standalone binaries (`trans`) using Bun's built-in compile feature, with cross-compilation support for macOS arm64 and Linux arm64.
 
 ## Monorepo Structure
 
-- `backend/` — Node.js/Express server (entry: `src/index.js`)
+- `backend/` — Express server running on Bun (entry: `src/index.js`)
 - `frontend/` — React CRA app (proxies API to `http://localhost:5001`)
 - Root `package.json` — runs both with `concurrently`
-- Package manager: **pnpm** (Node.js >= 22 required)
+- Runtime: **Bun** (backend), **Node.js** (frontend CRA)
+- Package manager: **pnpm**
 
 ## Commands
 
@@ -18,7 +19,7 @@
 # Run both frontend and backend together (from repo root)
 pnpm start
 
-# Backend only (port 5001, hot-reload via nodemon)
+# Backend only (port 5001, hot-reload via bun --watch)
 cd backend && pnpm run dev
 
 # Frontend only (CRA dev server, port 3000)
@@ -31,13 +32,17 @@ cd backend && pnpm run style:check   # check Prettier
 cd backend && pnpm run style:format  # auto-fix
 ```
 
-### Building the standalone binary
+### Building standalone binaries
 ```bash
 cd frontend && pnpm run build        # build React into frontend/build/
-cd backend && pnpm run build         # package via Node.js SEA into backend/dist/
+cd backend && pnpm run build         # compile via Bun into backend/dist/
 ```
 
-The SEA build uses `@vercel/ncc` to bundle, then Node.js 22's `node:sea` API to create the binary. The native `better-sqlite3` addon (`better_sqlite3.node`) must be distributed alongside the binary.
+The build uses `bun build --compile` with cross-compilation. It produces two target directories:
+- `dist/darwin-arm64/` — macOS Apple Silicon (M-series)
+- `dist/linux-arm64/` — Linux ARM64 (Raspberry Pi)
+
+Each target contains only the `trans` binary and a `public/` directory (frontend assets). No native addons needed — `bun:sqlite` is built into the Bun runtime.
 
 ## Architecture
 
@@ -52,10 +57,10 @@ Frontend CRA dev server (`localhost:3000`) proxies `/api` calls to `localhost:50
 src/index.js          → bootstraps Express, registers routes, error handler
 src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
 src/services/         → business logic (BaseService ← FileService / ImageService; ClipboardService singleton)
-src/db/               → better-sqlite3 instance (database.js) + active-record-style model (ContentItem.js)
+src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js)
 src/middleware/       → errorHandler.js, sanitizeFilename.js
-src/utils/            → IP/network info, sea.js (isSea helper)
+src/utils/            → IP/network info, sea.js (compiled-binary detection)
 ```
 
 **Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and abstract `list()`. File-based services extend it. `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` and `ImageService` are exported as classes (instantiated in routes with the upload dir path). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
@@ -98,11 +103,11 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 
 - **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames. This happens inside `createStorage` in `src/config/multer.js`.
 - **Uploaded file naming**: files get a `Date.now()-originalName` prefix; images get a random `timestamp-random.ext` name.
-- **Production vs. dev detection**: use `require('node:sea').isSea()` (not `process.pkg`). Wrapped in try/catch since the module only exists in Node 22+.
+- **Production vs. dev detection**: `utils/sea.js` exports `isSea()` which checks `path.basename(process.execPath)` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
 - **Logger**: `src/config/logger.js` is a thin wrapper over `console`. Use `logger.info/warn/error`.
 - **All API routes** are registered under the `/api` prefix in `index.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
-- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll()`, `ContentItem.destroy(id)`.
+- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
 - **No tests**: the test script is a placeholder. There are no test files to run.

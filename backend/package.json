@@ -2,7 +2,7 @@
   "name": "trans",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22.0.0"
+    "bun": ">=1.0.0"
   },
   "main": "src/index.js",
   "scripts": {

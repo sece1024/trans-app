@@ -2,7 +2,8 @@
 
 ## 环境要求
 
-- **Node.js >= 22**（推荐 [fnm](https://github.com/Schniz/fnm) 管理版本）
+- **Bun**（后端运行时 + 打包工具，[安装指南](https://bun.sh)）
+- **Node.js >= 18**（前端 CRA 构建需要）
 - **pnpm**（项目统一使用 pnpm，不使用 npm / yarn / npx）
 
 ## 安装依赖
@@ -17,7 +18,7 @@ pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install
 # 同时启动前后端（推荐）
 pnpm start
 
-# 仅启动后端（端口 5001，nodemon 热重载）
+# 仅启动后端（端口 5001，bun --watch 热重载）
 cd backend && pnpm run dev
 
 # 仅启动前端（端口 3000，CRA dev server，自动代理 /api → 5001）
@@ -58,7 +59,7 @@ cd backend && pnpm run style:format  # 自动修复
 | 数据 | `src/db/` | `database.js` 初始化连接，`ContentItem.js` 封装 prepared statements |
 | 中间件 | `src/middleware/` | 错误处理、文件名消毒 |
 | 配置 | `src/config/` | multer 存储工厂、logger |
-| 工具 | `src/utils/` | `isSea()` SEA 检测、网络信息 |
+| 工具 | `src/utils/` | `isSea()` 编译二进制检测、网络信息 |
 
 ### 前端分层
 
@@ -92,9 +93,9 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 存储时 `config/multer.js` 已自动解码并添加时间戳前缀。
 
-### SEA 检测
+### 编译二进制检测
 
-使用 `utils/sea.js` 导出的 `isSea()` 函数（内部 try/catch `require('node:sea').isSea()`），不要使用 `process.pkg`。
+使用 `utils/sea.js` 导出的 `isSea()` 函数（检查 `path.basename(process.execPath)` 是否为 `bun` 或 `node`），编译后的二进制名为 `trans`，因此返回 `true`。
 
 ### 文件名安全
 
@@ -102,7 +103,7 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 数据库
 
-`ContentItem`（`src/db/ContentItem.js`）使用 better-sqlite3 的 prepared statements，不使用 ORM。表名 `Contents`，方法：`create()`、`findAll()`、`destroy(id)`。
+`ContentItem`（`src/db/ContentItem.js`）使用 `bun:sqlite` 的 prepared statements，不使用 ORM。表名 `Contents`，方法：`create()`、`findAll()`、`destroy(id)`。`destroy()` 通过 `SELECT changes()` 获取受影响行数（`bun:sqlite` 的 `stmt.run()` 返回 `undefined`）。
 
 ### 错误处理
 
@@ -132,14 +133,6 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 4. 文件下载/链接复制使用 `src/utils/uploadHelpers.js`
 
 ## 常见问题
-
-### better-sqlite3 编译错误
-
-切换 Node.js 大版本后会出现 `ERR_DLOPEN_FAILED`，执行：
-
-```bash
-cd backend && pnpm rebuild better-sqlite3
-```
 
 ### 端口被占用
 

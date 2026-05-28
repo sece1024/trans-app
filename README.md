@@ -15,8 +15,8 @@
 | 层 | 技术 |
 |---|---|
 | 前端 | React 19、React Router 7、Framer Motion |
-| 后端 | Express.js、Multer、better-sqlite3 |
-| 打包 | Node.js 22 SEA（Single Executable Application） |
+| 后端 | Express.js、Multer、bun:sqlite |
+| 打包 | Bun compile（内置交叉编译） |
 
 ## 项目结构
 
@@ -34,10 +34,10 @@ trans-app/
 │       ├── index.js           # 入口，注册路由与中间件
 │       ├── routes/            # 路由层（file、image、clipboard、system）
 │       ├── services/          # 业务逻辑（BaseService → FileService / ImageService）
-│       ├── db/                # better-sqlite3 实例 + ContentItem 模型
+│       ├── db/                # bun:sqlite 实例 + ContentItem 模型
 │       ├── middleware/        # errorHandler、sanitizeFilename
 │       ├── config/            # multer 存储、logger
-│       └── utils/             # isSea()、网络信息
+│       └── utils/             # 编译二进制检测、网络信息
 ├── request/                   # REST Client 测试文件
 ├── AGENTS.md                  # AI 辅助开发指引
 └── package.json               # 根配置，concurrently 启动前后端
@@ -45,7 +45,8 @@ trans-app/
 
 ## 环境要求
 
-- **Node.js >= 22**
+- **Bun**（后端运行时 + 打包工具，[安装指南](https://bun.sh)）
+- **Node.js >= 18**（前端 CRA 构建）
 - **pnpm**（不使用 npm / yarn）
 
 ## 快速开始
@@ -65,44 +66,45 @@ pnpm start
 | 命令 | 说明 |
 |------|------|
 | `pnpm start` | 同时启动前后端 |
-| `cd backend && pnpm run dev` | 仅启动后端（nodemon 热重载） |
+| `cd backend && pnpm run dev` | 仅启动后端（bun --watch 热重载） |
 | `cd frontend && pnpm start` | 仅启动前端 |
 | `cd backend && pnpm run style:check` | 检查后端代码格式 |
 | `cd backend && pnpm run style:format` | 自动修复格式 |
 | `cd frontend && pnpm run build` | 构建前端到 `frontend/build/` |
-| `cd backend && pnpm run build` | 构建 SEA 独立二进制到 `backend/dist/` |
+| `cd backend && pnpm run build` | Bun 交叉编译到 `backend/dist/` |
 
 ## 生产部署
 
 ```bash
 cd frontend && pnpm run build
-cd backend && pnpm start
+cd backend && bun src/index.js
 ```
 
 Express 会自动托管 `frontend/build/` 中的静态文件，所有未匹配路由回退到 `index.html`（SPA）。
 
 ## 构建独立二进制
 
-使用 Node.js 22 [SEA](https://nodejs.org/docs/latest-v22.x/api/single-executable-applications.html) 打包为单文件可执行程序。
+使用 [Bun compile](https://bun.sh/docs/bundler/executables) 打包为独立可执行程序，支持交叉编译。
 
 ```bash
 cd frontend && pnpm run build
-
-cd backend
-pnpm rebuild better-sqlite3          # 重编译原生插件
-pnpm run build                       # 输出到 dist/
+cd backend && pnpm run build
 ```
 
 产物：
 
 ```
 backend/dist/
-├── trans                    # 可执行文件（~85 MB）
-├── better_sqlite3.node      # 原生插件（需随二进制分发）
-└── public/                  # 前端静态文件
+├── darwin-arm64/
+│   ├── trans              # macOS arm64 可执行文件
+│   └── public/            # 前端静态文件
+└── linux-arm64/
+    ├── trans              # Linux arm64 可执行文件（树莓派）
+    └── public/            # 前端静态文件
 ```
 
-运行：`cd backend/dist && ./trans`
+运行（macOS）：`cd backend/dist/darwin-arm64 && ./trans`
+部署到树莓派：将 `linux-arm64/` 目录整个复制到树莓派，然后 `cd linux-arm64 && ./trans`
 
 ## 环境变量
 
