@@ -15,12 +15,12 @@ function ImageUpload() {
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
-  useEffect(() => { getImageList(); }, []);
-
   const getImageList = useCallback(async () => {
     try { setImageList(await api.getImages()); }
     catch { toast('获取图片失败', 'error'); }
   }, [toast]);
+
+  useEffect(() => { getImageList(); }, [getImageList]);
 
   const handleImageChange = (file) => {
     if (file?.type.startsWith('image/')) setSelectedImage(file);

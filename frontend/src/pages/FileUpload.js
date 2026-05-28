@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
@@ -27,13 +27,13 @@ function FileUpload() {
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
-  useEffect(() => { fetchUploadedFiles(); }, []);
-
-  const fetchUploadedFiles = async () => {
+  const fetchUploadedFiles = useCallback(async () => {
     try {
       setUploadedFiles(await api.getFiles());
     } catch { toast('获取文件列表失败', 'error'); }
-  };
+  }, [toast]);
+
+  useEffect(() => { fetchUploadedFiles(); }, [fetchUploadedFiles]);
 
   const handleFileChange = (file) => {
     setFileName(file.name);
