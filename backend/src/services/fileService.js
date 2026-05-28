@@ -1,13 +1,9 @@
 const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
-const logger = require('../config/logger');
+const BaseService = require('./baseService');
 
-class FileService {
-  constructor(uploadDir) {
-    this.uploadDir = uploadDir;
-  }
-
+class FileService extends BaseService {
   async list() {
     if (!fsSync.existsSync(this.uploadDir)) {
       return [];
@@ -25,27 +21,6 @@ class FileService {
       });
     }
     return fileInfos;
-  }
-
-  getFilePath(fileName) {
-    return path.join(this.uploadDir, fileName);
-  }
-
-  exists(fileName) {
-    return fsSync.existsSync(this.getFilePath(fileName));
-  }
-
-  async delete(fileName) {
-    const filePath = this.getFilePath(fileName);
-    if (!fsSync.existsSync(filePath)) {
-      return false;
-    }
-    await fs.unlink(filePath);
-    return true;
-  }
-
-  createReadStream(fileName) {
-    return fsSync.createReadStream(this.getFilePath(fileName));
   }
 }
 
