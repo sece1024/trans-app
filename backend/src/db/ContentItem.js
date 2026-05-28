@@ -24,8 +24,8 @@ const ContentItem = {
   },
 
   destroy(id) {
-    const result = deleteStmt.run(id);
-    return result.changes;
+    deleteStmt.run(id);
+    return db.prepare('SELECT changes() AS count').get().count;
   },
 };
 

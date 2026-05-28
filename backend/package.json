@@ -6,27 +6,24 @@
   },
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "bun src/index.js",
+    "dev": "bun --watch src/index.js",
     "style:format": "prettier --write .",
     "style:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/build.mjs"
+    "build": "bun scripts/build.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "better-sqlite3": "^12.10.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.4",
-    "esbuild": "^0.28.0",
     "nodemon": "^3.1.9",
     "prettier": "^3.5.3"
   }
