@@ -8,6 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
 require('dotenv').config();
 const logger = require('./config/logger');
+const { isSea } = require('./utils/sea');
 
 // Initialize database (creates table if needed)
 require('./db/database');
@@ -15,9 +16,7 @@ logger.info('Database initialized successfully');
 
 const PORT = process.env.PORT || 5001;
 
-const isSea = (() => { try { return require('node:sea').isSea(); } catch { return false; } })();
-
-if (isSea) {
+if (isSea()) {
   logger.info('Server is running in production mode (SEA)');
 } else {
   logger.info('Server is running in development mode');
@@ -25,21 +24,23 @@ if (isSea) {
 
 const app = express();
 
-const staticDir = isSea
+const staticDir = isSea()
   ? path.join(path.dirname(process.execPath), 'public')
   : path.join(__dirname, '../../frontend', 'build');
 
 // 中间件
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (same-origin, curl, mobile apps)
-    if (!origin) return callback(null, true);
-    // Allow localhost and private network IPs
-    const allowed = /^https?:\/\/(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/;
-    if (allowed.test(origin)) return callback(null, true);
-    callback(null, false);
-  },
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, curl, mobile apps)
+      if (!origin) return callback(null, true);
+      // Allow localhost and private network IPs
+      const allowed = /^https?:\/\/(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/;
+      if (allowed.test(origin)) return callback(null, true);
+      callback(null, false);
+    },
+  })
+);
 app.use(express.json());
 
 app.use(express.static(staticDir));

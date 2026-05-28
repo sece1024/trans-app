@@ -1,8 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const logger = require('../config/logger');
-
-const isSea = (() => { try { return require('node:sea').isSea(); } catch { return false; } })();
+const { isSea } = require('../utils/sea');
 
 const dbDir = path.join(process.cwd(), 'data');
 const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
@@ -20,7 +19,7 @@ try {
 
 // In SEA mode, load the native addon from alongside the executable
 let nativeBinding;
-if (isSea) {
+if (isSea()) {
   const addonPath = path.join(path.dirname(process.execPath), 'better_sqlite3.node');
   const mod = { exports: {} };
   process.dlopen(mod, addonPath);
