@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
-import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
+import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 
@@ -20,7 +20,7 @@ function ImageUpload() {
   const getImageList = useCallback(async () => {
     try { setImageList(await api.getImages()); }
     catch { toast('获取图片失败', 'error'); }
-  }, []);
+  }, [toast]);
 
   const handleImageChange = (file) => {
     if (file?.type.startsWith('image/')) setSelectedImage(file);
@@ -36,12 +36,7 @@ function ImageUpload() {
       await api.uploadImage(formData);
       setSelectedImage(null);
       await getImageList();
-      if (uploadControlsRef.current) {
-        await uploadControlsRef.current.start({
-          scale: [1, 1.018, 1],
-          transition: { duration: 0.45, ease: 'easeOut' },
-        });
-      }
+      await pulseSuccess(uploadControlsRef);
       toast('图片上传成功', 'success');
     } catch { toast('上传失败', 'error'); }
     finally   { setIsLoading(false); }
@@ -49,21 +44,12 @@ function ImageUpload() {
 
   const handleDownload = async (filename, originalName) => {
     try {
-      const res  = await fetch(`/api/images/download/${filename}`);
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = Object.assign(document.createElement('a'), { href: url, download: originalName });
-      document.body.appendChild(a); a.click();
-      URL.revokeObjectURL(url); a.remove();
+      await downloadFile(`/api/images/download/${filename}`, originalName);
     } catch { toast('下载失败', 'error'); }
   };
 
   const handleCopyLink = async (filename) => {
-    const url = `${window.location.origin}/api/images/${filename}`;
-    try {
-      await copyToClipboard(url);
-      toast('链接已复制', 'success');
-    } catch { toast('复制失败', 'error'); }
+    await copyLink(`/api/images/${filename}`, toast);
   };
 
   const handleDelete = useCallback(async (filename) => {
@@ -74,13 +60,12 @@ function ImageUpload() {
       toast('已删除', 'info');
     } catch { toast('删除失败', 'error'); }
     finally   { setDeletingName(null); }
-  }, [getImageList]);
+  }, [getImageList, toast]);
 
   return (
     <div className="page">
       <h1 className="page-title">图片</h1>
 
-      {/* Upload zone */}
       <UploadZone
         icon="🖼️"
         label="选择图片"
@@ -92,7 +77,6 @@ function ImageUpload() {
         controlsRef={uploadControlsRef}
       />
 
-      {/* Bento grid */}
       {imageList.length > 0 ? (
         <>
           <p className="section-header">图片库 · {imageList.length} 张</p>

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
-import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
+import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 
@@ -37,7 +37,6 @@ function FileUpload() {
 
   const handleFileChange = (file) => {
     setFileName(file.name);
-    // Store file for upload via a data attribute approach
     fileInputRef.current = file;
   };
 
@@ -52,12 +51,7 @@ function FileUpload() {
       await fetchUploadedFiles();
       setFileName('');
       fileInputRef.current = null;
-      if (uploadControlsRef.current) {
-        await uploadControlsRef.current.start({
-          scale: [1, 1.018, 1],
-          transition: { duration: 0.45, ease: 'easeOut' },
-        });
-      }
+      await pulseSuccess(uploadControlsRef);
       toast(data.message || '上传成功', 'success');
     } catch { toast('上传失败', 'error'); }
     finally   { setIsLoading(false); }
@@ -65,21 +59,12 @@ function FileUpload() {
 
   const handleDownload = async (name) => {
     try {
-      const res  = await fetch(`/api/files/${encodeURIComponent(name)}`);
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = Object.assign(document.createElement('a'), { href: url, download: name });
-      document.body.appendChild(a); a.click();
-      URL.revokeObjectURL(url); a.remove();
+      await downloadFile(`/api/files/${encodeURIComponent(name)}`, name);
     } catch { toast('下载失败', 'error'); }
   };
 
   const handleCopyLink = async (name) => {
-    const url = `${window.location.origin}/api/files/${encodeURIComponent(name)}`;
-    try {
-      await copyToClipboard(url);
-      toast('链接已复制', 'success');
-    } catch { toast('复制失败', 'error'); }
+    await copyLink(`/api/files/${encodeURIComponent(name)}`, toast);
   };
 
   const handleDelete = async (name) => {
@@ -96,7 +81,6 @@ function FileUpload() {
     <div className="page">
       <h1 className="page-title">文件</h1>
 
-      {/* Upload zone */}
       <UploadZone
         icon="📂"
         label="选择文件"
@@ -107,7 +91,6 @@ function FileUpload() {
         controlsRef={uploadControlsRef}
       />
 
-      {/* Bento grid */}
       {uploadedFiles.length > 0 ? (
         <>
           <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
