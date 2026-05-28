@@ -57,7 +57,13 @@ router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res
 
     res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    imageService.createReadStream(filename).pipe(res);
+    const stream = imageService.createReadStream(filename);
+    stream.on('error', (err) => {
+      logger.error('image stream error:', err);
+      if (!res.headersSent) res.status(500).json({ message: '下载图片失败' });
+      else res.destroy(err);
+    });
+    stream.pipe(res);
   } catch (error) {
     logger.error('下载图片时出错:', error);
     res.status(500).json({ message: '下载图片失败' });

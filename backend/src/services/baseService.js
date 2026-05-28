@@ -17,11 +17,13 @@ class BaseService {
 
   async delete(filename) {
     const filePath = this.getFilePath(filename);
-    if (!fsSync.existsSync(filePath)) {
-      return false;
+    try {
+      await fs.unlink(filePath);
+      return true;
+    } catch (error) {
+      if (error.code === 'ENOENT') return false;
+      throw error;
     }
-    await fs.unlink(filePath);
-    return true;
   }
 
   createReadStream(filename) {

@@ -58,7 +58,13 @@ router.get('/download/:fileName', sanitizeFilename('fileName'), async (req, res)
 
     res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    fileService.createReadStream(fileName).pipe(res);
+    const stream = fileService.createReadStream(fileName);
+    stream.on('error', (err) => {
+      logger.error('file stream error:', err);
+      if (!res.headersSent) res.status(500).json({ message: '下载文件失败' });
+      else res.destroy(err);
+    });
+    stream.pipe(res);
   } catch (error) {
     logger.error('下载文件时出错:', error);
     res.status(500).json({ message: '下载文件失败' });

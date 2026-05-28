@@ -5,7 +5,7 @@ class ClipboardService {
     try {
       return ContentItem.create({ content, type, deviceInfo });
     } catch (error) {
-      throw new Error('Failed to save clipBoard');
+      throw new Error('Failed to save clipboard', { cause: error });
     }
   }
 
@@ -13,7 +13,7 @@ class ClipboardService {
     try {
       return ContentItem.findAll();
     } catch (error) {
-      throw new Error('Failed to get clipBoard history!');
+      throw new Error('Failed to get clipboard history', { cause: error });
     }
   }
 
@@ -21,7 +21,7 @@ class ClipboardService {
     try {
       return ContentItem.destroy(contentId);
     } catch (error) {
-      throw new Error('failed to delete: ' + contentId);
+      throw new Error('Failed to delete clipboard item: ' + contentId, { cause: error });
     }
   }
 }
