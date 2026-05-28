@@ -1,7 +1,7 @@
 const ContentItem = require('../db/ContentItem');
 
 class ClipboardService {
-  async saveTextContent(content, type, deviceInfo) {
+  saveTextContent(content, type, deviceInfo) {
     try {
       return ContentItem.create({ content, type, deviceInfo });
     } catch (error) {
@@ -9,7 +9,7 @@ class ClipboardService {
     }
   }
 
-  async getTextHistory() {
+  getTextHistory() {
     try {
       return ContentItem.findAll();
     } catch (error) {
@@ -17,7 +17,7 @@ class ClipboardService {
     }
   }
 
-  async delete(contentId) {
+  delete(contentId) {
     try {
       return ContentItem.destroy(contentId);
     } catch (error) {

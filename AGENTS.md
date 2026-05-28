@@ -30,7 +30,7 @@ No tests exist. `pnpm test` in backend is a placeholder that exits 1.
 ## Key Conventions
 
 - **Filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')`. See `backend/src/config/multer.js`.
-- **Compiled-binary detection**: `utils/sea.js` exports `isSea()` — checks `path.basename(process.execPath)` to distinguish compiled binary from `bun`/`node` dev mode.
+- **Compiled-binary detection**: `utils/runtime.js` exports `isCompiled()` — checks `path.basename(process.execPath)` to distinguish compiled binary from `bun`/`node` dev mode.
 - **sanitizeFilename middleware**: apply on any route with filename params to prevent path traversal.
 - **Database**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not ORM). Table: `Contents`. Methods: `create()`, `findAll()`, `destroy(id)`. `destroy()` uses `SELECT changes()` for affected row count.
 - **Logger**: `src/config/logger.js` wraps console. Use `logger.info/warn/error`.

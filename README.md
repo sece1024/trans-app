@@ -37,7 +37,7 @@ trans-app/
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
 │       ├── middleware/        # errorHandler、sanitizeFilename
 │       ├── config/            # multer 存储、logger
-│       └── utils/             # 编译二进制检测、网络信息
+│       └── utils/             # 编译模式检测（runtime.js）、网络信息
 ├── request/                   # REST Client 测试文件
 ├── AGENTS.md                  # AI 辅助开发指引
 └── package.json               # 根配置，concurrently 启动前后端

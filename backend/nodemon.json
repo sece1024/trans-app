@@ -1,3 +1,0 @@
-{
-  "ignore": ["*.test.js", "*.spec.js", "fixtures/*", "node_modules/**/*", "data/**", "test/**"]
-}

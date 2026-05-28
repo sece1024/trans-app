@@ -7,7 +7,7 @@ const ImageService = require('../services/imageService');
 
 const imageService = new ImageService(uploadDir);
 
-router.post('/images/upload', imageUpload.single('image'), async (req, res) => {
+router.post('/images/upload', imageUpload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'no image' });

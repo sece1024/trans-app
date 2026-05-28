@@ -60,7 +60,7 @@ src/services/         → business logic (BaseService ← FileService / ImageSer
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js)
 src/middleware/       → errorHandler.js, sanitizeFilename.js
-src/utils/            → IP/network info, sea.js (compiled-binary detection)
+src/utils/            → IP/network info, runtime.js (compiled-binary detection)
 ```
 
 **Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and abstract `list()`. File-based services extend it. `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` and `ImageService` are exported as classes (instantiated in routes with the upload dir path). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
@@ -103,7 +103,7 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 
 - **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames. This happens inside `createStorage` in `src/config/multer.js`.
 - **Uploaded file naming**: files get a `Date.now()-originalName` prefix; images get a random `timestamp-random.ext` name.
-- **Production vs. dev detection**: `utils/sea.js` exports `isSea()` which checks `path.basename(process.execPath)` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
+- **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `path.basename(process.execPath)` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
 - **Logger**: `src/config/logger.js` is a thin wrapper over `console`. Use `logger.info/warn/error`.
 - **All API routes** are registered under the `/api` prefix in `index.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.

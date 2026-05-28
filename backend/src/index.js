@@ -8,7 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
 require('dotenv').config();
 const logger = require('./config/logger');
-const { isSea } = require('./utils/sea');
+const { isCompiled } = require('./utils/runtime');
 
 // Initialize database (creates table if needed)
 require('./db/database');
@@ -16,15 +16,15 @@ logger.info('Database initialized successfully');
 
 const PORT = process.env.PORT || 5001;
 
-if (isSea()) {
-  logger.info('Server is running in production mode (SEA)');
+if (isCompiled()) {
+  logger.info('Server is running in production mode (compiled binary)');
 } else {
   logger.info('Server is running in development mode');
 }
 
 const app = express();
 
-const staticDir = isSea()
+const staticDir = isCompiled()
   ? path.join(path.dirname(process.execPath), 'public')
   : path.join(__dirname, '../../frontend', 'build');
 

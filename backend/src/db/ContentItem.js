@@ -11,6 +11,8 @@ const selectAllStmt = db.prepare('SELECT * FROM Contents ORDER BY createdAt DESC
 
 const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
 
+const changesStmt = db.prepare('SELECT changes() AS count');
+
 const ContentItem = {
   create({ content, type, deviceInfo }) {
     const now = new Date().toISOString();
@@ -25,7 +27,7 @@ const ContentItem = {
 
   destroy(id) {
     deleteStmt.run(id);
-    return db.prepare('SELECT changes() AS count').get().count;
+    return changesStmt.get().count;
   },
 };
 

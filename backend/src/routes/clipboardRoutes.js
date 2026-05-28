@@ -3,7 +3,7 @@ const router = express.Router();
 const clipboardService = require('../services/clipboardService');
 const logger = require('../config/logger');
 
-router.post('/clipboard', async (req, res) => {
+router.post('/clipboard', (req, res) => {
   try {
     const { text, deviceInfo } = req.body;
 
@@ -11,7 +11,7 @@ router.post('/clipboard', async (req, res) => {
       return res.status(400).json({ message: '内容不能为空' });
     }
 
-    const clips = await clipboardService.saveTextContent(text, 'text', deviceInfo);
+    const clips = clipboardService.saveTextContent(text, 'text', deviceInfo);
     res.json(clips);
   } catch (error) {
     logger.error('clipboard save failed:', error);
@@ -19,9 +19,9 @@ router.post('/clipboard', async (req, res) => {
   }
 });
 
-router.get('/clipboard', async (req, res) => {
+router.get('/clipboard', (req, res) => {
   try {
-    const clips = await clipboardService.getTextHistory();
+    const clips = clipboardService.getTextHistory();
     res.json(clips);
   } catch (error) {
     logger.error('clipboard get failed:', error);
@@ -29,10 +29,10 @@ router.get('/clipboard', async (req, res) => {
   }
 });
 
-router.delete('/clipboard/:contentId', async (req, res) => {
+router.delete('/clipboard/:contentId', (req, res) => {
   try {
     const contentId = req.params.contentId;
-    const changes = await clipboardService.delete(contentId);
+    const changes = clipboardService.delete(contentId);
     if (changes === 0) {
       return res.status(404).json({ message: 'Not found' });
     }

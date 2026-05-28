@@ -27,7 +27,7 @@ router.post('/files/upload', fileUpload.single('file'), (req, res) => {
   }
 });
 
-router.get('/files/:fileName', sanitizeFilename('fileName'), async (req, res) => {
+router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res) => {
   try {
     if (!fileService.exists(req.params.fileName)) {
       return res.status(404).json({ message: 'file not found' });
@@ -49,7 +49,7 @@ router.get('/files', async (req, res) => {
   }
 });
 
-router.get('/download/:fileName', sanitizeFilename('fileName'), async (req, res) => {
+router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
   try {
     const fileName = req.params.fileName;
     if (!fileService.exists(fileName)) {

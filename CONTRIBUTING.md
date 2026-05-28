@@ -59,7 +59,7 @@ cd backend && pnpm run style:format  # 自动修复
 | 数据 | `src/db/` | `database.js` 初始化连接，`ContentItem.js` 封装 prepared statements |
 | 中间件 | `src/middleware/` | 错误处理、文件名消毒 |
 | 配置 | `src/config/` | multer 存储工厂、logger |
-| 工具 | `src/utils/` | `isSea()` 编译二进制检测、网络信息 |
+| 工具 | `src/utils/` | `isCompiled()` 编译二进制检测、网络信息 |
 
 ### 前端分层
 
@@ -95,7 +95,7 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 编译二进制检测
 
-使用 `utils/sea.js` 导出的 `isSea()` 函数（检查 `path.basename(process.execPath)` 是否为 `bun` 或 `node`），编译后的二进制名为 `trans`，因此返回 `true`。
+使用 `utils/runtime.js` 导出的 `isCompiled()` 函数（检查 `path.basename(process.execPath)` 是否为 `bun` 或 `node`），编译后的二进制名为 `trans`，因此返回 `true`。
 
 ### 文件名安全
 
