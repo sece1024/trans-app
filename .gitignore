@@ -9,3 +9,8 @@ data
 
 .idea
 backend/dist/
+
+.env
+.DS_Store
+*.log
+coverage/
