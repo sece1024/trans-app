@@ -10,7 +10,7 @@
  *
  * Requirements:
  *   - Node.js >= 22.x (for SEA support)
- *   - @vercel/ncc (devDependency)
+ *   - esbuild (devDependency)
  *   - postject: npx postject (ships with Node 22+)
  *   - macOS: codesign available (Xcode CLI tools)
  */
@@ -34,15 +34,18 @@ const nodeBin = nodeIdx !== -1 && args[nodeIdx + 1] ? args[nodeIdx + 1] : proces
 if (existsSync(dist)) rmSync(dist, { recursive: true });
 mkdirSync(dist, { recursive: true });
 
-// ── Step 1: Bundle with ncc ─────────────────────────────────────────────
-console.log('→ Bundling with ncc...');
+// ── Step 1: Bundle with esbuild ─────────────────────────────────────────
+console.log('→ Bundling with esbuild...');
 
-execSync('npx ncc build src/index.js -o dist/ncc --minify', {
-  cwd: root,
-  stdio: 'inherit',
-});
+execSync(
+  'npx esbuild src/index.js --bundle --platform=node --outfile=dist/esbuild/index.js --minify',
+  {
+    cwd: root,
+    stdio: 'inherit',
+  }
+);
 
-console.log('  ✓ Bundle created: dist/ncc/index.js');
+console.log('  ✓ Bundle created: dist/esbuild/index.js');
 
 // ── Step 2: Copy frontend build ─────────────────────────────────────────
 console.log('→ Copying frontend build...');
@@ -59,7 +62,7 @@ console.log('  ✓ Copied frontend/build → dist/public');
 console.log('→ Generating SEA blob...');
 
 const seaConfig = {
-  main: path.join(dist, 'ncc', 'index.js'),
+  main: path.join(dist, 'esbuild', 'index.js'),
   output: path.join(dist, 'sea-prep.blob'),
   disableExperimentalSEAWarning: true,
   useSnapshot: false,
@@ -112,14 +115,24 @@ if (process.platform === 'darwin') {
 console.log('  ✓ Binary created: dist/trans');
 
 // ── Step 5: Copy native addon alongside binary ──────────────────────────
-copyFileSync(
-  path.join(dist, 'ncc', 'build', 'Release', 'better_sqlite3.node'),
-  path.join(dist, 'better_sqlite3.node')
+// esbuild doesn't bundle .node files, so copy from node_modules
+// Copy to both dist/ (for bindings module) and dist/build/Release/ (fallback)
+const addonSource = path.join(
+  root,
+  'node_modules',
+  'better-sqlite3',
+  'build',
+  'Release',
+  'better_sqlite3.node'
 );
+copyFileSync(addonSource, path.join(dist, 'better_sqlite3.node'));
+const addonDestDir = path.join(dist, 'build', 'Release');
+mkdirSync(addonDestDir, { recursive: true });
+copyFileSync(addonSource, path.join(addonDestDir, 'better_sqlite3.node'));
 console.log('  ✓ Copied better_sqlite3.node');
 
 // ── Step 6: Clean up intermediate files ─────────────────────────────────
-rmSync(path.join(dist, 'ncc'), { recursive: true });
+rmSync(path.join(dist, 'esbuild'), { recursive: true });
 rmSync(path.join(dist, 'sea-prep.blob'));
 rmSync(path.join(dist, 'sea-config.json'));
 
