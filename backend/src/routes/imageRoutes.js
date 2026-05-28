@@ -13,10 +13,12 @@ router.post('/images/upload', imageUpload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'no image' });
     }
 
+    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+
     res.json({
       message: 'image upload success',
       filename: req.file.filename,
-      originalName: req.file.originalname,
+      originalName,
     });
   } catch (error) {
     logger.error('image upload error: ', error);
