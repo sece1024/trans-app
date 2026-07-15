@@ -38,6 +38,12 @@ export const api = {
   getFiles: () => request('/files'),
   uploadFile: (formData) => request('/files/upload', { method: 'POST', body: formData }),
   deleteFile: (name) => request(`/files/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  deleteFiles: (filenames) =>
+    request('/files', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames }),
+    }),
 
   // Images
   getImages: () => request('/images'),

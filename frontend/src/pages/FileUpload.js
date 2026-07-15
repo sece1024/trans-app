@@ -23,6 +23,8 @@ function FileUpload() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isLoading, setIsLoading]       = useState(false);
   const [deletingName, setDeletingName] = useState(null);
+  const [selectMode, setSelectMode]     = useState(false);
+  const [selected, setSelected]         = useState(new Set());
   const fileInputRef      = useRef(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
@@ -79,6 +81,42 @@ function FileUpload() {
     finally   { setDeletingName(null); }
   };
 
+  const toggleSelect = (name) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === uploadedFiles.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(uploadedFiles.map((f) => f.name)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selected.size === 0) return;
+    const names = [...selected];
+    setIsLoading(true);
+    try {
+      await api.deleteFiles(names);
+      setSelected(new Set());
+      setSelectMode(false);
+      await fetchUploadedFiles();
+      toast(`已删除 ${names.length} 个文件`, 'info');
+    } catch { toast('批量删除失败', 'error'); }
+    finally { setIsLoading(false); }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
   return (
     <div className="page">
       <h1 className="page-title">文件</h1>
@@ -95,10 +133,37 @@ function FileUpload() {
 
       {uploadedFiles.length > 0 ? (
         <>
-          <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
+          <div className="section-header-row">
+            <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
+            <div className="section-actions">
+              {selectMode ? (
+                <>
+                  <button className="btn--text" onClick={toggleSelectAll}>
+                    {selected.size === uploadedFiles.length ? '取消全选' : '全选'}
+                  </button>
+                  <button className="btn--text btn--danger" onClick={handleBatchDelete} disabled={selected.size === 0 || isLoading}>
+                    删除{selected.size > 0 ? ` (${selected.size})` : ''}
+                  </button>
+                  <button className="btn--text" onClick={exitSelectMode}>取消</button>
+                </>
+              ) : (
+                <button className="btn--text" onClick={() => setSelectMode(true)}>选择</button>
+              )}
+            </div>
+          </div>
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
             {uploadedFiles.map((file) => (
-              <motion.div key={file.name} className="glass-card file-card" variants={cardVariants}>
+              <motion.div
+                key={file.name}
+                className={`glass-card file-card${selectMode ? ' file-card--selectable' : ''}${selected.has(file.name) ? ' file-card--selected' : ''}`}
+                variants={cardVariants}
+                onClick={selectMode ? () => toggleSelect(file.name) : undefined}
+              >
+                {selectMode && (
+                  <div className="file-checkbox">
+                    <span className="checkbox-mark">{selected.has(file.name) ? '✓' : ''}</span>
+                  </div>
+                )}
                 <div className="file-card-body">
                   <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
                   <div>
@@ -106,11 +171,13 @@ function FileUpload() {
                     <p className="file-meta">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
-                <div className="card-actions">
-                  <button className="btn--icon" onClick={() => handleCopyLink(file.name)}>🔗 复制链接</button>
-                  <button className="btn--icon" onClick={() => handleDownload(file.name)}>↓ 下载</button>
-                  <button className="btn--icon btn--danger" onClick={() => handleDelete(file.name)}>删除</button>
-                </div>
+                {!selectMode && (
+                  <div className="card-actions">
+                    <button className="btn--icon" onClick={() => handleCopyLink(file.name)}>🔗 复制链接</button>
+                    <button className="btn--icon" onClick={() => handleDownload(file.name)}>↓ 下载</button>
+                    <button className="btn--icon btn--danger" onClick={() => handleDelete(file.name)}>删除</button>
+                  </div>
+                )}
                 {deletingName === file.name && (
                   <div className="card-loading"><span className="spinner" /></div>
                 )}

@@ -26,6 +26,14 @@ class BaseService {
     }
   }
 
+  async deleteBatch(filenames) {
+    const results = await Promise.allSettled(filenames.map((name) => this.delete(name)));
+    const deleted = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+    const notFound = results.filter((r) => r.status === 'fulfilled' && !r.value).length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    return { deleted, notFound, failed };
+  }
+
   createReadStream(filename) {
     return fsSync.createReadStream(this.getFilePath(filename));
   }

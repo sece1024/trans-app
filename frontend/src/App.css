@@ -362,6 +362,70 @@
     margin: calc(var(--block-space) * 2) 0 var(--block-space) 0;
   }
 
+  .section-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: calc(var(--block-space) * 2) 0 var(--block-space) 0;
+  }
+
+  .section-header-row .section-header { margin: 0; }
+
+  .section-actions {
+    display: flex;
+    gap: var(--inline-space);
+    align-items: center;
+  }
+
+  .btn--text {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+
+    &:hover { background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
+    &:disabled { opacity: 0.4; cursor: default; }
+    &.btn--danger { color: var(--color-danger); }
+    &.btn--danger:hover { background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
+  }
+
+  .file-card--selectable { cursor: pointer; }
+  .file-card--selected {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--glass-bg));
+  }
+
+  .file-checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-card);
+    z-index: 1;
+    transition: border-color 0.15s, background 0.15s;
+
+    .file-card--selected & {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+  }
+
+  .checkbox-mark {
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 600;
+  }
+
   /* ----- Glass card base ----- */
   .glass-card {
     background: var(--glass-bg);
@@ -655,6 +719,7 @@
     gap: var(--block-space);
     min-height: 7rem;
     cursor: default;
+    position: relative;
 
     .file-card-body {
       display: flex;

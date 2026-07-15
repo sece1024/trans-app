@@ -71,6 +71,20 @@ router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
   }
 });
 
+router.delete('/files', async (req, res) => {
+  try {
+    const { filenames } = req.body;
+    if (!Array.isArray(filenames) || filenames.length === 0) {
+      return res.status(400).json({ message: 'filenames array is required' });
+    }
+    const result = await fileService.deleteBatch(filenames);
+    res.json({ message: `已删除 ${result.deleted} 个文件`, ...result });
+  } catch (error) {
+    logger.error('batch delete files failed:', error);
+    res.status(500).json({ message: 'batch delete failed' });
+  }
+});
+
 router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res) => {
   try {
     const deleted = await fileService.delete(req.params.fileName);
