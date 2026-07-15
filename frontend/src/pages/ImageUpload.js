@@ -6,12 +6,14 @@ import { containerVariants, cardVariants } from '../utils/animations';
 import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
+import ImagePreview from '../components/ImagePreview';
 
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageList, setImageList]         = useState([]);
   const [isLoading, setIsLoading]         = useState(false);
   const [deletingName, setDeletingName]   = useState(null);
+  const [previewIndex, setPreviewIndex]   = useState(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
@@ -81,19 +83,20 @@ function ImageUpload() {
         <>
           <p className="section-header">图片库 · {imageList.length} 张</p>
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
-            {imageList.map((image) => (
+            {imageList.map((image, index) => (
               <motion.div
                 key={image.filename}
                 className="glass-card image-card"
                 variants={cardVariants}
+                onClick={() => setPreviewIndex(index)}
               >
                 <img src={`/api/images/${image.filename}`} alt={image.originalName} loading="lazy" />
                 <div className="image-overlay">
                   <p className="image-name-overlay">{image.originalName}</p>
                   <div className="card-actions">
-                    <button className="btn--icon" onClick={() => handleCopyLink(image.filename)}>🔗 链接</button>
-                    <button className="btn--icon" onClick={() => handleDownload(image.filename, image.originalName)}>↓ 下载</button>
-                    <button className="btn--icon btn--danger" onClick={() => handleDelete(image.filename)}>删除</button>
+                    <button className="btn--icon" onClick={(e) => { e.stopPropagation(); handleCopyLink(image.filename); }}>🔗 链接</button>
+                    <button className="btn--icon" onClick={(e) => { e.stopPropagation(); handleDownload(image.filename, image.originalName); }}>↓ 下载</button>
+                    <button className="btn--icon btn--danger" onClick={(e) => { e.stopPropagation(); handleDelete(image.filename); }}>删除</button>
                   </div>
                 </div>
                 {deletingName === image.filename && (
@@ -108,6 +111,15 @@ function ImageUpload() {
           icon="🖼️"
           title="暂无图片"
           description="点击上方区域上传图片"
+        />
+      )}
+
+      {previewIndex !== null && (
+        <ImagePreview
+          images={imageList}
+          currentIndex={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+          onNavigate={setPreviewIndex}
         />
       )}
     </div>

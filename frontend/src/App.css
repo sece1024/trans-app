@@ -966,6 +966,104 @@
     color: var(--color-ink-muted);
     margin: 0;
   }
+
+  /* ----- Image preview lightbox ----- */
+  .image-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: oklch(0% 0 0 / 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--block-space);
+  }
+
+  .image-preview-container {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .image-preview-img {
+    max-width: 90vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+
+  .image-preview-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 1; }
+  }
+
+  .image-preview-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: oklch(100% 0 0 / 0.15);
+    border: 1px solid oklch(100% 0 0 / 0.2);
+    color: white;
+    font-size: 32px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+
+    &:hover { background: oklch(100% 0 0 / 0.3); }
+
+    &--prev { left: -60px; }
+    &--next { right: -60px; }
+  }
+
+  .image-preview-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: var(--block-space);
+    color: white;
+    font-size: 14px;
+  }
+
+  .image-preview-name {
+    opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+  }
+
+  .image-preview-counter {
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 100ch) {
+    .image-preview-nav--prev { left: 8px; }
+    .image-preview-nav--next { right: 8px; }
+    .image-preview-close { top: -36px; right: 0; }
+  }
 }
 
 /* =============================================
