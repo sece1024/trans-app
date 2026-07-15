@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 
 /**
- * Reusable upload zone component with pulse animation on success.
+ * Reusable upload zone component with drag-and-drop and pulse animation on success.
  *
  * Props:
  *   icon        – emoji icon to display
@@ -16,6 +16,7 @@ import { motion, useAnimation } from 'framer-motion';
 function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUpload, controlsRef }) {
   const fileInputRef = useRef(null);
   const controls = useAnimation();
+  const [isDragging, setIsDragging] = useState(false);
 
   // Expose controls to parent for pulse animation
   if (controlsRef) controlsRef.current = controls;
@@ -25,8 +26,34 @@ function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUplo
     if (file && onFileChange) onFileChange(file);
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && onFileChange) onFileChange(file);
+  };
+
   return (
-    <motion.div className="glass-card upload-zone" animate={controls}>
+    <motion.div
+      className={`glass-card upload-zone${isDragging ? ' upload-zone--dragging' : ''}`}
+      animate={controls}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="upload-icon">{icon}</div>
       <label className="file-input-button">
         {label}
