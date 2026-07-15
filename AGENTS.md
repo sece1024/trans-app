@@ -22,10 +22,10 @@ cd frontend && pnpm start               # frontend only
 cd backend && pnpm run style:check      # Prettier check
 cd backend && pnpm run style:format     # Prettier fix
 cd frontend && pnpm run build           # build React into frontend/build/
-cd backend && pnpm run build            # Bun compile into backend/dist/
+cd backend && pnpm run build            # Bun compile into backend/dist/ (requires frontend/build/ first)
 ```
 
-No tests exist. `pnpm test` in backend is a placeholder that exits 1.
+No tests exist. `pnpm test` in backend is a placeholder that exits 1. `backend/test/` contains manual socket debug tools, not a test suite.
 
 ## Key Conventions
 
@@ -49,6 +49,10 @@ Runtime data at `process.cwd()/data/`: `database.sqlite`, `uploads/files/`, `upl
 
 `backend/.env`: `PORT=5001`, `SOCKET_PORT=8888`, `SOCKET_BOARD_CAST=255.255.255.255`.
 
+## Build Order
+
+Frontend must be built before backend compile — `bun build --compile` copies `frontend/build/` into the binary's `public/` directory. The build script (`backend/scripts/build.mjs`) verifies this and exits if missing.
+
 ## Existing Instructions
 
-See `.github/copilot-instructions.md` for detailed architecture layers and API routes.
+See `.github/copilot-instructions.md` for detailed architecture layers, API routes, and conventions.

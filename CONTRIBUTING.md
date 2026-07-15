@@ -3,7 +3,7 @@
 ## 环境要求
 
 - **Bun**（后端运行时 + 打包工具，[安装指南](https://bun.sh)）
-- **Node.js >= 18**（前端 CRA 构建需要）
+- **Node.js >= 22.13.1**（前端 CRA 构建需要）
 - **pnpm**（项目统一使用 pnpm，不使用 npm / yarn / npx）
 
 ## 安装依赖
@@ -37,6 +37,34 @@ cd backend && pnpm run style:format  # 自动修复
 配置：单引号、2 空格缩进、100 字符行宽、尾逗号 es5、分号。
 
 前端使用 CRA 默认 ESLint 配置，无额外格式化工具。
+
+## Git 工作流
+
+### 分支命名
+
+- `main` — 稳定版本
+- `feat/xxx` — 新功能
+- `fix/xxx` — 修复
+- `refactor/xxx` — 重构
+
+### 提交信息
+
+使用中文，格式：`<类型>: <描述>`
+
+常用类型：
+- `feat`: 新功能
+- `fix`: 修复
+- `refactor`: 重构（不改变外部行为）
+- `style`: 格式调整（不影响逻辑）
+- `docs`: 文档更新
+- `chore`: 构建/工具链变更
+
+示例：
+```
+feat: 添加文件夹上传支持
+fix: 修复中文文件名乱码问题
+refactor: 提取 BaseService 公共方法
+```
 
 ## 架构概览
 
@@ -93,10 +121,6 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 存储时 `config/multer.js` 已自动解码并添加时间戳前缀。
 
-### 编译二进制检测
-
-使用 `utils/runtime.js` 导出的 `isCompiled()` 函数（检查 `path.basename(process.execPath)` 是否为 `bun` 或 `node`），编译后的二进制名为 `trans`，因此返回 `true`。
-
 ### 文件名安全
 
 路由中使用文件名参数时，必须应用 `sanitizeFilename('paramName')` 中间件防止路径穿越。
@@ -132,6 +156,10 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 3. API 调用通过 `src/api/client.js`，需要新方法时在 `api` 对象中添加
 4. 文件下载/链接复制使用 `src/utils/uploadHelpers.js`
 
+## 手动测试
+
+`request/` 目录包含 REST Client（`.http`）文件，可用于手动测试所有 API 端点。在 VS Code 中安装 REST Client 插件后可直接发送请求。
+
 ## 常见问题
 
 ### 端口被占用
@@ -144,12 +172,6 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 ### 中文文件名乱码
 
 确保上传响应中使用了 `Buffer.from(originalname, 'latin1').toString('utf8')` 解码。
-
-## 测试
-
-目前无自动化测试。`cd backend && pnpm test` 是占位脚本（直接 exit 1）。
-
-`backend/test/` 目录下的文件是手动调试工具，不是测试套件。
 
 ## 相关文档
 
