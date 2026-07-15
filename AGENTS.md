@@ -53,6 +53,10 @@ Runtime data at `process.cwd()/data/`: `database.sqlite`, `uploads/files/`, `upl
 
 Frontend must be built before backend compile — `bun build --compile` copies `frontend/build/` into the binary's `public/` directory. The build script (`backend/scripts/build.mjs`) verifies this and exits if missing.
 
+## Workflow
+
+- After each modification is complete, commit the changes immediately. Do not batch unrelated changes into one commit. Commit message format: `<type>: <description>` (e.g. `feat: add X`, `fix: resolve Y`, `docs: update Z`).
+
 ## Existing Instructions
 
 See `.github/copilot-instructions.md` for detailed architecture layers, API routes, and conventions.
