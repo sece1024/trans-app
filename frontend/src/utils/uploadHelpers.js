@@ -22,6 +22,23 @@ export async function copyLink(path, toast) {
   }
 }
 
+export function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1);
+  return `${size} ${units[i]}`;
+}
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
+export function checkFileSize(file) {
+  if (file.size > MAX_FILE_SIZE) {
+    return `文件过大，最大支持 ${formatFileSize(MAX_FILE_SIZE)}`;
+  }
+  return null;
+}
+
 export async function pulseSuccess(controlsRef) {
   if (controlsRef.current) {
     await controlsRef.current.start({

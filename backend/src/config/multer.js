@@ -43,8 +43,13 @@ const imageStorage = createStorage('images', (originalName) => {
   return uniqueSuffix + path.extname(originalName);
 });
 
-// 文件上传实例
-const fileUpload = multer({ storage: fileStorage.storage });
+// 文件上传实例（限制 100MB）
+const fileUpload = multer({
+  storage: fileStorage.storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+  },
+});
 
 // 图片上传实例（带类型和大小限制）
 const imageUpload = multer({

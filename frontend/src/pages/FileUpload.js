@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
-import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
+import { downloadFile, copyLink, pulseSuccess, formatFileSize, checkFileSize } from '../utils/uploadHelpers';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 
@@ -43,6 +43,8 @@ function FileUpload() {
   const handleUpload = async () => {
     const file = fileInputRef.current;
     if (!file) { toast('请选择文件', 'error'); return; }
+    const sizeError = checkFileSize(file);
+    if (sizeError) { toast(sizeError, 'error'); return; }
     const formData = new FormData();
     formData.append('file', file);
     setIsLoading(true);
@@ -101,7 +103,7 @@ function FileUpload() {
                   <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
                   <div>
                     <p className="file-name" title={file.originalName || file.name}>{file.originalName || file.name}</p>
-                    <p className="file-meta">{file.sizeInMB} MB</p>
+                    <p className="file-meta">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
                 <div className="card-actions">
