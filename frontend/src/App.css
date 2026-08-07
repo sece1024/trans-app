@@ -674,20 +674,21 @@
     text-align: center;
     transition: border-color 0.2s ease, background 0.2s ease;
 
-    &:hover,
-    &--dragging {
+    &:hover {
       border-color: var(--color-primary);
       background: color-mix(in srgb, var(--color-primary) 4%, var(--glass-bg-hover));
     }
-
-    &--dragging {
-      border-style: solid;
-      transform: scale(1.01);
-    }
-
-    .upload-icon { font-size: 2.5rem; opacity: 0.45; }
-    .upload-hint { font-size: 13px; color: var(--color-ink-muted); }
   }
+
+  .upload-zone--dragging {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 4%, var(--glass-bg-hover));
+    border-style: solid;
+    transform: scale(1.01);
+  }
+
+  .upload-zone .upload-icon { font-size: 2.5rem; opacity: 0.45; }
+  .upload-zone .upload-hint { font-size: 13px; color: var(--color-ink-muted); }
 
   /* ----- Pure CSS three-dot spinner ----- */
   .spinner {
@@ -1096,10 +1097,10 @@
     transition: background 0.15s;
 
     &:hover { background: oklch(100% 0 0 / 0.3); }
-
-    &--prev { left: -60px; }
-    &--next { right: -60px; }
   }
+
+  .image-preview-nav--prev { left: -60px; }
+  .image-preview-nav--next { right: -60px; }
 
   .image-preview-footer {
     display: flex;
