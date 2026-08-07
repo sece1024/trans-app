@@ -17,6 +17,19 @@ class BaseService {
     return idx === -1 ? filename : filename.substring(idx + 1);
   }
 
+  // 从存储名解析上传时间戳（无前缀时视为 0）
+  getTimestamp(filename) {
+    const idx = filename.indexOf('-');
+    const prefix = idx === -1 ? filename : filename.substring(0, idx);
+    const ts = Number(prefix);
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  // 按上传时间倒序（新文件在前）
+  sortByTimeDesc(filenames) {
+    return [...filenames].sort((a, b) => this.getTimestamp(b) - this.getTimestamp(a));
+  }
+
   exists(filename) {
     return fsSync.existsSync(this.getFilePath(filename));
   }

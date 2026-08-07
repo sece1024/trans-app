@@ -10,7 +10,7 @@ class FileService extends BaseService {
     }
     const files = await fs.readdir(this.uploadDir);
     const fileInfos = [];
-    for (const file of files) {
+    for (const file of this.sortByTimeDesc(files)) {
       const filePath = path.join(this.uploadDir, file);
       const stats = await fs.stat(filePath);
       fileInfos.push({

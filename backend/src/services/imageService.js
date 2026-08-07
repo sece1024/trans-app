@@ -8,7 +8,10 @@ class ImageService extends BaseService {
       return [];
     }
     const files = await fs.readdir(this.uploadDir);
-    return files.map((filename) => ({ filename, originalName: this.getOriginalName(filename) }));
+    return this.sortByTimeDesc(files).map((filename) => ({
+      filename,
+      originalName: this.getOriginalName(filename),
+    }));
   }
 }
 
