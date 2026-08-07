@@ -8,7 +8,7 @@ class ImageService extends BaseService {
       return [];
     }
     const files = await fs.readdir(this.uploadDir);
-    return files.map((filename) => ({ filename, originalName: filename }));
+    return files.map((filename) => ({ filename, originalName: this.getOriginalName(filename) }));
   }
 }
 

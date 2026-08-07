@@ -11,6 +11,12 @@ class BaseService {
     return path.join(this.uploadDir, filename);
   }
 
+  // 从存储名（`Date.now()-originalName`）反解原始文件名
+  getOriginalName(filename) {
+    const idx = filename.indexOf('-');
+    return idx === -1 ? filename : filename.substring(idx + 1);
+  }
+
   exists(filename) {
     return fsSync.existsSync(this.getFilePath(filename));
   }

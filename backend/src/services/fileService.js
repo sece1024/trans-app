@@ -13,10 +13,9 @@ class FileService extends BaseService {
     for (const file of files) {
       const filePath = path.join(this.uploadDir, file);
       const stats = await fs.stat(filePath);
-      const originalName = file.includes('-') ? file.substring(file.indexOf('-') + 1) : file;
       fileInfos.push({
         name: file,
-        originalName,
+        originalName: this.getOriginalName(file),
         size: stats.size,
         sizeInMB: (stats.size / (1024 * 1024)).toFixed(1),
       });

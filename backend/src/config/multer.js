@@ -37,10 +37,9 @@ const fileStorage = createStorage('files', (originalName) => {
   return `${Date.now()}-${originalName}`;
 });
 
-// 图片上传配置（随机文件名 + 原始扩展名）
+// 图片上传配置（保留原始文件名 + 时间戳前缀，与文件一致）
 const imageStorage = createStorage('images', (originalName) => {
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-  return uniqueSuffix + path.extname(originalName);
+  return `${Date.now()}-${originalName}`;
 });
 
 // 文件上传实例（限制 100MB）
