@@ -59,6 +59,11 @@ app.get('/api', (req, res) => {
 // 错误处理中间件
 app.use(errorHandler);
 
+// /api 未匹配路由返回 JSON 404（避免被 SPA 兜底吞掉）
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'Not found' });
+});
+
 // 所有未匹配的路由返回 index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'));
