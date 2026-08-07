@@ -7,11 +7,13 @@ const insertStmt = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
-const selectAllStmt = db.prepare('SELECT * FROM Contents ORDER BY createdAt DESC');
+const selectAllStmt = db.prepare('SELECT * FROM Contents ORDER BY createdAt DESC LIMIT ?');
 
 const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
 
 const changesStmt = db.prepare('SELECT changes() AS count');
+
+const MAX_HISTORY = 50;
 
 const ContentItem = {
   create({ content, type, deviceInfo }) {
@@ -21,8 +23,8 @@ const ContentItem = {
     return { id, content, type, createdAt: now, updatedAt: now, deviceInfo };
   },
 
-  findAll() {
-    return selectAllStmt.all();
+  findAll(limit = MAX_HISTORY) {
+    return selectAllStmt.all(limit);
   },
 
   destroy(id) {
