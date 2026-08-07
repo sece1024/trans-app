@@ -1,14 +1,9 @@
 import { copyToClipboard } from './copyToClipboard';
 
-export async function downloadFile(url, filename) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Download failed (${res.status})`);
-  const blob = await res.blob();
-  const blobUrl = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement('a'), { href: blobUrl, download: filename });
+export function downloadFile(url, filename) {
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
   document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(blobUrl);
   a.remove();
 }
 
