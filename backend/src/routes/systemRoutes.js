@@ -4,7 +4,7 @@ const internet = require('../utils/internet');
 const logger = require('../config/logger');
 
 // 获取服务器IP地址
-router.get('/server-info', (req, res) => {
+router.get('/server-info', (req, res, next) => {
   try {
     const ips = internet.internetInfos;
 
@@ -14,7 +14,7 @@ router.get('/server-info', (req, res) => {
     });
   } catch (error) {
     logger.error('get server-info failed:', error);
-    res.status(500).json({ message: '获取服务器信息失败' });
+    next(error);
   }
 });
 

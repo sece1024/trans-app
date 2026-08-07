@@ -7,7 +7,7 @@ const ImageService = require('../services/imageService');
 
 const imageService = new ImageService(uploadDir);
 
-router.post('/images/upload', imageUpload.single('image'), (req, res) => {
+router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'no image' });
@@ -22,37 +22,37 @@ router.post('/images/upload', imageUpload.single('image'), (req, res) => {
     });
   } catch (error) {
     logger.error('image upload error: ', error);
-    res.status(500).json({ message: 'image upload failed' });
+    next(error);
   }
 });
 
-router.get('/images', async (req, res) => {
+router.get('/images', async (req, res, next) => {
   try {
     const images = await imageService.list();
     res.json(images);
   } catch (error) {
-    logger.error('获取图片列表时出错:', error);
-    res.status(500).json({ message: '获取图片列表失败' });
+    logger.error('get image list failed:', error);
+    next(error);
   }
 });
 
-router.get('/images/:filename', sanitizeFilename('filename'), (req, res) => {
+router.get('/images/:filename', sanitizeFilename('filename'), (req, res, next) => {
   try {
     if (!imageService.exists(req.params.filename)) {
-      return res.status(404).json({ message: '图片不存在' });
+      return res.status(404).json({ message: 'image not found' });
     }
     res.sendFile(imageService.getFilePath(req.params.filename));
   } catch (error) {
-    logger.error('获取图片时出错:', error);
-    res.status(500).json({ message: '获取图片失败' });
+    logger.error('get image failed:', error);
+    next(error);
   }
 });
 
-router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res) => {
+router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res, next) => {
   try {
     const { filename } = req.params;
     if (!imageService.exists(filename)) {
-      return res.status(404).json({ message: '图片不存在' });
+      return res.status(404).json({ message: 'image not found' });
     }
 
     res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}`);
@@ -60,17 +60,17 @@ router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res
     const stream = imageService.createReadStream(filename);
     stream.on('error', (err) => {
       logger.error('image stream error:', err);
-      if (!res.headersSent) res.status(500).json({ message: '下载图片失败' });
+      if (!res.headersSent) res.status(500).json({ message: 'download failed' });
       else res.destroy(err);
     });
     stream.pipe(res);
   } catch (error) {
-    logger.error('下载图片时出错:', error);
-    res.status(500).json({ message: '下载图片失败' });
+    logger.error('download image failed:', error);
+    next(error);
   }
 });
 
-router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res) => {
+router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res, next) => {
   try {
     const deleted = await imageService.delete(req.params.filename);
     if (!deleted) {
@@ -79,7 +79,7 @@ router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res
     res.json({ message: 'image deleted successfully' });
   } catch (error) {
     logger.error('delete image error:', error);
-    res.status(500).json({ message: 'delete image failed' });
+    next(error);
   }
 });
 

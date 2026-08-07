@@ -17,7 +17,6 @@ class FileService extends BaseService {
         name: file,
         originalName: this.getOriginalName(file),
         size: stats.size,
-        sizeInMB: (stats.size / (1024 * 1024)).toFixed(1),
       });
     }
     return fileInfos;

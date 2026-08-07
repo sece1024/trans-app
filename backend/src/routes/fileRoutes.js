@@ -8,7 +8,7 @@ const FileService = require('../services/fileService');
 const fileService = new FileService(uploadDir);
 
 // 文件上传路由
-router.post('/files/upload', fileUpload.single('file'), (req, res) => {
+router.post('/files/upload', fileUpload.single('file'), (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'file not found' });
@@ -23,11 +23,11 @@ router.post('/files/upload', fileUpload.single('file'), (req, res) => {
     });
   } catch (error) {
     logger.error('file upload failed:', error);
-    res.status(500).json({ message: 'file upload failed' });
+    next(error);
   }
 });
 
-router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res) => {
+router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res, next) => {
   try {
     if (!fileService.exists(req.params.fileName)) {
       return res.status(404).json({ message: 'file not found' });
@@ -35,21 +35,21 @@ router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res) => {
     res.sendFile(fileService.getFilePath(req.params.fileName));
   } catch (error) {
     logger.error('file retrieval failed:', error);
-    res.status(500).json({ message: 'file retrieval failed' });
+    next(error);
   }
 });
 
-router.get('/files', async (req, res) => {
+router.get('/files', async (req, res, next) => {
   try {
     const fileInfos = await fileService.list();
     res.json(fileInfos);
   } catch (error) {
     logger.error('get files failed:', error);
-    res.status(500).json({ message: 'get files failed' });
+    next(error);
   }
 });
 
-router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
+router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res, next) => {
   try {
     const fileName = req.params.fileName;
     if (!fileService.exists(fileName)) {
@@ -61,17 +61,17 @@ router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
     const stream = fileService.createReadStream(fileName);
     stream.on('error', (err) => {
       logger.error('file stream error:', err);
-      if (!res.headersSent) res.status(500).json({ message: '下载文件失败' });
+      if (!res.headersSent) res.status(500).json({ message: 'download failed' });
       else res.destroy(err);
     });
     stream.pipe(res);
   } catch (error) {
-    logger.error('下载文件时出错:', error);
-    res.status(500).json({ message: '下载文件失败' });
+    logger.error('download file failed:', error);
+    next(error);
   }
 });
 
-router.delete('/files', async (req, res) => {
+router.delete('/files', async (req, res, next) => {
   try {
     const { filenames } = req.body;
     if (!Array.isArray(filenames) || filenames.length === 0) {
@@ -81,14 +81,14 @@ router.delete('/files', async (req, res) => {
       return res.status(400).json({ message: 'invalid filename' });
     }
     const result = await fileService.deleteBatch(filenames);
-    res.json({ message: `已删除 ${result.deleted} 个文件`, ...result });
+    res.json({ message: `${result.deleted} files deleted`, ...result });
   } catch (error) {
     logger.error('batch delete files failed:', error);
-    res.status(500).json({ message: 'batch delete failed' });
+    next(error);
   }
 });
 
-router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res) => {
+router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res, next) => {
   try {
     const deleted = await fileService.delete(req.params.fileName);
     if (!deleted) {
@@ -97,7 +97,7 @@ router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res)
     res.json({ message: 'file deleted successfully' });
   } catch (error) {
     logger.error('delete file failed:', error);
-    res.status(500).json({ message: 'delete file failed' });
+    next(error);
   }
 });
 

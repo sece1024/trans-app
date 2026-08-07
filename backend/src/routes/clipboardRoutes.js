@@ -3,33 +3,33 @@ const router = express.Router();
 const clipboardService = require('../services/clipboardService');
 const logger = require('../config/logger');
 
-router.post('/clipboard', (req, res) => {
+router.post('/clipboard', (req, res, next) => {
   try {
     const { text, deviceInfo } = req.body;
 
     if (!text) {
-      return res.status(400).json({ message: '内容不能为空' });
+      return res.status(400).json({ message: 'content is required' });
     }
 
     const clips = clipboardService.saveTextContent(text, 'text', deviceInfo);
     res.json(clips);
   } catch (error) {
     logger.error('clipboard save failed:', error);
-    res.status(500).json({ message: 'Save failed' });
+    next(error);
   }
 });
 
-router.get('/clipboard', (req, res) => {
+router.get('/clipboard', (req, res, next) => {
   try {
     const clips = clipboardService.getTextHistory();
     res.json(clips);
   } catch (error) {
     logger.error('clipboard get failed:', error);
-    res.status(500).json({ message: 'Get failed' });
+    next(error);
   }
 });
 
-router.delete('/clipboard/:contentId', (req, res) => {
+router.delete('/clipboard/:contentId', (req, res, next) => {
   try {
     const contentId = req.params.contentId;
     const changes = clipboardService.delete(contentId);
@@ -39,7 +39,7 @@ router.delete('/clipboard/:contentId', (req, res) => {
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
     logger.error('clipboard delete failed:', error);
-    res.status(500).json({ message: 'Delete failed' });
+    next(error);
   }
 });
 
