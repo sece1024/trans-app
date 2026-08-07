@@ -1,6 +1,6 @@
 const os = require('os');
 
-const internetInfos = (() => {
+function getInternetInfos() {
   const networkInterfaces = os.networkInterfaces();
   const ips = [];
 
@@ -16,6 +16,6 @@ const internetInfos = (() => {
     });
   });
   return ips;
-})();
+}
 
-module.exports = { internetInfos };
+module.exports = { getInternetInfos };

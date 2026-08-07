@@ -6,7 +6,7 @@ const logger = require('../config/logger');
 // 获取服务器IP地址
 router.get('/server-info', (req, res, next) => {
   try {
-    const ips = internet.internetInfos;
+    const ips = internet.getInternetInfos();
 
     res.json({
       ips: ips,
