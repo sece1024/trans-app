@@ -49,26 +49,22 @@ router.get('/files', async (req, res, next) => {
   }
 });
 
-router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res, next) => {
-  try {
-    const fileName = req.params.fileName;
-    if (!fileService.exists(fileName)) {
-      return res.status(404).json({ message: 'file not found' });
-    }
+router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
+  const fileName = req.params.fileName;
 
-    res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    const stream = fileService.createReadStream(fileName);
-    stream.on('error', (err) => {
-      logger.error('file stream error:', err);
-      if (!res.headersSent) res.status(500).json({ message: 'download failed' });
-      else res.destroy(err);
-    });
-    stream.pipe(res);
-  } catch (error) {
-    logger.error('download file failed:', error);
-    next(error);
-  }
+  res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  const stream = fileService.createReadStream(fileName);
+  stream.on('error', (err) => {
+    logger.error('file stream error:', err);
+    if (!res.headersSent) {
+      return err.code === 'ENOENT'
+        ? res.status(404).json({ message: 'file not found' })
+        : res.status(500).json({ message: 'download failed' });
+    }
+    res.destroy(err);
+  });
+  stream.pipe(res);
 });
 
 router.delete('/files', async (req, res, next) => {

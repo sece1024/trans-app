@@ -48,26 +48,22 @@ router.get('/images/:filename', sanitizeFilename('filename'), (req, res, next) =
   }
 });
 
-router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res, next) => {
-  try {
-    const { filename } = req.params;
-    if (!imageService.exists(filename)) {
-      return res.status(404).json({ message: 'image not found' });
-    }
+router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res) => {
+  const { filename } = req.params;
 
-    res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    const stream = imageService.createReadStream(filename);
-    stream.on('error', (err) => {
-      logger.error('image stream error:', err);
-      if (!res.headersSent) res.status(500).json({ message: 'download failed' });
-      else res.destroy(err);
-    });
-    stream.pipe(res);
-  } catch (error) {
-    logger.error('download image failed:', error);
-    next(error);
-  }
+  res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  const stream = imageService.createReadStream(filename);
+  stream.on('error', (err) => {
+    logger.error('image stream error:', err);
+    if (!res.headersSent) {
+      return err.code === 'ENOENT'
+        ? res.status(404).json({ message: 'image not found' })
+        : res.status(500).json({ message: 'download failed' });
+    }
+    res.destroy(err);
+  });
+  stream.pipe(res);
 });
 
 router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res, next) => {
