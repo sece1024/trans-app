@@ -22,6 +22,13 @@ const db = new Database(dbPath);
 // Enable WAL mode for better concurrency
 db.exec('PRAGMA journal_mode = WAL');
 
+// WAL + synchronous=NORMAL: reduces fsyncs (SD card wear) while staying durable
+// against crashes — at worst the last transaction is lost on power failure.
+db.exec('PRAGMA synchronous = NORMAL');
+
+// Cap WAL growth so a long-running process cannot balloon it unboundedly.
+db.exec('PRAGMA journal_size_limit = 67108864');
+
 // Create table if it doesn't exist (compatible with old Sequelize schema)
 db.exec(`
   CREATE TABLE IF NOT EXISTS Contents (
