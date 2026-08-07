@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 
 /**
@@ -19,7 +19,9 @@ function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUplo
   const [isDragging, setIsDragging] = useState(false);
 
   // Expose controls to parent for pulse animation
-  if (controlsRef) controlsRef.current = controls;
+  useEffect(() => {
+    if (controlsRef) controlsRef.current = controls;
+  }, [controlsRef, controls]);
 
   const handleChange = (e) => {
     const file = e.target.files[0];
