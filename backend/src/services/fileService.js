@@ -9,16 +9,16 @@ class FileService extends BaseService {
       return [];
     }
     const files = await fs.readdir(this.uploadDir);
-    const fileInfos = [];
-    for (const file of this.sortByTimeDesc(files)) {
-      const filePath = path.join(this.uploadDir, file);
-      const stats = await fs.stat(filePath);
-      fileInfos.push({
-        name: file,
-        originalName: this.getOriginalName(file),
-        size: stats.size,
-      });
-    }
+    const fileInfos = await Promise.all(
+      this.sortByTimeDesc(files).map(async (file) => {
+        const stats = await fs.stat(path.join(this.uploadDir, file));
+        return {
+          name: file,
+          originalName: this.getOriginalName(file),
+          size: stats.size,
+        };
+      })
+    );
     return fileInfos;
   }
 }
