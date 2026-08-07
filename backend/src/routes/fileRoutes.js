@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fileUpload, fileDir: uploadDir } = require('../config/multer');
 const logger = require('../config/logger');
-const { sanitizeFilename } = require('../middleware/sanitizeFilename');
+const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir);
@@ -76,6 +76,9 @@ router.delete('/files', async (req, res) => {
     const { filenames } = req.body;
     if (!Array.isArray(filenames) || filenames.length === 0) {
       return res.status(400).json({ message: 'filenames array is required' });
+    }
+    if (filenames.some((name) => !isValidFilename(name))) {
+      return res.status(400).json({ message: 'invalid filename' });
     }
     const result = await fileService.deleteBatch(filenames);
     res.json({ message: `已删除 ${result.deleted} 个文件`, ...result });
