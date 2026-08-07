@@ -7,25 +7,25 @@ LAN file/clipboard/image sharing tool. Single Express server (running on Bun) se
 ## Structure
 
 - `backend/` — Express server on Bun (entry: `src/index.js`)
-- `frontend/` — React CRA app (proxies `/api` to `localhost:5001`)
+- `frontend/` — React Vite app (dev proxy: `/api` → `localhost:5001`)
 - Root `package.json` — runs both via `concurrently`
-- Runtime: **Bun** (backend), **Node.js** (frontend CRA)
+- Runtime: **Bun** (backend), **Node.js** (frontend Vite)
 - Package manager: **pnpm** only. Never use npm/yarn/npx.
 
 ## Commands
 
 ```bash
 pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install  # install all deps
-pnpm start                              # dev: frontend (3000) + backend (5001)
+pnpm start                              # dev: frontend (5173) + backend (5001)
 cd backend && pnpm run dev              # backend only, bun --watch hot-reload
-cd frontend && pnpm start               # frontend only
+cd frontend && pnpm run dev             # frontend only (Vite)
 cd backend && pnpm run style:check      # Prettier check
 cd backend && pnpm run style:format     # Prettier fix
 cd frontend && pnpm run build           # build React into frontend/build/
 cd backend && pnpm run build            # Bun compile into backend/dist/ (requires frontend/build/ first)
 ```
 
-No tests exist. `pnpm test` in backend is a placeholder that exits 1. `backend/test/` contains manual socket debug tools, not a test suite.
+No tests exist. `pnpm test` in backend exits 1 (placeholder); frontend has `react-scripts test` but no test files. Verify changes manually: `request/*.http` (REST Client files for all API endpoints) and `backend/test/` (socket debug tools, not a test suite). Frontend has no lint/format script — `pnpm run build` (Vite) is its only check.
 
 ## Key Conventions
 
@@ -34,12 +34,12 @@ No tests exist. `pnpm test` in backend is a placeholder that exits 1. `backend/t
 - **sanitizeFilename middleware**: apply on any route with filename params to prevent path traversal.
 - **Database**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not ORM). Table: `Contents`. Methods: `create()`, `findAll()`, `destroy(id)`. `destroy()` uses `SELECT changes()` for affected row count.
 - **Logger**: `src/config/logger.js` wraps console. Use `logger.info/warn/error`.
-- **CORS**: allows localhost + private IPs only (10.x, 172.16-31.x, 192.168.x).
-- **Image upload**: 5 MB limit, non-image MIME rejected.
+- **CORS**: allows localhost/127.x + private IPs only (10.x, 172.16-31.x, 192.168.x); requests with no `Origin` header always pass.
+- **Upload limits** (`src/config/multer.js`): files 100 MB (keep original name, `Date.now()-` prefix); images 5 MB, non-image MIME rejected, random `timestamp-random.ext` name.
 - **Prettier config** (backend): single quotes, 2-space indent, 100 char width, trailing commas es5, semicolons.
 - **CSS**: single `App.css` with `@layer` blocks (tokens→reset→layout→components→utilities). Colors use OKLCH with `[data-theme]` variants (light/dark/forest/sunset/ocean).
 - **UI language**: Chinese. Code/API: English.
-- **Bun** required for backend runtime. Frontend still uses Node.js (CRA).
+- **Bun** required for backend runtime. Frontend still uses Node.js (Vite).
 
 ## Data
 
@@ -55,7 +55,7 @@ Frontend must be built before backend compile — `bun build --compile` copies `
 
 ## Workflow
 
-- After each modification is complete, commit the changes immediately. Do not batch unrelated changes into one commit. Commit message format: `<type>: <description>` (e.g. `feat: add X`, `fix: resolve Y`, `docs: update Z`).
+- After each modification is complete, commit the changes immediately. Do not batch unrelated changes into one commit. Commit messages in **Chinese**, format `<type>: <描述>` (e.g. `feat: 添加文件上传`). Types: feat/fix/refactor/style/docs/chore (see `CONTRIBUTING.md`).
 
 ## Existing Instructions
 

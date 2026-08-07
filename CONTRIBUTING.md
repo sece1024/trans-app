@@ -3,7 +3,7 @@
 ## 环境要求
 
 - **Bun**（后端运行时 + 打包工具，[安装指南](https://bun.sh)）
-- **Node.js >= 22.13.1**（前端 CRA 构建需要）
+- **Node.js >= 22.13.1**（前端 Vite 构建需要）
 - **pnpm**（项目统一使用 pnpm，不使用 npm / yarn / npx）
 
 ## 安装依赖
@@ -21,8 +21,8 @@ pnpm start
 # 仅启动后端（端口 5001，bun --watch 热重载）
 cd backend && pnpm run dev
 
-# 仅启动前端（端口 3000，CRA dev server，自动代理 /api → 5001）
-cd frontend && pnpm start
+# 仅启动前端（端口 5173，Vite dev server，自动代理 /api → 5001）
+cd frontend && pnpm run dev
 ```
 
 ## 代码风格
@@ -36,7 +36,7 @@ cd backend && pnpm run style:format  # 自动修复
 
 配置：单引号、2 空格缩进、100 字符行宽、尾逗号 es5、分号。
 
-前端使用 CRA 默认 ESLint 配置，无额外格式化工具。
+前端使用 Vite 默认 ESLint 配置，无额外格式化工具。
 
 ## Git 工作流
 
@@ -76,7 +76,7 @@ refactor: 提取 BaseService 公共方法
            └── 其他路径       → 静态文件 / SPA fallback
 ```
 
-开发模式下前端 CRA dev server (3000) 将 `/api` 代理到 5001。
+开发模式下前端 Vite dev server (5173) 将 `/api` 代理到 5001。
 
 ### 后端分层
 
@@ -164,10 +164,10 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 端口被占用
 
-后端默认 5001，前端默认 3000。修改后端端口需同步更新：
+后端默认 5001，前端默认 5173。修改后端端口需同步更新：
 
 1. `backend/.env` 中的 `PORT`
-2. `frontend/package.json` 中的 `"proxy"` 值
+2. `frontend/vite.config.js` 中的 `server.proxy` 值
 
 ### 中文文件名乱码
 

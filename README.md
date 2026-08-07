@@ -14,7 +14,7 @@
 
 | 层 | 技术 |
 |---|---|
-| 前端 | React 19、React Router 7、Framer Motion |
+| 前端 | React 19、React Router 7、Framer Motion、Vite |
 | 后端 | Express.js、Multer、bun:sqlite |
 | 打包 | Bun compile（内置交叉编译） |
 
@@ -49,7 +49,7 @@ trans-app/
 ## 环境要求
 
 - **Bun**（后端运行时 + 打包工具，[安装指南](https://bun.sh)）
-- **Node.js >= 22.13.1**（前端 CRA 构建）
+- **Node.js >= 22.13.1**（前端 Vite 构建）
 - **pnpm**（不使用 npm / yarn / npx）
 
 ## 快速开始
@@ -58,11 +58,11 @@ trans-app/
 # 安装依赖
 pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install
 
-# 启动开发服务器（前端 3000 + 后端 5001）
+# 启动开发服务器（前端 5173 + 后端 5001）
 pnpm start
 ```
 
-前端通过 `"proxy": "http://localhost:5001"` 将 `/api` 请求转发到后端。
+前端通过 Vite dev server 将 `/api` 请求代理到后端（`frontend/vite.config.js` 中的 `server.proxy`）。
 
 ## 常用命令
 
@@ -70,7 +70,7 @@ pnpm start
 |------|------|
 | `pnpm start` | 同时启动前后端 |
 | `cd backend && pnpm run dev` | 仅启动后端（bun --watch 热重载） |
-| `cd frontend && pnpm start` | 仅启动前端 |
+| `cd frontend && pnpm run dev` | 仅启动前端（Vite dev server，/api 代理到 5001） |
 | `cd backend && pnpm run style:check` | 检查后端代码格式 |
 | `cd backend && pnpm run style:format` | 自动修复格式 |
 | `cd frontend && pnpm run build` | 构建前端到 `frontend/build/` |
