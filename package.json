@@ -4,7 +4,7 @@
   },
   "scripts": {
     "start:backend": "cd backend && pnpm start",
-    "start:frontend": "cd frontend && pnpm start",
+    "start:frontend": "cd frontend && pnpm run dev",
     "start": "concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\""
   },
   "devDependencies": {
