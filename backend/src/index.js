@@ -43,7 +43,19 @@ app.use(
 );
 app.use(express.json());
 
-app.use(express.static(staticDir));
+// Vite emits content-hashed asset filenames under /assets — safe to cache long-term.
+// index.html must stay no-cache so app updates are picked up immediately.
+const staticOptions = {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+};
+
+app.use(express.static(staticDir, staticOptions));
 
 // 路由
 app.use('/api', fileRoutes);
