@@ -109,6 +109,28 @@ backend/dist/
 运行（macOS）：`cd backend/dist/darwin-arm64 && ./trans`
 部署到树莓派：将 `linux-arm64/` 目录整个复制到树莓派，然后 `cd linux-arm64 && ./trans`
 
+## 树莓派 24/7 部署
+
+```bash
+# 1. 拷贝产物（二进制 + public/ 前端静态文件）
+sudo mkdir -p /opt/transapp
+sudo cp -r backend/dist/linux-arm64/* /opt/transapp/
+
+# 2. 安装 systemd 服务（自动重启、journald 日志）
+sudo cp deploy/transapp.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now transapp
+
+# 3. 查看状态与日志
+systemctl status transapp
+journalctl -u transapp -f
+```
+
+要点：
+- `WorkingDirectory=/opt/transapp` 决定运行时数据（`data/` 目录）的落盘位置，代码按 `process.cwd()/data/` 存储。
+- 日志走 journald，自动轮转，不写 SD 卡文件。
+- `Restart=always` 保证崩溃自动拉起，适合 24 小时运行。
+
 ## 环境变量
 
 在 `backend/.env` 中配置：

@@ -1,0 +1,21 @@
+[Unit]
+Description=TransApp LAN file/clipboard/image sharing server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Run as a dedicated user with write access to the working directory
+User=pi
+Group=pi
+# WorkingDirectory determines where runtime data (data/) is created
+WorkingDirectory=/opt/transapp
+ExecStart=/opt/transapp/trans
+Restart=always
+RestartSec=3
+# Logs go to journald (rotated automatically, no SD card file writes)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
