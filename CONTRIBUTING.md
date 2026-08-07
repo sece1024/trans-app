@@ -176,5 +176,4 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 ## 相关文档
 
 - [AGENTS.md](./AGENTS.md) — AI 辅助开发指引
-- [doc/](./doc/) — 架构分析与重构记录
 - [.github/copilot-instructions.md](./.github/copilot-instructions.md) — 详细架构说明

@@ -7,10 +7,10 @@
 ## Monorepo Structure
 
 - `backend/` — Express server running on Bun (entry: `src/index.js`)
-- `frontend/` — React CRA app (proxies API to `http://localhost:5001`)
+- `frontend/` — React Vite app (dev proxy `/api` → `http://localhost:5001`)
 - Root `package.json` — runs both with `concurrently`
-- Runtime: **Bun** (backend), **Node.js** (frontend CRA)
-- Package manager: **pnpm**
+- Runtime: **Bun** (backend), **Node.js** (frontend Vite)
+- Package manager: **pnpm** (never npm/yarn/npx)
 
 ## Commands
 
@@ -22,8 +22,8 @@ pnpm start
 # Backend only (port 5001, hot-reload via bun --watch)
 cd backend && pnpm run dev
 
-# Frontend only (CRA dev server, port 3000)
-cd frontend && pnpm start
+# Frontend only (Vite dev server, port 5173)
+cd frontend && pnpm run dev
 ```
 
 ### Formatting (backend only)
@@ -50,7 +50,7 @@ Each target contains only the `trans` binary and a `public/` directory (frontend
 Express serves a `public/` directory (next to the binary) as static files. All API routes are prefixed `/api`. Any unmatched route returns `index.html` (SPA fallback).
 
 ### Request flow (development)
-Frontend CRA dev server (`localhost:3000`) proxies `/api` calls to `localhost:5001` via the `"proxy"` field in `frontend/package.json`.
+Frontend Vite dev server (`localhost:5173`) proxies `/api` calls to `localhost:5001` via `server.proxy` in `frontend/vite.config.js`.
 
 ### Backend layers
 ```
@@ -102,7 +102,7 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 ## Key Conventions
 
 - **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames. This happens inside `createStorage` in `src/config/multer.js`.
-- **Uploaded file naming**: files get a `Date.now()-originalName` prefix; images get a random `timestamp-random.ext` name.
+- **Uploaded file naming**: both files and images get a `Date.now()-originalName` prefix; reverse it with `BaseService.getOriginalName(filename)` (strips everything before the first `-`). `BaseService.getTimestamp()` parses the prefix for sorting.
 - **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `path.basename(process.execPath)` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
 - **Logger**: `src/config/logger.js` is a thin wrapper over `console`. Use `logger.info/warn/error`.
 - **All API routes** are registered under the `/api` prefix in `index.js`.

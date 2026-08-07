@@ -39,8 +39,6 @@ trans-app/
 │       ├── config/            # multer 存储、logger
 │       └── utils/             # 编译模式检测（runtime.js）、网络信息
 ├── request/                   # REST Client 测试文件（.http）
-├── doc/                       # 架构分析与重构记录
-├── .github/                   # CI/CD 与 Copilot 指引
 ├── AGENTS.md                  # AI 辅助开发指引
 ├── CONTRIBUTING.md            # 贡献指南
 └── package.json               # 根配置，concurrently 启动前后端
@@ -118,8 +116,6 @@ backend/dist/
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `PORT` | `5001` | HTTP 服务端口 |
-| `SOCKET_PORT` | `8888` | Socket 端口 |
-| `SOCKET_BOARD_CAST` | `255.255.255.255` | UDP 广播地址 |
 
 ## 数据存储
 

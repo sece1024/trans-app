@@ -25,7 +25,7 @@ cd frontend && pnpm run build           # build React into frontend/build/
 cd backend && pnpm run build            # Bun compile into backend/dist/ (requires frontend/build/ first)
 ```
 
-No tests exist. `pnpm test` in backend exits 1 (placeholder); frontend has `react-scripts test` but no test files. Verify changes manually: `request/*.http` (REST Client files for all API endpoints) and `backend/test/` (socket debug tools, not a test suite). Frontend has no lint/format script — `pnpm run build` (Vite) is its only check.
+No tests exist. `pnpm test` in backend exits 1 (placeholder); frontend has no test script. Verify changes manually: `request/*.http` (REST Client files for all API endpoints). Frontend has no lint/format script — `pnpm run build` (Vite) is its only check.
 
 ## Key Conventions
 
@@ -35,8 +35,8 @@ No tests exist. `pnpm test` in backend exits 1 (placeholder); frontend has `reac
 - **Database**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not ORM). Table: `Contents`. Methods: `create()`, `findAll()`, `destroy(id)`. `destroy()` uses `SELECT changes()` for affected row count.
 - **Logger**: `src/config/logger.js` wraps console. Use `logger.info/warn/error`.
 - **CORS**: allows localhost/127.x + private IPs only (10.x, 172.16-31.x, 192.168.x); requests with no `Origin` header always pass.
-- **Upload limits** (`src/config/multer.js`): files 100 MB (keep original name, `Date.now()-` prefix); images 5 MB, non-image MIME rejected, random `timestamp-random.ext` name.
-- **Prettier config** (backend): single quotes, 2-space indent, 100 char width, trailing commas es5, semicolons.
+- **Upload limits** (`src/config/multer.js`): files 100 MB (keep original name, `Date.now()-` prefix); images 5 MB, non-image MIME rejected, same `Date.now()-originalName` naming.
+- **File name reversal**: `BaseService.getOriginalName(filename)` strips the `Date.now()-` prefix; `getTimestamp()` parses it for sorting.- **Prettier config** (backend): single quotes, 2-space indent, 100 char width, trailing commas es5, semicolons.
 - **CSS**: single `App.css` with `@layer` blocks (tokens→reset→layout→components→utilities). Colors use OKLCH with `[data-theme]` variants (light/dark/forest/sunset/ocean).
 - **UI language**: Chinese. Code/API: English.
 - **Bun** required for backend runtime. Frontend still uses Node.js (Vite).
@@ -47,7 +47,7 @@ Runtime data at `process.cwd()/data/`: `database.sqlite`, `uploads/files/`, `upl
 
 ## Environment
 
-`backend/.env`: `PORT=5001`, `SOCKET_PORT=8888`, `SOCKET_BOARD_CAST=255.255.255.255`.
+`backend/.env`: `PORT=5001`.
 
 ## Build Order
 
