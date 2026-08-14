@@ -13,6 +13,13 @@ const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
 
 const changesStmt = db.prepare('SELECT changes() AS count');
 
+// 删除超出最近 MAX_HISTORY 条的旧记录，防止表无限增长
+const pruneStmt = db.prepare(
+  `DELETE FROM Contents WHERE id NOT IN (
+    SELECT id FROM Contents ORDER BY createdAt DESC, rowid DESC LIMIT ?
+  )`
+);
+
 const MAX_HISTORY = 50;
 
 const ContentItem = {
@@ -20,6 +27,7 @@ const ContentItem = {
     const now = new Date().toISOString();
     const id = randomUUID();
     insertStmt.run(id, content, type, now, now, deviceInfo || null);
+    pruneStmt.run(MAX_HISTORY);
     return { id, content, type, createdAt: now, updatedAt: now, deviceInfo };
   },
 
