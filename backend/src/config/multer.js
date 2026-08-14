@@ -3,8 +3,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const decodeFilename = require('../utils/decodeFilename');
-
-const UPLOAD_BASE = path.join(process.cwd(), 'data/uploads');
+const { UPLOAD_BASE } = require('./paths');
 
 // 确保上传目录存在
 function ensureDir(dir) {

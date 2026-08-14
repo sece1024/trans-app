@@ -1,10 +1,10 @@
-const path = require('path');
 const fs = require('fs');
 const logger = require('../config/logger');
+const { DATA_DIR, DB_PATH } = require('../config/paths');
 const { Database } = require('bun:sqlite');
 
-const dbDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
+const dbDir = DATA_DIR;
+const dbPath = DB_PATH;
 
 try {
   if (!fs.existsSync(dbDir)) {
