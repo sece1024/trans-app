@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
@@ -7,6 +7,7 @@ import { containerVariants, cardVariants } from '../utils/animations';
 import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 50;
+const POLL_INTERVAL = 3000;
 
 function SharedClipboard() {
   const [clips, setClips]         = useState([]);
@@ -37,17 +38,22 @@ function SharedClipboard() {
     else if (ua.includes('safari'))                           browser = 'Safari';
 
     setDeviceInfo(`${device} · ${browser}`);
-    fetchClips();
   }, []);
 
-  const fetchClips = async () => {
+  const fetchClips = useCallback(async () => {
     try {
       const data = await api.getClipboard(PAGE_SIZE, 0);
       setClips(data.items);
       setHasMore(data.hasMore);
       setOffset(data.items.length);
     } catch { /* silent */ }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchClips();
+    const timer = setInterval(fetchClips, POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [fetchClips]);
 
   const loadMore = async () => {
     setLoadingMore(true);
