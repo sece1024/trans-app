@@ -8,7 +8,7 @@ const decodeFilename = require('../utils/decodeFilename');
 const pipeStream = require('../utils/streamResponse');
 const FileService = require('../services/fileService');
 
-const fileService = new FileService(uploadDir);
+const fileService = new FileService(uploadDir, { includeSize: true });
 
 // 文件上传路由
 router.post('/files/upload', fileUpload.single('file'), (req, res, next) => {
