@@ -64,7 +64,7 @@ src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js
 src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js
 ```
 
-**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and `list()` (paginated: returns `{ items, total, hasMore }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
+**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and `list()` (paginated: returns `{ items, total, hasMore, nextCursor }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
 
 ### Frontend layers
 ```
@@ -109,10 +109,11 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 - **All API routes** are registered under the `/api` prefix in `app.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
 - **Rate limiting**: write methods (POST/PUT/PATCH/DELETE) under `/api` are rate-limited per IP via `src/middleware/rateLimiter.js`.
-- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit, offset })`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
+- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit })`, `ContentItem.findAllAfter(cursor, limit)`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
-- **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). CI runs both via `.github/workflows/ci.yml`.
+- **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `clipboardRoutes.js`); longer text returns 400.
+- **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). Frontend also runs ESLint (`pnpm run lint`) and TypeScript checkJs (`pnpm run typecheck`). CI runs all via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
 ## Error Handling Pattern
@@ -129,7 +130,7 @@ throw new Error('Failed to save clipboard', { cause: error });
 
 ## API Routes Reference
 
-List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&offset=` and return `{ items, total, hasMore }`.
+List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`.
 
 ### Files
 | Method | Path | Description |

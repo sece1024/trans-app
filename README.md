@@ -73,6 +73,8 @@ pnpm start
 | `cd backend && pnpm run style:format` | 自动修复格式 |
 | `cd backend && pnpm test` | 后端测试（bun:test） |
 | `cd frontend && pnpm test` | 前端测试（Vitest） |
+| `cd frontend && pnpm run lint` | 前端 ESLint |
+| `cd frontend && pnpm run typecheck` | 前端 TypeScript checkJs 类型检查 |
 | `cd frontend && pnpm run build` | 构建前端到 `frontend/build/` |
 | `cd backend && pnpm run build` | Bun 交叉编译到 `backend/dist/`（需先构建前端） |
 
@@ -156,7 +158,7 @@ data/
 
 ## API 接口
 
-列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&offset=` 分页参数，返回 `{ items, total, hasMore }`。
+列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&cursor=` 分页参数（cursor 为上一页最后一项的 name/rowid），返回 `{ items, total, hasMore, nextCursor }`。
 
 ### 文件
 
