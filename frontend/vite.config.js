@@ -16,4 +16,8 @@ export default defineConfig({
     include: /src\/.*\.jsx?$/,
     exclude: [],
   },
+  test: {
+    environment: 'node',
+    include: ['test/**/*.test.js'],
+  },
 });
