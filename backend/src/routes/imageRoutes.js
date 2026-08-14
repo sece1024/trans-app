@@ -4,6 +4,7 @@ const { imageUpload, imageDir: uploadDir } = require('../config/multer');
 const logger = require('../config/logger');
 const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
+const decodeFilename = require('../utils/decodeFilename');
 const ImageService = require('../services/imageService');
 
 const imageService = new ImageService(uploadDir);
@@ -14,7 +15,7 @@ router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
       return res.status(400).json({ message: 'no image' });
     }
 
-    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const originalName = decodeFilename(req.file.originalname);
 
     res.json({
       message: 'image upload success',

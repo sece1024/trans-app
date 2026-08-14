@@ -4,6 +4,7 @@ const { fileUpload, fileDir: uploadDir } = require('../config/multer');
 const logger = require('../config/logger');
 const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
+const decodeFilename = require('../utils/decodeFilename');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir);
@@ -15,7 +16,7 @@ router.post('/files/upload', fileUpload.single('file'), (req, res, next) => {
       return res.status(400).json({ message: 'file not found' });
     }
 
-    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const originalName = decodeFilename(req.file.originalname);
 
     res.json({
       message: 'file upload success!',

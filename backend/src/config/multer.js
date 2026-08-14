@@ -2,6 +2,7 @@ const logger = require('./logger');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const decodeFilename = require('../utils/decodeFilename');
 
 const UPLOAD_BASE = path.join(process.cwd(), 'data/uploads');
 
@@ -25,7 +26,7 @@ function createStorage(subDir, nameGenerator) {
         cb(null, uploadDir);
       },
       filename: function (req, file, cb) {
-        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const originalName = decodeFilename(file.originalname);
         cb(null, nameGenerator(originalName));
       },
     }),
