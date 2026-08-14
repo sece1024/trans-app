@@ -9,6 +9,7 @@ import EmptyState from '../components/EmptyState';
 const PAGE_SIZE = 50;
 const POLL_INTERVAL = 3000;
 const MAX_CLIPBOARD_LENGTH = 10000;
+const MAX_CLIPBOARD_HISTORY = 50;
 
 function SharedClipboard() {
   const [clips, setClips]         = useState([]);
@@ -18,6 +19,7 @@ function SharedClipboard() {
   const [hasMore, setHasMore]       = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
+  const [total, setTotal]           = useState(0);
   const toast = useToast();
 
   const LONG_TEXT_THRESHOLD = 200;
@@ -47,6 +49,7 @@ function SharedClipboard() {
       setClips(data.items);
       setHasMore(data.hasMore);
       setNextCursor(data.nextCursor);
+      setTotal(data.total);
     } catch { /* silent */ }
   }, []);
 
@@ -72,6 +75,10 @@ function SharedClipboard() {
     if (clipText.length > MAX_CLIPBOARD_LENGTH) {
       toast(`内容过长，最多 ${MAX_CLIPBOARD_LENGTH} 字符`, 'error');
       return;
+    }
+    if (total >= MAX_CLIPBOARD_HISTORY) {
+      const ok = window.confirm('剪贴板已达到上限，保存将自动删除最早的记录，是否继续？');
+      if (!ok) return;
     }
     try {
       await api.addClipboard(clipText, deviceInfo);
