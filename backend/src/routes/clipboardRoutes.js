@@ -4,12 +4,18 @@ const clipboardService = require('../services/clipboardService');
 const parsePagination = require('../utils/pagination');
 const logger = require('../config/logger');
 
+const MAX_CLIPBOARD_LENGTH = 10000;
+
 router.post('/clipboard', (req, res, next) => {
   try {
     const { text, deviceInfo } = req.body;
 
     if (!text) {
       return res.status(400).json({ message: 'content is required' });
+    }
+
+    if (typeof text !== 'string' || text.length > MAX_CLIPBOARD_LENGTH) {
+      return res.status(400).json({ message: 'Content too long' });
     }
 
     const clips = clipboardService.saveTextContent(text, 'text', deviceInfo);

@@ -75,6 +75,15 @@ test('clipboard save → get → delete round trip', async () => {
   expect(delRes.status).toBe(200);
 });
 
+test('rejects clipboard content over 10000 chars with 400', async () => {
+  const res = await fetch(`${base}/api/clipboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'x'.repeat(10001), deviceInfo: 'Test' }),
+  });
+  expect(res.status).toBe(400);
+});
+
 test('rejects non-image upload with 400', async () => {
   const form = new FormData();
   form.append('image', new Blob(['not an image']), 'note.txt');

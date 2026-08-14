@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 50;
 const POLL_INTERVAL = 3000;
+const MAX_CLIPBOARD_LENGTH = 10000;
 
 function SharedClipboard() {
   const [clips, setClips]         = useState([]);
@@ -68,6 +69,10 @@ function SharedClipboard() {
 
   const handleAdd = async () => {
     if (!clipText.trim()) { toast('请输入内容', 'error'); return; }
+    if (clipText.length > MAX_CLIPBOARD_LENGTH) {
+      toast(`内容过长，最多 ${MAX_CLIPBOARD_LENGTH} 字符`, 'error');
+      return;
+    }
     try {
       await api.addClipboard(clipText, deviceInfo);
       setClipText('');
