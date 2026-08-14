@@ -4,14 +4,15 @@ import { motion, useAnimation } from 'framer-motion';
 /**
  * Reusable upload zone component with drag-and-drop and pulse animation on success.
  *
- * Props:
- *   icon        – emoji icon to display
- *   label       – button label text (e.g. "选择文件")
- *   accept      – file input accept attribute (optional)
- *   hint        – text shown when a file is selected
- *   isLoading   – whether an upload is in progress
- *   onFileChange – callback(file) when file is selected
- *   onUpload    – callback triggered on upload button click
+ * @param {Object} props
+ * @param {string} props.icon - emoji icon to display
+ * @param {string} props.label - button label text (e.g. "选择文件")
+ * @param {string} [props.accept] - file input accept attribute
+ * @param {string} [props.hint] - text shown when a file is selected
+ * @param {boolean} props.isLoading - whether an upload is in progress
+ * @param {(file: File) => void} props.onFileChange - callback(file) when a file is selected
+ * @param {() => void} props.onUpload - callback triggered on upload button click
+ * @param {{ current: any }} [props.controlsRef] - ref to expose animation controls
  */
 function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUpload, controlsRef }) {
   const fileInputRef = useRef(null);
