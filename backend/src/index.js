@@ -6,6 +6,7 @@ const clipboardRoutes = require('./routes/clipboardRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const errorHandler = require('./middleware/errorHandler');
+const rateLimiter = require('./middleware/rateLimiter');
 const path = require('path');
 const logger = require('./config/logger');
 const { isCompiled } = require('./utils/runtime');
@@ -42,6 +43,15 @@ app.use(
   })
 );
 app.use(express.json());
+
+// 写接口按 IP 限流，防止局域网内滥用（GET 读取不受限）
+const writeLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return writeLimiter(req, res, next);
+  }
+  next();
+});
 
 // Vite emits content-hashed asset filenames under /assets — safe to cache long-term.
 // index.html must stay no-cache so app updates are picked up immediately.
