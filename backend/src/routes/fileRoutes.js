@@ -3,6 +3,7 @@ const router = express.Router();
 const { fileUpload, fileDir: uploadDir } = require('../config/multer');
 const logger = require('../config/logger');
 const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
+const contentDisposition = require('../utils/contentDisposition');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir);
@@ -52,7 +53,7 @@ router.get('/files', async (req, res, next) => {
 router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
   const fileName = req.params.fileName;
 
-  res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
+  res.setHeader('Content-Disposition', contentDisposition(fileService.getOriginalName(fileName)));
   res.setHeader('Content-Type', 'application/octet-stream');
   const stream = fileService.createReadStream(fileName);
   stream.on('error', (err) => {
