@@ -9,13 +9,16 @@ class FileService extends BaseService {
     this.includeSize = includeSize;
   }
 
-  async list() {
+  async list({ limit, offset = 0 } = {}) {
     if (!fsSync.existsSync(this.uploadDir)) {
-      return [];
+      return { items: [], total: 0, hasMore: false };
     }
     const files = await fs.readdir(this.uploadDir);
-    const infos = await Promise.all(
-      this.sortByTimeDesc(files).map(async (file) => {
+    const sorted = this.sortByTimeDesc(files);
+    const total = sorted.length;
+    const page = sorted.slice(offset, limit ? offset + limit : sorted.length);
+    const items = await Promise.all(
+      page.map(async (file) => {
         const info = { name: file, originalName: this.getOriginalName(file) };
         if (this.includeSize) {
           info.size = (await fs.stat(path.join(this.uploadDir, file))).size;
@@ -23,7 +26,7 @@ class FileService extends BaseService {
         return info;
       })
     );
-    return infos;
+    return { items, total, hasMore: offset + page.length < total };
   }
 }
 

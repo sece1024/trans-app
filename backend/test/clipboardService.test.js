@@ -25,7 +25,7 @@ test('save and retrieve history', () => {
   expect(item.deviceInfo).toBe('Test Device');
 
   const history = clipboardService.getTextHistory();
-  expect(history.some((c) => c.id === item.id)).toBe(true);
+  expect(history.items.some((c) => c.id === item.id)).toBe(true);
 });
 
 test('prunes history beyond the last 50 entries', () => {
@@ -33,7 +33,7 @@ test('prunes history beyond the last 50 entries', () => {
     clipboardService.saveTextContent(`content-${i}`, 'text', 'Device');
   }
   const history = clipboardService.getTextHistory();
-  expect(history.length).toBeLessThanOrEqual(50);
+  expect(history.items.length).toBeLessThanOrEqual(50);
 });
 
 test('delete removes an entry and reports affected count', () => {

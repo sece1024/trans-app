@@ -45,7 +45,7 @@ test('file upload → list → download → delete round trip', async () => {
   const listRes = await fetch(`${base}/api/files`);
   expect(listRes.status).toBe(200);
   const list = await listRes.json();
-  expect(list.some((f) => f.name === uploaded.fileId)).toBe(true);
+  expect(list.items.some((f) => f.name === uploaded.fileId)).toBe(true);
 
   const downloadRes = await fetch(`${base}/api/download/${uploaded.fileId}`);
   expect(downloadRes.status).toBe(200);
@@ -56,7 +56,7 @@ test('file upload → list → download → delete round trip', async () => {
   expect(deleteRes.status).toBe(200);
 
   const afterList = await (await fetch(`${base}/api/files`)).json();
-  expect(afterList.some((f) => f.name === uploaded.fileId)).toBe(false);
+  expect(afterList.items.some((f) => f.name === uploaded.fileId)).toBe(false);
 });
 
 test('clipboard save → get → delete round trip', async () => {
@@ -69,7 +69,7 @@ test('clipboard save → get → delete round trip', async () => {
   const saved = await saveRes.json();
 
   const clips = await (await fetch(`${base}/api/clipboard`)).json();
-  expect(clips.some((c) => c.id === saved.id)).toBe(true);
+  expect(clips.items.some((c) => c.id === saved.id)).toBe(true);
 
   const delRes = await fetch(`${base}/api/clipboard/${saved.id}`, { method: 'DELETE' });
   expect(delRes.status).toBe(200);
@@ -84,7 +84,11 @@ test('rejects non-image upload with 400', async () => {
 
 test('rejects oversized image with 400', async () => {
   const form = new FormData();
-  form.append('image', new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }), 'big.png');
+  form.append(
+    'image',
+    new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }),
+    'big.png'
+  );
   const res = await fetch(`${base}/api/images/upload`, { method: 'POST', body: form });
   expect(res.status).toBe(400);
 });

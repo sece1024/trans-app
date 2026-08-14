@@ -6,6 +6,7 @@ const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
 const pipeStream = require('../utils/streamResponse');
+const parsePagination = require('../utils/pagination');
 const FileService = require('../services/fileService');
 
 const imageService = new FileService(uploadDir);
@@ -31,8 +32,12 @@ router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
 
 router.get('/images', async (req, res, next) => {
   try {
-    const images = await imageService.list();
-    res.json(images.map(({ name, originalName }) => ({ filename: name, originalName })));
+    const { limit, offset } = parsePagination(req.query);
+    const result = await imageService.list({ limit, offset });
+    res.json({
+      ...result,
+      items: result.items.map(({ name, originalName }) => ({ filename: name, originalName })),
+    });
   } catch (error) {
     logger.error('get image list failed:', error);
     next(error);

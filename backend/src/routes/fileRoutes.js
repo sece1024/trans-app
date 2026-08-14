@@ -6,6 +6,7 @@ const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFil
 const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
 const pipeStream = require('../utils/streamResponse');
+const parsePagination = require('../utils/pagination');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir, { includeSize: true });
@@ -44,8 +45,8 @@ router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res, next) =>
 
 router.get('/files', async (req, res, next) => {
   try {
-    const fileInfos = await fileService.list();
-    res.json(fileInfos);
+    const { limit, offset } = parsePagination(req.query);
+    res.json(await fileService.list({ limit, offset }));
   } catch (error) {
     logger.error('get files failed:', error);
     next(error);

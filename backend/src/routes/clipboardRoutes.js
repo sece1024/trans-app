@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const clipboardService = require('../services/clipboardService');
+const parsePagination = require('../utils/pagination');
 const logger = require('../config/logger');
 
 router.post('/clipboard', (req, res, next) => {
@@ -21,8 +22,8 @@ router.post('/clipboard', (req, res, next) => {
 
 router.get('/clipboard', (req, res, next) => {
   try {
-    const clips = clipboardService.getTextHistory();
-    res.json(clips);
+    const { limit, offset } = parsePagination(req.query);
+    res.json(clipboardService.getTextHistory({ limit, offset }));
   } catch (error) {
     logger.error('clipboard get failed:', error);
     next(error);

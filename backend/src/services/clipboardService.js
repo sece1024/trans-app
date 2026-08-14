@@ -9,9 +9,11 @@ class ClipboardService {
     }
   }
 
-  getTextHistory() {
+  getTextHistory({ limit, offset } = {}) {
     try {
-      return ContentItem.findAll();
+      const items = ContentItem.findAll({ limit, offset });
+      const total = ContentItem.count();
+      return { items, total, hasMore: (offset || 0) + items.length < total };
     } catch (error) {
       throw new Error('Failed to get clipboard history', { cause: error });
     }
