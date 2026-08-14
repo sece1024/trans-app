@@ -28,8 +28,8 @@ router.post('/clipboard', (req, res, next) => {
 
 router.get('/clipboard', (req, res, next) => {
   try {
-    const { limit, offset } = parsePagination(req.query);
-    res.json(clipboardService.getTextHistory({ limit, offset }));
+    const { limit, cursor } = parsePagination(req.query);
+    res.json(clipboardService.getTextHistory({ limit, cursor }));
   } catch (error) {
     logger.error('clipboard get failed:', error);
     next(error);

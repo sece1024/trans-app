@@ -36,7 +36,7 @@ test('list without includeSize omits size field', async () => {
   }
 });
 
-test('list paginates with limit and offset', async () => {
+test('list paginates with cursor', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'trans-file-'));
   try {
     writeFileSync(path.join(dir, '1-a.txt'), 'x');
@@ -44,14 +44,16 @@ test('list paginates with limit and offset', async () => {
     writeFileSync(path.join(dir, '3-c.txt'), 'x');
 
     const service = new FileService(dir);
-    const page1 = await service.list({ limit: 2, offset: 0 });
+    const page1 = await service.list({ limit: 2 });
     expect(page1.items.map((f) => f.name)).toEqual(['3-c.txt', '2-b.txt']);
     expect(page1.total).toBe(3);
     expect(page1.hasMore).toBe(true);
+    expect(page1.nextCursor).toBe('2-b.txt');
 
-    const page2 = await service.list({ limit: 2, offset: 2 });
+    const page2 = await service.list({ limit: 2, cursor: page1.nextCursor });
     expect(page2.items.map((f) => f.name)).toEqual(['1-a.txt']);
     expect(page2.hasMore).toBe(false);
+    expect(page2.nextCursor).toBe('1-a.txt');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

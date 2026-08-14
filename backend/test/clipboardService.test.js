@@ -36,6 +36,18 @@ test('prunes history beyond the last 50 entries', () => {
   expect(history.items.length).toBeLessThanOrEqual(50);
 });
 
+test('paginates history with cursor without duplicates', () => {
+  const page1 = clipboardService.getTextHistory({ limit: 2 });
+  expect(page1.items.length).toBe(2);
+  expect(page1.nextCursor).not.toBeNull();
+
+  const page2 = clipboardService.getTextHistory({ limit: 2, cursor: page1.nextCursor });
+  expect(page2.items.length).toBe(2);
+
+  const ids = [...page1.items, ...page2.items].map((c) => c.id);
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
 test('delete removes an entry and reports affected count', () => {
   const item = clipboardService.saveTextContent('temp', 'text', 'Device');
   expect(clipboardService.delete(item.id)).toBe(1);

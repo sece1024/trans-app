@@ -7,7 +7,11 @@ const insertStmt = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
-const selectAllStmt = db.prepare('SELECT * FROM Contents ORDER BY createdAt DESC LIMIT ? OFFSET ?');
+const selectPageStmt = db.prepare('SELECT rowid, * FROM Contents ORDER BY rowid DESC LIMIT ?');
+
+const selectPageAfterStmt = db.prepare(
+  'SELECT rowid, * FROM Contents WHERE rowid < ? ORDER BY rowid DESC LIMIT ?'
+);
 
 const countStmt = db.prepare('SELECT COUNT(*) AS count FROM Contents');
 
@@ -18,7 +22,7 @@ const changesStmt = db.prepare('SELECT changes() AS count');
 // 删除超出最近 MAX_HISTORY 条的旧记录，防止表无限增长
 const pruneStmt = db.prepare(
   `DELETE FROM Contents WHERE id NOT IN (
-    SELECT id FROM Contents ORDER BY createdAt DESC, rowid DESC LIMIT ?
+    SELECT id FROM Contents ORDER BY rowid DESC LIMIT ?
   )`
 );
 
@@ -33,8 +37,12 @@ const ContentItem = {
     return { id, content, type, createdAt: now, updatedAt: now, deviceInfo };
   },
 
-  findAll({ limit = MAX_HISTORY, offset = 0 } = {}) {
-    return selectAllStmt.all(limit, offset);
+  findAll({ limit = MAX_HISTORY } = {}) {
+    return selectPageStmt.all(limit);
+  },
+
+  findAllAfter(cursor, limit = MAX_HISTORY) {
+    return selectPageAfterStmt.all(cursor, limit);
   },
 
   count() {

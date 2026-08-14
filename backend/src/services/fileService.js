@@ -9,14 +9,21 @@ class FileService extends BaseService {
     this.includeSize = includeSize;
   }
 
-  async list({ limit, offset = 0 } = {}) {
+  async list({ limit, cursor } = {}) {
     if (!fsSync.existsSync(this.uploadDir)) {
-      return { items: [], total: 0, hasMore: false };
+      return { items: [], total: 0, hasMore: false, nextCursor: null };
     }
     const files = await fs.readdir(this.uploadDir);
     const sorted = this.sortByTimeDesc(files);
     const total = sorted.length;
-    const page = sorted.slice(offset, limit ? offset + limit : sorted.length);
+
+    let start = 0;
+    if (cursor) {
+      const idx = sorted.indexOf(cursor);
+      start = idx === -1 ? sorted.length : idx + 1;
+    }
+
+    const page = sorted.slice(start, limit ? start + limit : sorted.length);
     const items = await Promise.all(
       page.map(async (file) => {
         const info = { name: file, originalName: this.getOriginalName(file) };
@@ -26,7 +33,9 @@ class FileService extends BaseService {
         return info;
       })
     );
-    return { items, total, hasMore: offset + page.length < total };
+    const hasMore = start + page.length < total;
+    const nextCursor = page.length > 0 ? page[page.length - 1] : null;
+    return { items, total, hasMore, nextCursor };
   }
 }
 

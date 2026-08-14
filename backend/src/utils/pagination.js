@@ -1,10 +1,10 @@
-// 从 query 中解析分页参数，返回 { limit, offset }
+// 从 query 中解析分页参数，返回 { limit, cursor }
 function parsePagination(query) {
   const limit = Number.parseInt(query.limit, 10);
-  const offset = Number.parseInt(query.offset, 10);
+  const cursor = typeof query.cursor === 'string' && query.cursor !== '' ? query.cursor : undefined;
   return {
     limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
-    offset: Number.isFinite(offset) && offset > 0 ? offset : 0,
+    cursor,
   };
 }
 

@@ -45,8 +45,8 @@ router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res, next) =>
 
 router.get('/files', async (req, res, next) => {
   try {
-    const { limit, offset } = parsePagination(req.query);
-    res.json(await fileService.list({ limit, offset }));
+    const { limit, cursor } = parsePagination(req.query);
+    res.json(await fileService.list({ limit, cursor }));
   } catch (error) {
     logger.error('get files failed:', error);
     next(error);

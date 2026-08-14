@@ -32,8 +32,8 @@ router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
 
 router.get('/images', async (req, res, next) => {
   try {
-    const { limit, offset } = parsePagination(req.query);
-    const result = await imageService.list({ limit, offset });
+    const { limit, cursor } = parsePagination(req.query);
+    const result = await imageService.list({ limit, cursor });
     res.json({
       ...result,
       items: result.items.map(({ name, originalName }) => ({ filename: name, originalName })),

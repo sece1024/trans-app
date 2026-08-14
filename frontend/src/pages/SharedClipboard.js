@@ -17,7 +17,7 @@ function SharedClipboard() {
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [hasMore, setHasMore]       = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [offset, setOffset]         = useState(0);
+  const [nextCursor, setNextCursor] = useState(null);
   const toast = useToast();
 
   const LONG_TEXT_THRESHOLD = 200;
@@ -43,10 +43,10 @@ function SharedClipboard() {
 
   const fetchClips = useCallback(async () => {
     try {
-      const data = await api.getClipboard(PAGE_SIZE, 0);
+      const data = await api.getClipboard(PAGE_SIZE);
       setClips(data.items);
       setHasMore(data.hasMore);
-      setOffset(data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { /* silent */ }
   }, []);
 
@@ -59,10 +59,10 @@ function SharedClipboard() {
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const data = await api.getClipboard(PAGE_SIZE, offset);
+      const data = await api.getClipboard(PAGE_SIZE, nextCursor);
       setClips((prev) => [...prev, ...data.items]);
       setHasMore(data.hasMore);
-      setOffset((prev) => prev + data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { /* silent */ }
     finally { setLoadingMore(false); }
   };

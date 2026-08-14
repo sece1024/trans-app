@@ -7,10 +7,10 @@ class ApiError extends Error {
   }
 }
 
-function withPagination(path, { limit, offset }) {
+function withPagination(path, { limit, cursor }) {
   const params = new URLSearchParams();
   if (limit) params.set('limit', String(limit));
-  if (offset) params.set('offset', String(offset));
+  if (cursor !== undefined && cursor !== null && cursor !== '') params.set('cursor', String(cursor));
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
 }
@@ -33,7 +33,7 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Clipboard
-  getClipboard: (limit, offset) => request(withPagination('/clipboard', { limit, offset })),
+  getClipboard: (limit, cursor) => request(withPagination('/clipboard', { limit, cursor })),
   addClipboard: (text, deviceInfo) =>
     request('/clipboard', {
       method: 'POST',
@@ -43,7 +43,7 @@ export const api = {
   deleteClipboard: (id) => request(`/clipboard/${id}`, { method: 'DELETE' }),
 
   // Files
-  getFiles: (limit, offset) => request(withPagination('/files', { limit, offset })),
+  getFiles: (limit, cursor) => request(withPagination('/files', { limit, cursor })),
   uploadFile: (formData) => request('/files/upload', { method: 'POST', body: formData }),
   deleteFile: (name) => request(`/files/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   deleteFiles: (filenames) =>
@@ -54,7 +54,7 @@ export const api = {
     }),
 
   // Images
-  getImages: (limit, offset) => request(withPagination('/images', { limit, offset })),
+  getImages: (limit, cursor) => request(withPagination('/images', { limit, cursor })),
   uploadImage: (formData) => request('/images/upload', { method: 'POST', body: formData }),
   deleteImage: (filename) => request(`/images/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
 

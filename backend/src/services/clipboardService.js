@@ -9,11 +9,18 @@ class ClipboardService {
     }
   }
 
-  getTextHistory({ limit, offset } = {}) {
+  getTextHistory({ limit, cursor } = {}) {
     try {
-      const items = ContentItem.findAll({ limit, offset });
       const total = ContentItem.count();
-      return { items, total, hasMore: (offset || 0) + items.length < total };
+      const pageSize = limit || 50;
+      const afterRowid = cursor ? Number.parseInt(cursor, 10) : NaN;
+      const rows = Number.isFinite(afterRowid)
+        ? ContentItem.findAllAfter(afterRowid, pageSize + 1)
+        : ContentItem.findAll({ limit: pageSize + 1 });
+      const hasMore = rows.length > pageSize;
+      const items = rows.slice(0, pageSize);
+      const nextCursor = items.length ? items[items.length - 1].rowid : null;
+      return { items, total, hasMore, nextCursor };
     } catch (error) {
       throw new Error('Failed to get clipboard history', { cause: error });
     }

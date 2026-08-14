@@ -29,17 +29,17 @@ function FileUpload() {
   const [selected, setSelected]         = useState(new Set());
   const [hasMore, setHasMore]           = useState(false);
   const [loadingMore, setLoadingMore]   = useState(false);
-  const [offset, setOffset]             = useState(0);
+  const [nextCursor, setNextCursor]     = useState(null);
   const fileInputRef      = useRef(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
   const fetchUploadedFiles = useCallback(async () => {
     try {
-      const data = await api.getFiles(PAGE_SIZE, 0);
+      const data = await api.getFiles(PAGE_SIZE);
       setUploadedFiles(data.items);
       setHasMore(data.hasMore);
-      setOffset(data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { toast('获取文件列表失败', 'error'); }
   }, [toast]);
 
@@ -48,10 +48,10 @@ function FileUpload() {
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const data = await api.getFiles(PAGE_SIZE, offset);
+      const data = await api.getFiles(PAGE_SIZE, nextCursor);
       setUploadedFiles((prev) => [...prev, ...data.items]);
       setHasMore(data.hasMore);
-      setOffset((prev) => prev + data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { toast('加载更多失败', 'error'); }
     finally { setLoadingMore(false); }
   };

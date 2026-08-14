@@ -18,16 +18,16 @@ function ImageUpload() {
   const [previewIndex, setPreviewIndex]   = useState(null);
   const [hasMore, setHasMore]             = useState(false);
   const [loadingMore, setLoadingMore]     = useState(false);
-  const [offset, setOffset]               = useState(0);
+  const [nextCursor, setNextCursor]       = useState(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
   const getImageList = useCallback(async () => {
     try {
-      const data = await api.getImages(PAGE_SIZE, 0);
+      const data = await api.getImages(PAGE_SIZE);
       setImageList(data.items);
       setHasMore(data.hasMore);
-      setOffset(data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { toast('获取图片失败', 'error'); }
   }, [toast]);
 
@@ -36,10 +36,10 @@ function ImageUpload() {
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const data = await api.getImages(PAGE_SIZE, offset);
+      const data = await api.getImages(PAGE_SIZE, nextCursor);
       setImageList((prev) => [...prev, ...data.items]);
       setHasMore(data.hasMore);
-      setOffset((prev) => prev + data.items.length);
+      setNextCursor(data.nextCursor);
     } catch { toast('加载更多失败', 'error'); }
     finally { setLoadingMore(false); }
   };
