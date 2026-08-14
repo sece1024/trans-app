@@ -8,21 +8,41 @@ import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 import ImagePreview from '../components/ImagePreview';
 
+const PAGE_SIZE = 50;
+
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageList, setImageList]         = useState([]);
   const [isLoading, setIsLoading]         = useState(false);
   const [deletingName, setDeletingName]   = useState(null);
   const [previewIndex, setPreviewIndex]   = useState(null);
+  const [hasMore, setHasMore]             = useState(false);
+  const [loadingMore, setLoadingMore]     = useState(false);
+  const [offset, setOffset]               = useState(0);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
   const getImageList = useCallback(async () => {
-    try { setImageList(await api.getImages()); }
-    catch { toast('获取图片失败', 'error'); }
+    try {
+      const data = await api.getImages(PAGE_SIZE, 0);
+      setImageList(data.items);
+      setHasMore(data.hasMore);
+      setOffset(data.items.length);
+    } catch { toast('获取图片失败', 'error'); }
   }, [toast]);
 
   useEffect(() => { getImageList(); }, [getImageList]);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const data = await api.getImages(PAGE_SIZE, offset);
+      setImageList((prev) => [...prev, ...data.items]);
+      setHasMore(data.hasMore);
+      setOffset((prev) => prev + data.items.length);
+    } catch { toast('加载更多失败', 'error'); }
+    finally { setLoadingMore(false); }
+  };
 
   const handleImageChange = (file) => {
     if (file?.type.startsWith('image/')) setSelectedImage(file);
@@ -105,6 +125,13 @@ function ImageUpload() {
               </motion.div>
             ))}
           </motion.div>
+          {hasMore && (
+            <div className="load-more">
+              <button className="btn--text" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? '加载中…' : '加载更多'}
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <EmptyState

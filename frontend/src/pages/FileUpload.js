@@ -18,6 +18,8 @@ function fileIcon(name) {
   })[ext] || '📁';
 }
 
+const PAGE_SIZE = 50;
+
 function FileUpload() {
   const [fileName, setFileName]         = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -25,17 +27,34 @@ function FileUpload() {
   const [deletingName, setDeletingName] = useState(null);
   const [selectMode, setSelectMode]     = useState(false);
   const [selected, setSelected]         = useState(new Set());
+  const [hasMore, setHasMore]           = useState(false);
+  const [loadingMore, setLoadingMore]   = useState(false);
+  const [offset, setOffset]             = useState(0);
   const fileInputRef      = useRef(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
   const fetchUploadedFiles = useCallback(async () => {
     try {
-      setUploadedFiles(await api.getFiles());
+      const data = await api.getFiles(PAGE_SIZE, 0);
+      setUploadedFiles(data.items);
+      setHasMore(data.hasMore);
+      setOffset(data.items.length);
     } catch { toast('获取文件列表失败', 'error'); }
   }, [toast]);
 
   useEffect(() => { fetchUploadedFiles(); }, [fetchUploadedFiles]);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const data = await api.getFiles(PAGE_SIZE, offset);
+      setUploadedFiles((prev) => [...prev, ...data.items]);
+      setHasMore(data.hasMore);
+      setOffset((prev) => prev + data.items.length);
+    } catch { toast('加载更多失败', 'error'); }
+    finally { setLoadingMore(false); }
+  };
 
   const handleFileChange = (file) => {
     setFileName(file.name);
@@ -184,6 +203,13 @@ function FileUpload() {
               </motion.div>
             ))}
           </motion.div>
+          {hasMore && (
+            <div className="load-more">
+              <button className="btn--text" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? '加载中…' : '加载更多'}
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <EmptyState

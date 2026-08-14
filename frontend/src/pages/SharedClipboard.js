@@ -6,11 +6,16 @@ import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
 import EmptyState from '../components/EmptyState';
 
+const PAGE_SIZE = 50;
+
 function SharedClipboard() {
   const [clips, setClips]         = useState([]);
   const [clipText, setClipText]   = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [hasMore, setHasMore]       = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset]         = useState(0);
   const toast = useToast();
 
   const LONG_TEXT_THRESHOLD = 200;
@@ -36,8 +41,23 @@ function SharedClipboard() {
   }, []);
 
   const fetchClips = async () => {
-    try { setClips(await api.getClipboard()); }
-    catch { /* silent */ }
+    try {
+      const data = await api.getClipboard(PAGE_SIZE, 0);
+      setClips(data.items);
+      setHasMore(data.hasMore);
+      setOffset(data.items.length);
+    } catch { /* silent */ }
+  };
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const data = await api.getClipboard(PAGE_SIZE, offset);
+      setClips((prev) => [...prev, ...data.items]);
+      setHasMore(data.hasMore);
+      setOffset((prev) => prev + data.items.length);
+    } catch { /* silent */ }
+    finally { setLoadingMore(false); }
   };
 
   const handleAdd = async () => {
@@ -133,6 +153,13 @@ function SharedClipboard() {
               );
             })}
           </motion.div>
+          {hasMore && (
+            <div className="load-more">
+              <button className="btn--text" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? '加载中…' : '加载更多'}
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <EmptyState

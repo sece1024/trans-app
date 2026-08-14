@@ -7,6 +7,14 @@ class ApiError extends Error {
   }
 }
 
+function withPagination(path, { limit, offset }) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (offset) params.set('offset', String(offset));
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
   const res = await fetch(url, options);
@@ -25,7 +33,7 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Clipboard
-  getClipboard: () => request('/clipboard'),
+  getClipboard: (limit, offset) => request(withPagination('/clipboard', { limit, offset })),
   addClipboard: (text, deviceInfo) =>
     request('/clipboard', {
       method: 'POST',
@@ -35,7 +43,7 @@ export const api = {
   deleteClipboard: (id) => request(`/clipboard/${id}`, { method: 'DELETE' }),
 
   // Files
-  getFiles: () => request('/files'),
+  getFiles: (limit, offset) => request(withPagination('/files', { limit, offset })),
   uploadFile: (formData) => request('/files/upload', { method: 'POST', body: formData }),
   deleteFile: (name) => request(`/files/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   deleteFiles: (filenames) =>
@@ -46,7 +54,7 @@ export const api = {
     }),
 
   // Images
-  getImages: () => request('/images'),
+  getImages: (limit, offset) => request(withPagination('/images', { limit, offset })),
   uploadImage: (formData) => request('/images/upload', { method: 'POST', body: formData }),
   deleteImage: (filename) => request(`/images/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
 

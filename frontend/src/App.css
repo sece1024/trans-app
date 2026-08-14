@@ -392,6 +392,12 @@
     &.btn--danger:hover { background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
   }
 
+  .load-more {
+    display: flex;
+    justify-content: center;
+    margin-top: calc(var(--block-space) * 1.5);
+  }
+
   .file-card--selectable { cursor: pointer; }
   .file-card--selected {
     border-color: var(--color-primary);
