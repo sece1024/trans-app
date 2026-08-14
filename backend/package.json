@@ -10,7 +10,7 @@
     "dev": "bun --watch src/index.js",
     "style:format": "prettier --write .",
     "style:check": "prettier --check .",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "build": "bun scripts/build.mjs"
   },
   "keywords": [],
