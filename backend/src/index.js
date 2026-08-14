@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fileRoutes = require('./routes/fileRoutes');
@@ -6,7 +7,6 @@ const systemRoutes = require('./routes/systemRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
-require('dotenv').config();
 const logger = require('./config/logger');
 const { isCompiled } = require('./utils/runtime');
 
