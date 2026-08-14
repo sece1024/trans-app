@@ -5,6 +5,7 @@ const logger = require('../config/logger');
 const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
+const pipeStream = require('../utils/streamResponse');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir);
@@ -56,17 +57,7 @@ router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
 
   res.setHeader('Content-Disposition', contentDisposition(fileService.getOriginalName(fileName)));
   res.setHeader('Content-Type', 'application/octet-stream');
-  const stream = fileService.createReadStream(fileName);
-  stream.on('error', (err) => {
-    logger.error('file stream error:', err);
-    if (!res.headersSent) {
-      return err.code === 'ENOENT'
-        ? res.status(404).json({ message: 'file not found' })
-        : res.status(500).json({ message: 'download failed' });
-    }
-    res.destroy(err);
-  });
-  stream.pipe(res);
+  pipeStream(fileService.createReadStream(fileName), res, 'file not found');
 });
 
 router.delete('/files', async (req, res, next) => {

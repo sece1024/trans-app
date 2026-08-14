@@ -5,6 +5,7 @@ const logger = require('../config/logger');
 const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
+const pipeStream = require('../utils/streamResponse');
 const ImageService = require('../services/imageService');
 
 const imageService = new ImageService(uploadDir);
@@ -55,17 +56,7 @@ router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res
 
   res.setHeader('Content-Disposition', contentDisposition(imageService.getOriginalName(filename)));
   res.setHeader('Content-Type', 'application/octet-stream');
-  const stream = imageService.createReadStream(filename);
-  stream.on('error', (err) => {
-    logger.error('image stream error:', err);
-    if (!res.headersSent) {
-      return err.code === 'ENOENT'
-        ? res.status(404).json({ message: 'image not found' })
-        : res.status(500).json({ message: 'download failed' });
-    }
-    res.destroy(err);
-  });
-  stream.pipe(res);
+  pipeStream(imageService.createReadStream(filename), res, 'image not found');
 });
 
 router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res, next) => {
