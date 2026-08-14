@@ -10,7 +10,7 @@
     "dev": "bun --watch src/index.js",
     "style:format": "prettier --write .",
     "style:check": "prettier --check .",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "bun test",
     "build": "bun scripts/build.mjs"
   },
   "keywords": [],
