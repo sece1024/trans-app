@@ -12,7 +12,7 @@ function errorHandler(err, req, res, next) {
   }
 
   // Multer 文件类型错误
-  if (err.message === 'Only image files are allowed') {
+  if (err.code === 'INVALID_IMAGE_TYPE') {
     return res.status(400).json({
       message: err.message,
     });
