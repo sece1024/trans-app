@@ -56,14 +56,14 @@ Frontend Vite dev server (`localhost:5173`) proxies `/api` calls to `localhost:5
 ```
 src/index.js          → bootstraps Express, registers routes, error handler
 src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
-src/services/         → business logic (BaseService ← FileService / ImageService; ClipboardService singleton)
+src/services/         → business logic (BaseService ← FileService; ClipboardService singleton)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js)
-src/middleware/       → errorHandler.js, sanitizeFilename.js
-src/utils/            → IP/network info, runtime.js (compiled-binary detection)
+src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js
+src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js
 ```
 
-**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and abstract `list()`. File-based services extend it. `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` and `ImageService` are exported as classes (instantiated in routes with the upload dir path). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
+**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and abstract `list()`. File-based services extend it. `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
 
 ### Frontend layers
 ```

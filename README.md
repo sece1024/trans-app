@@ -33,7 +33,7 @@ trans-app/
 │   └── src/
 │       ├── index.js           # 入口，注册路由与中间件
 │       ├── routes/            # 路由层（file、image、clipboard、system）
-│       ├── services/          # 业务逻辑（BaseService → FileService / ImageService）
+│       ├── services/          # 业务逻辑（BaseService → FileService）
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
 │       ├── middleware/        # errorHandler、sanitizeFilename
 │       ├── config/            # multer 存储、logger
