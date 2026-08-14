@@ -6,7 +6,7 @@
 
 - 📁 **文件共享**：上传、下载、删除文件
 - 🖼️ **图片共享**：上传、查看、下载、删除图片
-- 📋 **剪贴板同步**：在不同设备间同步文本内容
+- 📋 **剪贴板同步**：在不同设备间同步文本内容（每 3 秒轮询实时刷新）
 - 🌐 **局域网访问**：支持局域网内多设备访问
 - 🎨 **多主题切换**：支持亮色、暗色、森林、日落、海洋五种主题
 
@@ -71,6 +71,8 @@ pnpm start
 | `cd frontend && pnpm run dev` | 仅启动前端（Vite dev server，/api 代理到 5001） |
 | `cd backend && pnpm run style:check` | 检查后端代码格式 |
 | `cd backend && pnpm run style:format` | 自动修复格式 |
+| `cd backend && pnpm test` | 后端测试（bun:test） |
+| `cd frontend && pnpm test` | 前端测试（Vitest） |
 | `cd frontend && pnpm run build` | 构建前端到 `frontend/build/` |
 | `cd backend && pnpm run build` | Bun 交叉编译到 `backend/dist/`（需先构建前端） |
 
@@ -127,7 +129,7 @@ journalctl -u transapp -f
 ```
 
 要点：
-- `WorkingDirectory=/opt/transapp` 决定运行时数据（`data/` 目录）的落盘位置，代码按 `process.cwd()/data/` 存储。
+- `WorkingDirectory=/opt/transapp` 决定运行时数据（`data/` 目录）的落盘位置，代码默认按 `process.cwd()/data/` 存储（可用 `DATA_DIR` 环境变量覆盖）。
 - 日志走 journald，自动轮转，不写 SD 卡文件。
 - `Restart=always` 保证崩溃自动拉起，适合 24 小时运行。
 
@@ -138,10 +140,11 @@ journalctl -u transapp -f
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `PORT` | `5001` | HTTP 服务端口 |
+| `DATA_DIR` | `./data` | 运行时数据根目录（数据库 + 上传文件） |
 
 ## 数据存储
 
-运行时数据在 `backend/data/`（不提交到 Git）：
+运行时数据默认在 `data/`（可用 `DATA_DIR` 环境变量覆盖，不提交到 Git）：
 
 ```
 data/
@@ -153,12 +156,14 @@ data/
 
 ## API 接口
 
+列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&offset=` 分页参数，返回 `{ items, total, hasMore }`。
+
 ### 文件
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/files/upload` | 上传文件 |
-| GET | `/api/files` | 文件列表 |
+| GET | `/api/files` | 文件列表（分页） |
 | GET | `/api/files/:fileName` | 获取文件信息 |
 | GET | `/api/download/:fileName` | 下载文件 |
 | DELETE | `/api/files/:fileName` | 删除文件 |
@@ -168,7 +173,7 @@ data/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/images/upload` | 上传图片（5 MB 限制，仅限图片 MIME） |
-| GET | `/api/images` | 图片列表 |
+| GET | `/api/images` | 图片列表（分页） |
 | GET | `/api/images/:filename` | 获取图片 |
 | GET | `/api/images/download/:filename` | 下载图片 |
 | DELETE | `/api/images/:filename` | 删除图片 |
@@ -178,7 +183,7 @@ data/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/clipboard` | 保存文本 |
-| GET | `/api/clipboard` | 剪贴板历史 |
+| GET | `/api/clipboard` | 剪贴板历史（分页） |
 | DELETE | `/api/clipboard/:contentId` | 删除条目 |
 
 ### 系统

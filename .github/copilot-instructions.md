@@ -54,16 +54,17 @@ Frontend Vite dev server (`localhost:5173`) proxies `/api` calls to `localhost:5
 
 ### Backend layers
 ```
-src/index.js          → bootstraps Express, registers routes, error handler
+src/index.js          → loads dotenv, starts the Express app
+src/app.js            → builds/configure the Express app (middleware, routes, error handler); exported for tests
 src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
 src/services/         → business logic (BaseService ← FileService; ClipboardService singleton)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
-src/config/           → multer storage factories (multer.js), logger wrapper (logger.js)
+src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
 src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js
-src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js
+src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js
 ```
 
-**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and abstract `list()`. File-based services extend it. `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
+**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and `list()` (paginated: returns `{ items, total, hasMore }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
 
 ### Frontend layers
 ```
@@ -76,7 +77,7 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 ```
 
 ### Data persistence
-- SQLite database: `data/database.sqlite` (at `process.cwd()` at runtime, not committed)
+- SQLite database: `data/database.sqlite` (at `process.cwd()` at runtime; override root via `DATA_DIR` env, see `src/config/paths.js`)
 - Uploaded files: `data/uploads/files/`
 - Uploaded images: `data/uploads/images/`
 
@@ -101,16 +102,17 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 
 ## Key Conventions
 
-- **File upload filename encoding**: multer receives filenames as `latin1`; always decode with `Buffer.from(name, 'latin1').toString('utf8')` before using or returning filenames. This happens inside `createStorage` in `src/config/multer.js`.
-- **Uploaded file naming**: both files and images get a `Date.now()-originalName` prefix; reverse it with `BaseService.getOriginalName(filename)` (strips everything before the first `-`). `BaseService.getTimestamp()` parses the prefix for sorting.
-- **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `path.basename(process.execPath)` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
-- **Logger**: `src/config/logger.js` is a thin wrapper over `console`. Use `logger.info/warn/error`.
-- **All API routes** are registered under the `/api` prefix in `index.js`.
+- **File upload filename encoding**: multer receives filenames as `latin1`; always decode via `decodeFilename()` in `src/utils/decodeFilename.js` before using or returning filenames.
+- **Uploaded file naming**: both files and images get a `Date.now()-originalName` prefix; reverse it with `BaseService.getOriginalName(filename)` (strips everything before the first `-`). `BaseService.getTimestamp()` parses the prefix for sorting. Same-ms collisions get an incrementing suffix via `uniqueName` in `src/config/multer.js`.
+- **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `Bun.isBun` plus a `public/` dir next to `process.execPath` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
+- **Logger**: `src/config/logger.js` is a thin wrapper over `console` (prefixes ISO timestamps). Use `logger.info/warn/error`.
+- **All API routes** are registered under the `/api` prefix in `app.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
-- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
+- **Rate limiting**: write methods (POST/PUT/PATCH/DELETE) under `/api` are rate-limited per IP via `src/middleware/rateLimiter.js`.
+- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit, offset })`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
-- **No tests**: the test script is a placeholder. There are no test files to run.
+- **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). CI runs both via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
 ## Error Handling Pattern
@@ -127,11 +129,13 @@ throw new Error('Failed to save clipboard', { cause: error });
 
 ## API Routes Reference
 
+List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&offset=` and return `{ items, total, hasMore }`.
+
 ### Files
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/files/upload` | Upload file |
-| GET | `/api/files` | List files |
+| GET | `/api/files` | List files (paginated) |
 | GET | `/api/files/:fileName` | Get file info |
 | GET | `/api/download/:fileName` | Download file |
 | DELETE | `/api/files/:fileName` | Delete file |
@@ -140,7 +144,7 @@ throw new Error('Failed to save clipboard', { cause: error });
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/images/upload` | Upload image (5 MB, image MIME only) |
-| GET | `/api/images` | List images |
+| GET | `/api/images` | List images (paginated) |
 | GET | `/api/images/:filename` | Serve image |
 | GET | `/api/images/download/:filename` | Download image |
 | DELETE | `/api/images/:filename` | Delete image |
@@ -149,7 +153,7 @@ throw new Error('Failed to save clipboard', { cause: error });
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/clipboard` | Save text `{ text, deviceInfo }` |
-| GET | `/api/clipboard` | Get history |
+| GET | `/api/clipboard` | Get history (paginated) |
 | DELETE | `/api/clipboard/:contentId` | Delete entry |
 
 ### System
