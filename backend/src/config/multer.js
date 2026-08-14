@@ -14,6 +14,16 @@ function ensureDir(dir) {
   }
 }
 
+// 若目标文件已存在（同毫秒同名），在扩展名前追加递增后缀避免覆盖
+function uniqueName(dir, filename) {
+  if (!fs.existsSync(path.join(dir, filename))) return filename;
+  const ext = path.extname(filename);
+  const stem = filename.slice(0, filename.length - ext.length);
+  let i = 1;
+  while (fs.existsSync(path.join(dir, `${stem}-${i}${ext}`))) i += 1;
+  return `${stem}-${i}${ext}`;
+}
+
 // 创建存储配置
 function createStorage(subDir, nameGenerator) {
   const uploadDir = path.join(UPLOAD_BASE, subDir);
@@ -27,7 +37,7 @@ function createStorage(subDir, nameGenerator) {
       },
       filename: function (req, file, cb) {
         const originalName = decodeFilename(file.originalname);
-        cb(null, nameGenerator(originalName));
+        cb(null, uniqueName(uploadDir, nameGenerator(originalName)));
       },
     }),
   };
