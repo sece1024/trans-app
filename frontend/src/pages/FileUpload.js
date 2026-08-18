@@ -4,20 +4,10 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
 import { downloadFile, copyLink, pulseSuccess, formatFileSize, checkFileSize } from '../utils/uploadHelpers';
+import { fileIcon } from '../utils/fileIcon';
 import usePaginatedList from '../hooks/usePaginatedList';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
-
-function fileIcon(name) {
-  const ext = name.split('.').pop().toLowerCase();
-  return ({
-    pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊',
-    ppt:'📋', pptx:'📋', zip:'🗜', rar:'🗜', '7z':'🗜',
-    mp4:'🎬', mov:'🎬', avi:'🎬', mp3:'🎵', wav:'🎵',
-    jpg:'🖼', jpeg:'🖼', png:'🖼', gif:'🖼', svg:'🖼', webp:'🖼',
-    js:'📜', ts:'📜', py:'🐍', html:'🌐', css:'🎨', json:'⚙️', txt:'📃',
-  })[ext] || '📁';
-}
 
 const PAGE_SIZE = 50;
 
