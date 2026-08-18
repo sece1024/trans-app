@@ -10,11 +10,12 @@
  *   public/     — frontend static assets
  *
  * Usage:
- *   bun scripts/build.mjs
+ *   bun scripts/build.mjs                # builds frontend first, then compiles both targets
+ *   bun scripts/build.mjs --skip-frontend # assumes frontend/build/ already exists
  *
  * Requirements:
- *   - Bun >= 1.x
- *   - Frontend built first: cd frontend && pnpm run build
+ *   - Bun >= 1.13 (cross-compilation target support)
+ *   - Node.js + pnpm (frontend Vite build)
  */
 
 import { execSync } from 'child_process';
@@ -24,21 +25,32 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
+const frontendRoot = path.resolve(root, '..', 'frontend');
 const dist = path.join(root, 'dist');
-const frontendBuild = path.resolve(root, '..', 'frontend', 'build');
+const frontendBuild = path.join(frontendRoot, 'build');
 
 const TARGETS = [
   { id: 'darwin-arm64', bunTarget: 'bun-darwin-arm64' },
   { id: 'linux-arm64', bunTarget: 'bun-linux-arm64' },
 ];
 
-// ── Verify frontend build ─────────────────────────────────────────────────
-console.log('→ Step 1: Verifying frontend build…');
+const skipFrontend = process.argv.includes('--skip-frontend');
+
+// ── Build frontend (unless explicitly skipped) ────────────────────────────
+if (skipFrontend) {
+  console.log('→ Step 1: Skipping frontend build (--skip-frontend)');
+} else {
+  console.log('→ Step 1: Building frontend…');
+  execSync('pnpm run build', { cwd: frontendRoot, stdio: 'inherit' });
+  console.log('  ✓ frontend/build ready');
+}
+
 if (!existsSync(frontendBuild)) {
-  console.error('  ✗ frontend/build not found. Run: cd frontend && pnpm run build');
+  console.error(
+    '  ✗ frontend/build not found. Run: cd frontend && pnpm run build, or drop --skip-frontend.'
+  );
   process.exit(1);
 }
-console.log('  ✓ frontend/build present');
 
 // ── Clean dist ────────────────────────────────────────────────────────────
 if (existsSync(dist)) rmSync(dist, { recursive: true });

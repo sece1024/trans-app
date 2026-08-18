@@ -76,7 +76,7 @@ pnpm start
 | `cd frontend && pnpm run lint` | 前端 ESLint |
 | `cd frontend && pnpm run typecheck` | 前端 TypeScript checkJs 类型检查 |
 | `cd frontend && pnpm run build` | 构建前端到 `frontend/build/` |
-| `cd backend && pnpm run build` | Bun 交叉编译到 `backend/dist/`（需先构建前端） |
+| `cd backend && pnpm run build` | Bun 交叉编译到 `backend/dist/`（自动先构建前端） |
 
 ## 生产部署
 
@@ -92,11 +92,14 @@ Express 会自动托管 `frontend/build/` 中的静态文件，所有未匹配�
 使用 [Bun compile](https://bun.sh/docs/bundler/executables) 打包为独立可执行程序，支持交叉编译。
 
 ```bash
-cd frontend && pnpm run build
 cd backend && pnpm run build
 ```
 
-> **注意**：必须先构建前端，再构建后端。构建脚本会检查 `frontend/build/` 是否存在。
+后端构建脚本会**自动先构建前端**（`pnpm run build`），无需手动分步执行。若已手动构建前端、想跳过自动构建，可加 `--skip-frontend`：
+
+```bash
+cd backend && bun scripts/build.mjs --skip-frontend
+```
 
 产物：
 
