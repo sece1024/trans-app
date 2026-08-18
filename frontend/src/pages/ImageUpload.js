@@ -96,7 +96,16 @@ function ImageUpload() {
                 key={image.filename}
                 className="glass-card image-card"
                 variants={cardVariants}
+                role="button"
+                tabIndex={0}
+                aria-label={`预览图片：${image.originalName}`}
                 onClick={() => setPreviewIndex(index)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setPreviewIndex(index);
+                  }
+                }}
               >
                 <img src={`/api/images/${image.filename}`} alt={image.originalName} loading="lazy" />
                 <div className="image-overlay">

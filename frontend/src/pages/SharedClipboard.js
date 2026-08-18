@@ -133,7 +133,16 @@ function SharedClipboard() {
                   key={clip.id}
                   className={`glass-card clip-card${isWide ? ' card--wide' : ''}`}
                   variants={cardVariants}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="点击复制此剪贴板内容"
                   onClick={() => handleCopy(clip.content)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleCopy(clip.content);
+                    }
+                  }}
                 >
                   <pre className={`clip-text${isExpanded ? ' clip-text--expanded' : ''}`}>{clip.content}</pre>
                   {isLong && (

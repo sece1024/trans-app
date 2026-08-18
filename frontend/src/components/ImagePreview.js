@@ -32,6 +32,7 @@ function ImagePreview({ images, currentIndex, onClose, onNavigate }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
+        role="presentation"
       >
         <motion.div
           className="image-preview-container"
@@ -40,6 +41,9 @@ function ImagePreview({ images, currentIndex, onClose, onNavigate }) {
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={image.originalName}
         >
           <button className="image-preview-close" onClick={onClose} aria-label="关闭预览">✕</button>
 

@@ -38,20 +38,29 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
     };
   }, []);
 
+  // 记录进行中的 reload，轮询重入时直接跳过（复用同一个 promise），
+  // 避免慢请求与定时轮询叠加导致请求风暴 / 竞态覆盖。
+  const reloadingRef = useRef(null);
+
   const reload = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchPage(pageSize, undefined);
-      if (!mountedRef.current) return;
-      setItems(data.items ?? []);
-      setHasMore(data.hasMore ?? false);
-      nextCursorRef.current = data.nextCursor ?? null;
-      if (typeof data.total === 'number') setTotal(data.total);
-    } catch (error) {
-      if (onError) onError(error);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
+    if (reloadingRef.current) return reloadingRef.current;
+    reloadingRef.current = (async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchPage(pageSize, undefined);
+        if (!mountedRef.current) return;
+        setItems(data.items ?? []);
+        setHasMore(data.hasMore ?? false);
+        nextCursorRef.current = data.nextCursor ?? null;
+        if (typeof data.total === 'number') setTotal(data.total);
+      } catch (error) {
+        if (onError) onError(error);
+      } finally {
+        reloadingRef.current = null;
+        if (mountedRef.current) setIsLoading(false);
+      }
+    })();
+    return reloadingRef.current;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPage, pageSize, ...dependencies, onError]);
 
