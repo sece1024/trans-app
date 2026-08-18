@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
 import { downloadFile, copyLink, pulseSuccess, formatFileSize, checkFileSize } from '../utils/uploadHelpers';
+import usePaginatedList from '../hooks/usePaginatedList';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 
@@ -22,39 +23,26 @@ const PAGE_SIZE = 50;
 
 function FileUpload() {
   const [fileName, setFileName]         = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isLoading, setIsLoading]       = useState(false);
   const [deletingName, setDeletingName] = useState(null);
   const [selectMode, setSelectMode]     = useState(false);
   const [selected, setSelected]         = useState(new Set());
-  const [hasMore, setHasMore]           = useState(false);
-  const [loadingMore, setLoadingMore]   = useState(false);
-  const [nextCursor, setNextCursor]     = useState(null);
   const fileInputRef      = useRef(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
-  const fetchUploadedFiles = useCallback(async () => {
-    try {
-      const data = await api.getFiles(PAGE_SIZE);
-      setUploadedFiles(data.items);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-    } catch { toast('获取文件列表失败', 'error'); }
-  }, [toast]);
-
-  useEffect(() => { fetchUploadedFiles(); }, [fetchUploadedFiles]);
-
-  const loadMore = async () => {
-    setLoadingMore(true);
-    try {
-      const data = await api.getFiles(PAGE_SIZE, nextCursor);
-      setUploadedFiles((prev) => [...prev, ...data.items]);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-    } catch { toast('加载更多失败', 'error'); }
-    finally { setLoadingMore(false); }
-  };
+  const getFilesPage = useCallback(
+    (limit, cursor) => api.getFiles(limit, cursor),
+    []
+  );
+  const handleListError = useCallback(() => toast('获取文件列表失败', 'error'), [toast]);
+  const {
+    items: uploadedFiles,
+    hasMore,
+    loadingMore,
+    loadMore,
+    reload: fetchUploadedFiles,
+  } = usePaginatedList(getFilesPage, { pageSize: PAGE_SIZE, onError: handleListError });
 
   const handleFileChange = (file) => {
     setFileName(file.name);

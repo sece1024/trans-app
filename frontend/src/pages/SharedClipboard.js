@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
+import usePaginatedList from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 50;
@@ -12,14 +13,9 @@ const MAX_CLIPBOARD_LENGTH = 10000;
 const MAX_CLIPBOARD_HISTORY = 50;
 
 function SharedClipboard() {
-  const [clips, setClips]         = useState([]);
   const [clipText, setClipText]   = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
   const [expandedIds, setExpandedIds] = useState(new Set());
-  const [hasMore, setHasMore]       = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [total, setTotal]           = useState(0);
   const toast = useToast();
 
   const LONG_TEXT_THRESHOLD = 200;
@@ -43,32 +39,24 @@ function SharedClipboard() {
     setDeviceInfo(`${device} · ${browser}`);
   }, []);
 
-  const fetchClips = useCallback(async () => {
-    try {
-      const data = await api.getClipboard(PAGE_SIZE);
-      setClips(data.items);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-      setTotal(data.total);
-    } catch { /* silent */ }
-  }, []);
+  const getClipsPage = useCallback(
+    (limit, cursor) => api.getClipboard(limit, cursor),
+    []
+  );
+  const {
+    items: clips,
+    hasMore,
+    loadingMore,
+    total,
+    loadMore,
+    reload: fetchClips,
+  } = usePaginatedList(getClipsPage, { pageSize: PAGE_SIZE });
 
   useEffect(() => {
     fetchClips();
     const timer = setInterval(fetchClips, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [fetchClips]);
-
-  const loadMore = async () => {
-    setLoadingMore(true);
-    try {
-      const data = await api.getClipboard(PAGE_SIZE, nextCursor);
-      setClips((prev) => [...prev, ...data.items]);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-    } catch { /* silent */ }
-    finally { setLoadingMore(false); }
-  };
 
   const handleAdd = async () => {
     if (!clipText.trim()) { toast('请输入内容', 'error'); return; }

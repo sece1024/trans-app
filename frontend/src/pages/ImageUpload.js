@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
 import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
+import usePaginatedList from '../hooks/usePaginatedList';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 import ImagePreview from '../components/ImagePreview';
@@ -12,37 +13,24 @@ const PAGE_SIZE = 50;
 
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [imageList, setImageList]         = useState([]);
   const [isLoading, setIsLoading]         = useState(false);
   const [deletingName, setDeletingName]   = useState(null);
   const [previewIndex, setPreviewIndex]   = useState(null);
-  const [hasMore, setHasMore]             = useState(false);
-  const [loadingMore, setLoadingMore]     = useState(false);
-  const [nextCursor, setNextCursor]       = useState(null);
   const uploadControlsRef = useRef(null);
   const toast = useToast();
 
-  const getImageList = useCallback(async () => {
-    try {
-      const data = await api.getImages(PAGE_SIZE);
-      setImageList(data.items);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-    } catch { toast('获取图片失败', 'error'); }
-  }, [toast]);
-
-  useEffect(() => { getImageList(); }, [getImageList]);
-
-  const loadMore = async () => {
-    setLoadingMore(true);
-    try {
-      const data = await api.getImages(PAGE_SIZE, nextCursor);
-      setImageList((prev) => [...prev, ...data.items]);
-      setHasMore(data.hasMore);
-      setNextCursor(data.nextCursor);
-    } catch { toast('加载更多失败', 'error'); }
-    finally { setLoadingMore(false); }
-  };
+  const getImagesPage = useCallback(
+    (limit, cursor) => api.getImages(limit, cursor),
+    []
+  );
+  const handleListError = useCallback(() => toast('获取图片失败', 'error'), [toast]);
+  const {
+    items: imageList,
+    hasMore,
+    loadingMore,
+    loadMore,
+    reload: getImageList,
+  } = usePaginatedList(getImagesPage, { pageSize: PAGE_SIZE, onError: handleListError });
 
   const handleImageChange = (file) => {
     if (file?.type.startsWith('image/')) setSelectedImage(file);
