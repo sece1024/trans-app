@@ -34,8 +34,8 @@ cd backend && pnpm run style:format  # auto-fix
 
 ### Building standalone binaries
 ```bash
-cd frontend && pnpm run build        # build React into frontend/build/
-cd backend && pnpm run build         # compile via Bun into backend/dist/
+cd backend && pnpm run build         # builds frontend first, then compiles via Bun into backend/dist/
+cd backend && bun scripts/build.mjs --skip-frontend   # skip frontend build (assumes frontend/build/ exists)
 ```
 
 The build uses `bun build --compile` with cross-compilation. It produces two target directories:
@@ -104,7 +104,7 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 
 - **File upload filename encoding**: multer receives filenames as `latin1`; always decode via `decodeFilename()` in `src/utils/decodeFilename.js` before using or returning filenames.
 - **Uploaded file naming**: both files and images get a `Date.now()-originalName` prefix; reverse it with `BaseService.getOriginalName(filename)` (strips everything before the first `-`). `BaseService.getTimestamp()` parses the prefix for sorting. Same-ms collisions get an incrementing suffix via `uniqueName` in `src/config/multer.js`.
-- **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `Bun.isBun` plus a `public/` dir next to `process.execPath` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
+- **Production vs. dev detection**: `utils/runtime.js` exports `isCompiled()` which checks `process.isBun` plus a `public/` dir next to `process.execPath` — returns `true` when running as the compiled `trans` binary, `false` when running via `bun` or `node`.
 - **Logger**: `src/config/logger.js` is a thin wrapper over `console` (prefixes ISO timestamps). Use `logger.info/warn/error`.
 - **All API routes** are registered under the `/api` prefix in `app.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
