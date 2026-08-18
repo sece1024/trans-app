@@ -101,7 +101,7 @@ function FileUpload() {
     if (selected.size === uploadedFiles.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(uploadedFiles.map((f) => f.name)));
+      setSelected(new Set(uploadedFiles.map((f) => f.filename)));
     }
   };
 
@@ -161,31 +161,31 @@ function FileUpload() {
           <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
             {uploadedFiles.map((file) => (
               <motion.div
-                key={file.name}
-                className={`glass-card file-card${selectMode ? ' file-card--selectable' : ''}${selected.has(file.name) ? ' file-card--selected' : ''}`}
+                key={file.filename}
+                className={`glass-card file-card${selectMode ? ' file-card--selectable' : ''}${selected.has(file.filename) ? ' file-card--selected' : ''}`}
                 variants={cardVariants}
-                onClick={selectMode ? () => toggleSelect(file.name) : undefined}
+                onClick={selectMode ? () => toggleSelect(file.filename) : undefined}
               >
                 {selectMode && (
                   <div className="file-checkbox">
-                    <span className="checkbox-mark">{selected.has(file.name) ? '✓' : ''}</span>
+                    <span className="checkbox-mark">{selected.has(file.filename) ? '✓' : ''}</span>
                   </div>
                 )}
                 <div className="file-card-body">
-                  <span className="file-icon">{fileIcon(file.originalName || file.name)}</span>
+                  <span className="file-icon">{fileIcon(file.originalName || file.filename)}</span>
                   <div>
-                    <p className="file-name" title={file.originalName || file.name}>{file.originalName || file.name}</p>
+                    <p className="file-name" title={file.originalName || file.filename}>{file.originalName || file.filename}</p>
                     <p className="file-meta">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
                 {!selectMode && (
                   <div className="card-actions">
-                    <button className="btn--icon" onClick={() => handleCopyLink(file.name)}>🔗 复制链接</button>
-                    <button className="btn--icon" onClick={() => handleDownload(file.name)}>↓ 下载</button>
-                    <button className="btn--icon btn--danger" onClick={() => handleDelete(file.name)}>删除</button>
+                    <button className="btn--icon" onClick={() => handleCopyLink(file.filename)}>🔗 复制链接</button>
+                    <button className="btn--icon" onClick={() => handleDownload(file.filename)}>↓ 下载</button>
+                    <button className="btn--icon btn--danger" onClick={() => handleDelete(file.filename)}>删除</button>
                   </div>
                 )}
-                {deletingName === file.name && (
+                {deletingName === file.filename && (
                   <div className="card-loading"><span className="spinner" /></div>
                 )}
               </motion.div>

@@ -33,11 +33,7 @@ router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
 router.get('/images', async (req, res, next) => {
   try {
     const { limit, cursor } = parsePagination(req.query);
-    const result = await imageService.list({ limit, cursor });
-    res.json({
-      ...result,
-      items: result.items.map(({ name, originalName }) => ({ filename: name, originalName })),
-    });
+    res.json(await imageService.list({ limit, cursor }));
   } catch (error) {
     logger.error('get image list failed:', error);
     next(error);

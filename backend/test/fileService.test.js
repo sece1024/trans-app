@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import path from 'path';
 import FileService from '../src/services/fileService';
 
-test('list returns name/originalName/size sorted newest first', async () => {
+test('list returns filename/originalName/size sorted newest first', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'trans-file-'));
   try {
     writeFileSync(path.join(dir, '100-a.txt'), 'hello');
@@ -13,7 +13,7 @@ test('list returns name/originalName/size sorted newest first', async () => {
     const service = new FileService(dir, { includeSize: true });
     const result = await service.list();
 
-    expect(result.items.map((f) => f.name)).toEqual(['200-b.txt', '100-a.txt']);
+    expect(result.items.map((f) => f.filename)).toEqual(['200-b.txt', '100-a.txt']);
     expect(result.total).toBe(2);
     expect(result.hasMore).toBe(false);
     expect(result.items[0].originalName).toBe('b.txt');
@@ -30,7 +30,7 @@ test('list without includeSize omits size field', async () => {
     const service = new FileService(dir);
     const result = await service.list();
     expect(result.items[0].size).toBeUndefined();
-    expect(result.items[0].name).toBe('1-a.txt');
+    expect(result.items[0].filename).toBe('1-a.txt');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -45,13 +45,13 @@ test('list paginates with cursor', async () => {
 
     const service = new FileService(dir);
     const page1 = await service.list({ limit: 2 });
-    expect(page1.items.map((f) => f.name)).toEqual(['3-c.txt', '2-b.txt']);
+    expect(page1.items.map((f) => f.filename)).toEqual(['3-c.txt', '2-b.txt']);
     expect(page1.total).toBe(3);
     expect(page1.hasMore).toBe(true);
     expect(page1.nextCursor).toBe('2-b.txt');
 
     const page2 = await service.list({ limit: 2, cursor: page1.nextCursor });
-    expect(page2.items.map((f) => f.name)).toEqual(['1-a.txt']);
+    expect(page2.items.map((f) => f.filename)).toEqual(['1-a.txt']);
     expect(page2.hasMore).toBe(false);
     expect(page2.nextCursor).toBe('1-a.txt');
   } finally {

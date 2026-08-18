@@ -26,7 +26,7 @@ class FileService extends BaseService {
     const page = sorted.slice(start, limit ? start + limit : sorted.length);
     const items = await Promise.all(
       page.map(async (file) => {
-        const info = { name: file, originalName: this.getOriginalName(file) };
+        const info = { filename: file, originalName: this.getOriginalName(file) };
         if (this.includeSize) {
           info.size = (await fs.stat(path.join(this.uploadDir, file))).size;
         }

@@ -45,7 +45,7 @@ test('file upload → list → download → delete round trip', async () => {
   const listRes = await fetch(`${base}/api/files`);
   expect(listRes.status).toBe(200);
   const list = await listRes.json();
-  expect(list.items.some((f) => f.name === uploaded.fileId)).toBe(true);
+  expect(list.items.some((f) => f.filename === uploaded.fileId)).toBe(true);
 
   const downloadRes = await fetch(`${base}/api/download/${uploaded.fileId}`);
   expect(downloadRes.status).toBe(200);
@@ -56,7 +56,7 @@ test('file upload → list → download → delete round trip', async () => {
   expect(deleteRes.status).toBe(200);
 
   const afterList = await (await fetch(`${base}/api/files`)).json();
-  expect(afterList.items.some((f) => f.name === uploaded.fileId)).toBe(false);
+  expect(afterList.items.some((f) => f.filename === uploaded.fileId)).toBe(false);
 });
 
 test('clipboard save → get → delete round trip', async () => {
