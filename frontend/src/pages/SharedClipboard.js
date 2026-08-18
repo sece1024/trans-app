@@ -111,6 +111,7 @@ function SharedClipboard() {
           value={clipText}
           onChange={(e) => setClipText(e.target.value)}
           placeholder="输入要分享的文本..."
+          aria-label="输入要分享的文本"
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAdd(); }}
         />
         <div className="clipboard-input-footer">
