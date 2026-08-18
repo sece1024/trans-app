@@ -6,7 +6,11 @@ import ServerInfo from './components/ServerInfo';
 import ImageUpload from './pages/ImageUpload';
 import ThemePicker from './components/ThemePicker';
 import { ToastProvider } from './context/ToastContext';
-import './App.css';
+// CSS 按 @layer 顺序导入：tokens 必须最先（声明全局层序）
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/components.css';
+import './styles/animations.css';
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');

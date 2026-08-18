@@ -83,7 +83,7 @@ src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw
 
 ## CSS Architecture
 
-`frontend/src/App.css` is the single stylesheet, organised into named `@layer` blocks in this order: `tokens → reset → layout → components → utilities`.
+Styles are split under `frontend/src/styles/`, organised into named `@layer` blocks in this order: `tokens → reset → layout → components → utilities`. Files: `tokens.css` (declares the layer order first), `base.css` (reset + layout), `components.css`, `animations.css` (utilities); imported in that order in `App.js`.
 
 **Color system (OKLCH)**
 - Primitives: `--lch-primary`, `--lch-danger`, `--lch-accent` — raw `L% C H` values.
