@@ -26,6 +26,12 @@ const staticDir = isCompiled()
   ? path.join(path.dirname(process.execPath), 'public')
   : path.join(__dirname, '../../frontend', 'build');
 
+// 防止浏览器对响应做 MIME 嗅探（缓解上传文件被当作 HTML/SVG 执行的风险）
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
+
 // 中间件
 app.use(
   cors({

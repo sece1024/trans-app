@@ -7,28 +7,34 @@ const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
 const pipeStream = require('../utils/streamResponse');
 const parsePagination = require('../utils/pagination');
+const requireDiskSpace = require('../middleware/requireDiskSpace');
 const FileService = require('../services/fileService');
 
 const imageService = new FileService(uploadDir);
 
-router.post('/images/upload', imageUpload.single('image'), (req, res, next) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'no image' });
+router.post(
+  '/images/upload',
+  requireDiskSpace(uploadDir, 5 * 1024 * 1024),
+  imageUpload.single('image'),
+  (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'no image' });
+      }
+
+      const originalName = decodeFilename(req.file.originalname);
+
+      res.json({
+        message: 'image upload success',
+        filename: req.file.filename,
+        originalName,
+      });
+    } catch (error) {
+      logger.error('image upload error: ', error);
+      next(error);
     }
-
-    const originalName = decodeFilename(req.file.originalname);
-
-    res.json({
-      message: 'image upload success',
-      filename: req.file.filename,
-      originalName,
-    });
-  } catch (error) {
-    logger.error('image upload error: ', error);
-    next(error);
   }
-});
+);
 
 router.get('/images', async (req, res, next) => {
   try {
@@ -45,6 +51,8 @@ router.get('/images/:filename', sanitizeFilename('filename'), (req, res, next) =
     if (!imageService.exists(req.params.filename)) {
       return res.status(404).json({ message: 'image not found' });
     }
+    // 沙箱化：SVG 直接导航访问时可携带脚本，CSP sandbox 阻断执行（<img> 内嵌不受影响）
+    res.setHeader('Content-Security-Policy', 'sandbox');
     res.sendFile(imageService.getFilePath(req.params.filename));
   } catch (error) {
     logger.error('get image failed:', error);

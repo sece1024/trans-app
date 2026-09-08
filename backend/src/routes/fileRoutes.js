@@ -7,35 +7,43 @@ const contentDisposition = require('../utils/contentDisposition');
 const decodeFilename = require('../utils/decodeFilename');
 const pipeStream = require('../utils/streamResponse');
 const parsePagination = require('../utils/pagination');
+const requireDiskSpace = require('../middleware/requireDiskSpace');
 const FileService = require('../services/fileService');
 
 const fileService = new FileService(uploadDir, { includeSize: true });
 
 // 文件上传路由
-router.post('/files/upload', fileUpload.single('file'), (req, res, next) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'file not found' });
+router.post(
+  '/files/upload',
+  requireDiskSpace(uploadDir, 100 * 1024 * 1024),
+  fileUpload.single('file'),
+  (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'file not found' });
+      }
+
+      const originalName = decodeFilename(req.file.originalname);
+
+      res.json({
+        message: 'file upload success!',
+        fileId: req.file.filename,
+        originalName,
+      });
+    } catch (error) {
+      logger.error('file upload failed:', error);
+      next(error);
     }
-
-    const originalName = decodeFilename(req.file.originalname);
-
-    res.json({
-      message: 'file upload success!',
-      fileId: req.file.filename,
-      originalName,
-    });
-  } catch (error) {
-    logger.error('file upload failed:', error);
-    next(error);
   }
-});
+);
 
 router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res, next) => {
   try {
     if (!fileService.exists(req.params.fileName)) {
       return res.status(404).json({ message: 'file not found' });
     }
+    // 文件以内联方式返回，沙箱化防止上传的 HTML/SVG 在同源下执行脚本
+    res.setHeader('Content-Security-Policy', 'sandbox');
     res.sendFile(fileService.getFilePath(req.params.fileName));
   } catch (error) {
     logger.error('file retrieval failed:', error);

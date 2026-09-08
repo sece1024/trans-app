@@ -31,6 +31,7 @@ test('server-info returns ips and port', async () => {
   const body = await res.json();
   expect(Array.isArray(body.ips)).toBe(true);
   expect(body.port).toBeTruthy();
+  expect(res.headers.get('x-content-type-options')).toBe('nosniff');
 });
 
 test('file upload → list → download → delete round trip', async () => {
@@ -51,6 +52,12 @@ test('file upload → list → download → delete round trip', async () => {
   expect(downloadRes.status).toBe(200);
   expect(await downloadRes.text()).toBe('hello world');
   expect(downloadRes.headers.get('content-disposition')).toContain("filename*=UTF-8''");
+
+  // 内联文件响应应带安全头，防止上传的 HTML/SVG 在同源下执行脚本
+  const inlineRes = await fetch(`${base}/api/files/${uploaded.fileId}`);
+  expect(inlineRes.status).toBe(200);
+  expect(inlineRes.headers.get('x-content-type-options')).toBe('nosniff');
+  expect(inlineRes.headers.get('content-security-policy')).toBe('sandbox');
 
   const deleteRes = await fetch(`${base}/api/files/${uploaded.fileId}`, { method: 'DELETE' });
   expect(deleteRes.status).toBe(200);
