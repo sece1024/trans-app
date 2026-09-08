@@ -8,12 +8,14 @@ let app;
 let server;
 let base;
 let db;
+let events;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), 'trans-api-'));
   process.env.DATA_DIR = dir;
   app = (await import('../src/app')).default;
   db = (await import('../src/db/database')).default;
+  events = await import('../src/services/clipboardEvents');
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -107,4 +109,35 @@ test('rejects oversized image with 400', async () => {
   );
   const res = await fetch(`${base}/api/images/upload`, { method: 'POST', body: form });
   expect(res.status).toBe(400);
+});
+
+test('clipboard SSE pushes events on change', async () => {
+  const res = await fetch(`${base}/api/clipboard/events`);
+  expect(res.status).toBe(200);
+  expect(res.headers.get('content-type')).toContain('text/event-stream');
+  expect(events.clientCount()).toBe(1);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  const readNext = async () => {
+    const { value } = await reader.read();
+    return value ? decoder.decode(value) : '';
+  };
+
+  // 首次读取 retry 握手
+  const handshake = await readNext();
+
+  // 触发一次剪贴板新增
+  await fetch(`${base}/api/clipboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'sse test', deviceInfo: 'Test' }),
+  });
+
+  // 读取广播事件
+  const payload = await readNext();
+  expect(handshake + payload).toContain('clipboard-changed');
+
+  await reader.cancel();
 });

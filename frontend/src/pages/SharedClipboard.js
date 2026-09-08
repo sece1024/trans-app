@@ -8,7 +8,6 @@ import usePaginatedList from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 50;
-const POLL_INTERVAL = 3000;
 const MAX_CLIPBOARD_LENGTH = 10000;
 const MAX_CLIPBOARD_HISTORY = 50;
 
@@ -54,8 +53,12 @@ function SharedClipboard() {
 
   useEffect(() => {
     fetchClips();
-    const timer = setInterval(fetchClips, POLL_INTERVAL);
-    return () => clearInterval(timer);
+    // SSE 实时接收剪贴板变更（EventSource 断线会自动重连）
+    const source = new EventSource('/api/clipboard/events');
+    source.onmessage = () => {
+      fetchClips();
+    };
+    return () => source.close();
   }, [fetchClips]);
 
   const handleAdd = async () => {
