@@ -10,6 +10,7 @@ import EmptyState from '../components/EmptyState';
 import ImagePreview from '../components/ImagePreview';
 
 const PAGE_SIZE = 50;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -39,6 +40,7 @@ function ImageUpload() {
 
   const handleUpload = async () => {
     if (!selectedImage) { toast('请先选择图片', 'error'); return; }
+    if (selectedImage.size > MAX_IMAGE_SIZE) { toast('图片过大，最大支持 5MB', 'error'); return; }
     const formData = new FormData();
     formData.append('image', selectedImage);
     setIsLoading(true);
