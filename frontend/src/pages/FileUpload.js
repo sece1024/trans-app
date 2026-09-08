@@ -60,7 +60,7 @@ function FileUpload() {
 
   const handleDownload = async (name) => {
     try {
-      await downloadFile(`/api/files/${encodeURIComponent(name)}`, name);
+      await downloadFile(`/api/download/${encodeURIComponent(name)}`, name);
     } catch { toast('下载失败', 'error'); }
   };
 
