@@ -26,10 +26,10 @@ cd frontend && pnpm test                # frontend tests (Vitest)
 cd frontend && pnpm run lint            # frontend ESLint
 cd frontend && pnpm run typecheck       # frontend TypeScript checkJs (JSDoc types)
 cd frontend && pnpm run build           # build React into frontend/build/
-cd backend && pnpm run build            # Bun compile into backend/dist/ (requires frontend/build/ first)
+cd backend && pnpm run build            # builds frontend first, then compiles both targets
 ```
 
-Tests: `cd backend && pnpm test` (bun:test, isolated per-file), `cd frontend && pnpm test` (Vitest). CI runs backend tests + frontend lint/typecheck/tests/build via `.github/workflows/ci.yml`. `request/*.http` are REST Client files for manual endpoint testing. Frontend has ESLint (`pnpm run lint`) and JSDoc type checking (`pnpm run typecheck`, TypeScript `checkJs`) in addition to `pnpm run build` (Vite).
+Tests: `cd backend && pnpm test` (bun:test, isolated per-file), `cd frontend && pnpm test` (Vitest). CI (`.github/workflows/ci.yml`) runs backend Prettier check + tests, and frontend lint/typecheck/tests/build. `request/*.rest` are REST Client files for manual endpoint testing. Frontend has ESLint (`pnpm run lint`) and JSDoc type checking (`pnpm run typecheck`, TypeScript `checkJs`) in addition to `pnpm run build` (Vite).
 
 ## Key Conventions
 
@@ -38,11 +38,12 @@ Tests: `cd backend && pnpm test` (bun:test, isolated per-file), `cd frontend && 
 - **sanitizeFilename middleware**: apply on any route with filename params to prevent path traversal.
 - **Database**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not ORM). Table: `Contents`. Methods: `create()`, `findAll({ limit })`, `findAllAfter(cursor, limit)`, `count()`, `destroy(id)`. Ordered by `rowid DESC`. `destroy()` uses `SELECT changes()` for affected row count.
 - **Pagination**: list endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`. Parse via `utils/pagination.js`.
-- **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `clipboardRoutes.js`); longer text returns 400.
+- **Clipboard limits**: single entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `clipboardRoutes.js`); longer text returns 400. The `Contents` DB table holds clipboard history only (files/images live on disk), and `ContentItem.create()` auto-prunes to the most recent `MAX_HISTORY = 50` rows.
 - **Logger**: `src/config/logger.js` wraps console. Use `logger.info/warn/error`.
 - **CORS**: allows localhost/127.x + private IPs only (10.x, 172.16-31.x, 192.168.x); requests with no `Origin` header always pass.
 - **Upload limits** (`src/config/multer.js`): files 100 MB (keep original name, `Date.now()-` prefix); images 5 MB, non-image MIME rejected. Same-ms name collisions get an incrementing suffix via `uniqueName`.
-- **File name reversal**: `BaseService.getOriginalName(filename)` strips the `Date.now()-` prefix; `getTimestamp()` parses it for sorting.- **Prettier config** (backend): single quotes, 2-space indent, 100 char width, trailing commas es5, semicolons.
+- **File name reversal**: `BaseService.getOriginalName(filename)` strips the `Date.now()-` prefix; `getTimestamp()` parses it for sorting.
+- **Prettier config** (backend): single quotes, 2-space indent, 100 char width, trailing commas es5, semicolons.
 - **CSS**: split under `frontend/src/styles/` with `@layer` blocks (tokens→reset→layout→components→utilities): `tokens.css` (declares layer order first), `base.css`, `components.css`, `animations.css`; imported in that order in `App.js`. Colors use OKLCH with `[data-theme]` variants (light/dark/forest/sunset/ocean).
 - **UI language**: Chinese. Code/API: English.
 - **Bun** required for backend runtime. Frontend still uses Node.js (Vite).
@@ -57,7 +58,9 @@ Runtime data at `process.cwd()/data/` (override with `DATA_DIR` env): `database.
 
 ## Build Order
 
-Frontend must be built before backend compile — `bun build --compile` copies `frontend/build/` into the binary's `public/` directory. The build script (`backend/scripts/build.mjs`) verifies this and exits if missing.
+`pnpm run build` (backend) runs `scripts/build.mjs`, which builds the frontend first, then compiles both `darwin-arm64` and `linux-arm64` targets into `backend/dist/` (each = `trans` binary + copied `frontend/build/` as `public/`). Use `bun scripts/build.mjs --skip-frontend` to skip the frontend step (requires `frontend/build/` to already exist). Cross-compilation needs Bun >= 1.13.
+
+Production deploy (Raspberry Pi): `deploy/transapp.service` is a systemd unit; the binary expects its `public/` dir next to `process.execPath` and writes runtime data to `WorkingDirectory`.
 
 ## Workflow
 
