@@ -57,7 +57,7 @@ Frontend Vite dev server (`localhost:5173`) proxies `/api` calls to `localhost:5
 src/index.js          → loads dotenv, starts the Express app
 src/app.js            → builds/configure the Express app (middleware, routes, error handler); exported for tests
 src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
-src/services/         → business logic (BaseService ← FileService; ClipboardService singleton)
+src/services/         → business logic (BaseService ← FileService; ClipboardService singleton; clipboardEvents = SSE client Set)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
 src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js
@@ -156,6 +156,7 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 | POST | `/api/clipboard` | Save text `{ text, deviceInfo }` |
 | GET | `/api/clipboard` | Get history (paginated) |
 | DELETE | `/api/clipboard/:contentId` | Delete entry |
+| GET | `/api/clipboard/events` | SSE stream; pushes `clipboard-changed` on save/delete |
 
 ### System
 | Method | Path | Description |
