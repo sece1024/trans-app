@@ -1,102 +1,18 @@
-const express = require('express');
-const router = express.Router();
 const { fileUpload, fileDir: uploadDir, MAX_FILE_SIZE } = require('../config/multer');
-const logger = require('../config/logger');
-const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
-const contentDisposition = require('../utils/contentDisposition');
-const decodeFilename = require('../utils/decodeFilename');
-const pipeStream = require('../utils/streamResponse');
-const parsePagination = require('../utils/pagination');
-const requireDiskSpace = require('../middleware/requireDiskSpace');
 const FileService = require('../services/fileService');
+const { buildCrudRouter } = require('./crudRouter');
 
 const fileService = new FileService(uploadDir, { includeSize: true });
 
-// 文件上传路由
-router.post(
-  '/files/upload',
-  requireDiskSpace(uploadDir, MAX_FILE_SIZE),
-  fileUpload.single('file'),
-  (req, res, next) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'file not found' });
-      }
-
-      const originalName = decodeFilename(req.file.originalname);
-
-      res.json({
-        message: 'file upload success!',
-        fileId: req.file.filename,
-        originalName,
-      });
-    } catch (error) {
-      logger.error('file upload failed:', error);
-      next(error);
-    }
-  }
-);
-
-router.get('/files/:fileName', sanitizeFilename('fileName'), (req, res, next) => {
-  try {
-    if (!fileService.exists(req.params.fileName)) {
-      return res.status(404).json({ message: 'file not found' });
-    }
-    // 文件以内联方式返回，沙箱化防止上传的 HTML/SVG 在同源下执行脚本
-    res.setHeader('Content-Security-Policy', 'sandbox');
-    res.sendFile(fileService.getFilePath(req.params.fileName));
-  } catch (error) {
-    logger.error('file retrieval failed:', error);
-    next(error);
-  }
+// 文件 CRUD 路由。注意下载路径沿用历史 API：/api/download/:fileName（无 /files 前缀）
+module.exports = buildCrudRouter({
+  basePath: '/files',
+  upload: fileUpload,
+  uploadField: 'file',
+  uploadDir,
+  maxSize: MAX_FILE_SIZE,
+  service: fileService,
+  downloadPath: '/download/:filename',
+  batchDelete: true,
+  resourceName: 'file',
 });
-
-router.get('/files', async (req, res, next) => {
-  try {
-    const { limit, cursor } = parsePagination(req.query);
-    res.json(await fileService.list({ limit, cursor }));
-  } catch (error) {
-    logger.error('get files failed:', error);
-    next(error);
-  }
-});
-
-router.get('/download/:fileName', sanitizeFilename('fileName'), (req, res) => {
-  const fileName = req.params.fileName;
-
-  res.setHeader('Content-Disposition', contentDisposition(fileService.getOriginalName(fileName)));
-  res.setHeader('Content-Type', 'application/octet-stream');
-  pipeStream(fileService.createReadStream(fileName), res, 'file not found');
-});
-
-router.delete('/files', async (req, res, next) => {
-  try {
-    const { filenames } = req.body;
-    if (!Array.isArray(filenames) || filenames.length === 0) {
-      return res.status(400).json({ message: 'filenames array is required' });
-    }
-    if (filenames.some((name) => !isValidFilename(name))) {
-      return res.status(400).json({ message: 'invalid filename' });
-    }
-    const result = await fileService.deleteBatch(filenames);
-    res.json({ message: `${result.deleted} files deleted`, ...result });
-  } catch (error) {
-    logger.error('batch delete files failed:', error);
-    next(error);
-  }
-});
-
-router.delete('/files/:fileName', sanitizeFilename('fileName'), async (req, res, next) => {
-  try {
-    const deleted = await fileService.delete(req.params.fileName);
-    if (!deleted) {
-      return res.status(404).json({ message: 'file not found' });
-    }
-    res.json({ message: 'file deleted successfully' });
-  } catch (error) {
-    logger.error('delete file failed:', error);
-    next(error);
-  }
-});
-
-module.exports = router;

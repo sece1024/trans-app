@@ -1,84 +1,16 @@
-const express = require('express');
-const router = express.Router();
 const { imageUpload, imageDir: uploadDir, MAX_IMAGE_SIZE } = require('../config/multer');
-const logger = require('../config/logger');
-const { sanitizeFilename } = require('../middleware/sanitizeFilename');
-const contentDisposition = require('../utils/contentDisposition');
-const decodeFilename = require('../utils/decodeFilename');
-const pipeStream = require('../utils/streamResponse');
-const parsePagination = require('../utils/pagination');
-const requireDiskSpace = require('../middleware/requireDiskSpace');
 const FileService = require('../services/fileService');
+const { buildCrudRouter } = require('./crudRouter');
 
 const imageService = new FileService(uploadDir);
 
-router.post(
-  '/images/upload',
-  requireDiskSpace(uploadDir, MAX_IMAGE_SIZE),
-  imageUpload.single('image'),
-  (req, res, next) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'no image' });
-      }
-
-      const originalName = decodeFilename(req.file.originalname);
-
-      res.json({
-        message: 'image upload success',
-        filename: req.file.filename,
-        originalName,
-      });
-    } catch (error) {
-      logger.error('image upload error: ', error);
-      next(error);
-    }
-  }
-);
-
-router.get('/images', async (req, res, next) => {
-  try {
-    const { limit, cursor } = parsePagination(req.query);
-    res.json(await imageService.list({ limit, cursor }));
-  } catch (error) {
-    logger.error('get image list failed:', error);
-    next(error);
-  }
+// 图片 CRUD 路由
+module.exports = buildCrudRouter({
+  basePath: '/images',
+  upload: imageUpload,
+  uploadField: 'image',
+  uploadDir,
+  maxSize: MAX_IMAGE_SIZE,
+  service: imageService,
+  resourceName: 'image',
 });
-
-router.get('/images/:filename', sanitizeFilename('filename'), (req, res, next) => {
-  try {
-    if (!imageService.exists(req.params.filename)) {
-      return res.status(404).json({ message: 'image not found' });
-    }
-    // 沙箱化：SVG 直接导航访问时可携带脚本，CSP sandbox 阻断执行（<img> 内嵌不受影响）
-    res.setHeader('Content-Security-Policy', 'sandbox');
-    res.sendFile(imageService.getFilePath(req.params.filename));
-  } catch (error) {
-    logger.error('get image failed:', error);
-    next(error);
-  }
-});
-
-router.get('/images/download/:filename', sanitizeFilename('filename'), (req, res) => {
-  const { filename } = req.params;
-
-  res.setHeader('Content-Disposition', contentDisposition(imageService.getOriginalName(filename)));
-  res.setHeader('Content-Type', 'application/octet-stream');
-  pipeStream(imageService.createReadStream(filename), res, 'image not found');
-});
-
-router.delete('/images/:filename', sanitizeFilename('filename'), async (req, res, next) => {
-  try {
-    const deleted = await imageService.delete(req.params.filename);
-    if (!deleted) {
-      return res.status(404).json({ message: 'image not found' });
-    }
-    res.json({ message: 'image deleted successfully' });
-  } catch (error) {
-    logger.error('delete image error:', error);
-    next(error);
-  }
-});
-
-module.exports = router;

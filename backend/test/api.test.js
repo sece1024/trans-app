@@ -43,29 +43,29 @@ test('file upload → list → download → delete round trip', async () => {
   expect(uploadRes.status).toBe(200);
   const uploaded = await uploadRes.json();
   expect(uploaded.originalName).toBe('测试.txt');
-  expect(uploaded.fileId).toBeTruthy();
+  expect(uploaded.filename).toBeTruthy();
 
   const listRes = await fetch(`${base}/api/files`);
   expect(listRes.status).toBe(200);
   const list = await listRes.json();
-  expect(list.items.some((f) => f.filename === uploaded.fileId)).toBe(true);
+  expect(list.items.some((f) => f.filename === uploaded.filename)).toBe(true);
 
-  const downloadRes = await fetch(`${base}/api/download/${uploaded.fileId}`);
+  const downloadRes = await fetch(`${base}/api/download/${uploaded.filename}`);
   expect(downloadRes.status).toBe(200);
   expect(await downloadRes.text()).toBe('hello world');
   expect(downloadRes.headers.get('content-disposition')).toContain("filename*=UTF-8''");
 
   // 内联文件响应应带安全头，防止上传的 HTML/SVG 在同源下执行脚本
-  const inlineRes = await fetch(`${base}/api/files/${uploaded.fileId}`);
+  const inlineRes = await fetch(`${base}/api/files/${uploaded.filename}`);
   expect(inlineRes.status).toBe(200);
   expect(inlineRes.headers.get('x-content-type-options')).toBe('nosniff');
   expect(inlineRes.headers.get('content-security-policy')).toBe('sandbox');
 
-  const deleteRes = await fetch(`${base}/api/files/${uploaded.fileId}`, { method: 'DELETE' });
+  const deleteRes = await fetch(`${base}/api/files/${uploaded.filename}`, { method: 'DELETE' });
   expect(deleteRes.status).toBe(200);
 
   const afterList = await (await fetch(`${base}/api/files`)).json();
-  expect(afterList.items.some((f) => f.filename === uploaded.fileId)).toBe(false);
+  expect(afterList.items.some((f) => f.filename === uploaded.filename)).toBe(false);
 });
 
 test('clipboard save → get → delete round trip', async () => {
