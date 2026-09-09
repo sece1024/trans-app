@@ -39,10 +39,16 @@ try {
       content TEXT NOT NULL,
       type TEXT NOT NULL,
       createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
       deviceInfo TEXT
     )
   `);
+
+  // 迁移：旧 schema（Sequelize 时代）遗留的 updatedAt 列从未被读取/更新，删除之
+  const columns = db.query('PRAGMA table_info(Contents)').all();
+  if (columns.some((col) => col.name === 'updatedAt')) {
+    db.exec('ALTER TABLE Contents DROP COLUMN updatedAt');
+    logger.info('[database]: dropped legacy updatedAt column');
+  }
 } catch (error) {
   db.close();
   throw new Error(`Failed to initialize database ${dbPath}`, { cause: error });

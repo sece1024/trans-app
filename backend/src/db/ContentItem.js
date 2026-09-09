@@ -3,8 +3,8 @@ const db = require('./database');
 
 // Prepared statements (cached for performance)
 const insertStmt = db.prepare(`
-  INSERT INTO Contents (id, content, type, createdAt, updatedAt, deviceInfo)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO Contents (id, content, type, createdAt, deviceInfo)
+  VALUES (?, ?, ?, ?, ?)
 `);
 
 const selectPageStmt = db.prepare('SELECT rowid, * FROM Contents ORDER BY rowid DESC LIMIT ?');
@@ -32,9 +32,9 @@ const ContentItem = {
   create({ content, type, deviceInfo }) {
     const now = new Date().toISOString();
     const id = randomUUID();
-    insertStmt.run(id, content, type, now, now, deviceInfo || null);
+    insertStmt.run(id, content, type, now, deviceInfo || null);
     pruneStmt.run(MAX_HISTORY);
-    return { id, content, type, createdAt: now, updatedAt: now, deviceInfo };
+    return { id, content, type, createdAt: now, deviceInfo };
   },
 
   findAll({ limit = MAX_HISTORY } = {}) {
