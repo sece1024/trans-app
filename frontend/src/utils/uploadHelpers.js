@@ -1,4 +1,5 @@
 import { copyToClipboard } from './copyToClipboard';
+import { MAX_FILE_SIZE } from './uploadLimits';
 
 export function downloadFile(url, filename) {
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });
@@ -24,8 +25,6 @@ export function formatFileSize(bytes) {
   const size = (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1);
   return `${size} ${units[i]}`;
 }
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export function checkFileSize(file) {
   if (file.size > MAX_FILE_SIZE) {

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { imageUpload, imageDir: uploadDir } = require('../config/multer');
+const { imageUpload, imageDir: uploadDir, MAX_IMAGE_SIZE } = require('../config/multer');
 const logger = require('../config/logger');
 const { sanitizeFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
@@ -14,7 +14,7 @@ const imageService = new FileService(uploadDir);
 
 router.post(
   '/images/upload',
-  requireDiskSpace(uploadDir, 5 * 1024 * 1024),
+  requireDiskSpace(uploadDir, MAX_IMAGE_SIZE),
   imageUpload.single('image'),
   (req, res, next) => {
     try {

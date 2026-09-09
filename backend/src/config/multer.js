@@ -5,6 +5,10 @@ const path = require('path');
 const decodeFilename = require('../utils/decodeFilename');
 const { UPLOAD_BASE } = require('./paths');
 
+// 上传大小上限（前后端约定的唯一来源，前端对应 frontend/src/utils/uploadLimits.js）
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 // 确保上传目录存在
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -56,7 +60,7 @@ const imageStorage = createStorage('images', (originalName) => {
 const fileUpload = multer({
   storage: fileStorage.storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: MAX_FILE_SIZE,
   },
 });
 
@@ -71,7 +75,7 @@ const imageUpload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: MAX_IMAGE_SIZE,
   },
 });
 
@@ -80,4 +84,6 @@ module.exports = {
   imageUpload,
   fileDir: fileStorage.uploadDir,
   imageDir: imageStorage.uploadDir,
+  MAX_FILE_SIZE,
+  MAX_IMAGE_SIZE,
 };

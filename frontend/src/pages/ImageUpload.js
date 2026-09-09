@@ -4,13 +4,13 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
 import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
+import { MAX_IMAGE_SIZE } from '../utils/uploadLimits';
 import usePaginatedList from '../hooks/usePaginatedList';
 import UploadZone from '../components/UploadZone';
 import EmptyState from '../components/EmptyState';
 import ImagePreview from '../components/ImagePreview';
 
 const PAGE_SIZE = 50;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function ImageUpload() {
   const [selectedImage, setSelectedImage] = useState(null);

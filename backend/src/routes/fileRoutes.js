@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fileUpload, fileDir: uploadDir } = require('../config/multer');
+const { fileUpload, fileDir: uploadDir, MAX_FILE_SIZE } = require('../config/multer');
 const logger = require('../config/logger');
 const { sanitizeFilename, isValidFilename } = require('../middleware/sanitizeFilename');
 const contentDisposition = require('../utils/contentDisposition');
@@ -15,7 +15,7 @@ const fileService = new FileService(uploadDir, { includeSize: true });
 // 文件上传路由
 router.post(
   '/files/upload',
-  requireDiskSpace(uploadDir, 100 * 1024 * 1024),
+  requireDiskSpace(uploadDir, MAX_FILE_SIZE),
   fileUpload.single('file'),
   (req, res, next) => {
     try {
