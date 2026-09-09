@@ -4,12 +4,11 @@ import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
 import { containerVariants, cardVariants } from '../utils/animations';
-import { MAX_CLIPBOARD_LENGTH } from '../utils/uploadLimits';
+import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
 import usePaginatedList from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 50;
-const MAX_CLIPBOARD_HISTORY = 50;
 
 function SharedClipboard() {
   const [clipText, setClipText]   = useState('');

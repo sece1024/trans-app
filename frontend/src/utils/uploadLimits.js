@@ -4,3 +4,4 @@
 export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB，与 multer fileUpload 一致
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB，与 multer imageUpload 一致
 export const MAX_CLIPBOARD_LENGTH = 10000; // 单条剪贴板字符数上限
+export const MAX_CLIPBOARD_HISTORY = 50; // 剪贴板历史保留条数，与 ContentItem.MAX_HISTORY 一致

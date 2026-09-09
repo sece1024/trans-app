@@ -55,4 +55,7 @@ const ContentItem = {
   },
 };
 
+// 导出剪贴板历史上限常量，供路由层/提示引用，避免魔数漂移
+ContentItem.MAX_HISTORY = MAX_HISTORY;
+
 module.exports = ContentItem;
