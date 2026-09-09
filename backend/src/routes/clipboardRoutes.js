@@ -17,18 +17,23 @@ router.get('/clipboard/events', (req, res) => {
   res.write('retry: 3000\n\n');
 
   clipboardEvents.subscribe(res);
+
+  // 统一清理：无论连接正常关闭还是写入报错（连接已断开但 close 未触发），
+  // 都要停掉心跳并剔除客户端，避免心跳定时器泄漏 / 残留死连接占用集合。
+  const cleanup = () => {
+    clearInterval(heartbeat);
+    clipboardEvents.unsubscribe(res);
+  };
+
   const heartbeat = setInterval(() => {
     try {
       res.write(': ping\n\n');
     } catch {
-      clearInterval(heartbeat);
+      cleanup();
     }
   }, 15000);
 
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    clipboardEvents.unsubscribe(res);
-  });
+  req.on('close', cleanup);
 });
 
 router.post('/clipboard', (req, res, next) => {
