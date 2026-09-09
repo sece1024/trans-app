@@ -4,6 +4,11 @@ const logger = require('../config/logger');
 function errorHandler(err, req, res, next) {
   logger.error(`[Error] ${req.method} ${req.path}: ${err.message}`);
 
+  // express.json() 解析失败（请求体非法 JSON）——属客户端错误，返回 400
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ message: 'Invalid JSON body' });
+  }
+
   // Multer 文件大小超限
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
