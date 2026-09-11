@@ -56,7 +56,7 @@ Frontend Vite dev server (`localhost:5173`) proxies `/api` calls to `localhost:5
 ```
 src/index.js          → loads dotenv, starts the Express app
 src/app.js            → builds/configure the Express app (middleware, routes, error handler); exported for tests
-src/routes/           → thin Express routers (fileRoutes, clipboardRoutes, imageRoutes, systemRoutes)
+src/routes/           → thin Express routers; fileRoutes/imageRoutes are built from the shared crudRouter.js factory (upload/list/download/inline-get/delete), clipboardRoutes.js (REST + SSE events), systemRoutes.js
 src/services/         → business logic (BaseService ← FileService; ClipboardService singleton; clipboardEvents = SSE client Set)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
@@ -74,6 +74,7 @@ src/api/client.js     → single fetch wrapper (api object); throws ApiError on 
 src/context/          → ToastContext (useToast hook; toast(message, type))
 src/utils/animations.js  → Framer Motion variants (containerVariants, cardVariants) used across pages
 src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw fetch/anchor
+src/utils/uploadLimits.js  → single source of size limits (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY); keep in sync with backend multer.js and ContentItem.MAX_HISTORY
 ```
 
 ### Data persistence
@@ -119,7 +120,10 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 ## Error Handling Pattern
 
 Routes use try/catch and pass errors to Express's error handler via `next(err)`. The global `errorHandler` middleware (`src/middleware/errorHandler.js`) logs and responds:
+- `entity.parse.failed` (invalid JSON body) → 400 "Invalid JSON body"
 - `LIMIT_FILE_SIZE` → 400 "File too large"
+- `INVALID_IMAGE_TYPE` → 400 (multi-image MIME filter rejection)
+- `ENOSPC` → 507 "存储空间不足" (disk full)
 - `err.status < 500` → use `err.message` in response
 - Otherwise → 500 "Internal server error"
 
@@ -137,8 +141,9 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 |--------|------|-------------|
 | POST | `/api/files/upload` | Upload file |
 | GET | `/api/files` | List files (paginated) |
-| GET | `/api/files/:fileName` | Get file info |
-| GET | `/api/download/:fileName` | Download file |
+| GET | `/api/files/:fileName` | Serve file content inline (CSP sandbox) |
+| GET | `/api/download/:fileName` | Download file (attachment) |
+| DELETE | `/api/files` | Batch delete `{ filenames: [...] }` |
 | DELETE | `/api/files/:fileName` | Delete file |
 
 ### Images
@@ -166,7 +171,7 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 ## Adding New Features
 
 ### New backend API
-1. Add router in `src/routes/`, mount under `/api` in `index.js`
+1. Add router in `src/routes/`, mount under `/api` in `app.js`
 2. Business logic in `src/services/` — extend `BaseService` if file-based
 3. DB operations: add prepared-statement methods to `ContentItem.js`
 4. Apply `sanitizeFilename('param')` on any route with filename params
