@@ -6,7 +6,7 @@
 
 - 📁 **文件共享**：上传、下载、删除文件
 - 🖼️ **图片共享**：上传、查看、下载、删除图片
-- 📋 **剪贴板同步**：在不同设备间同步文本内容（每 3 秒轮询实时刷新）
+- 📋 **剪贴板同步**：在不同设备间同步文本内容（SSE 实时推送，变更即时刷新）
 - 🌐 **局域网访问**：支持局域网内多设备访问
 - 🎨 **多主题切换**：支持亮色、暗色、森林、日落、海洋五种主题
 
@@ -15,7 +15,7 @@
 | 层 | 技术 |
 |---|---|
 | 前端 | React 19、React Router 7、Framer Motion、Vite |
-| 后端 | Express.js、Multer、bun:sqlite |
+| 后端 | Express.js、Multer、bun:sqlite、SSE 实时推送 |
 | 打包 | Bun compile（内置交叉编译） |
 
 ## 项目结构
@@ -31,14 +31,15 @@ trans-app/
 │       └── utils/             # 动画、剪贴板、上传辅助函数
 ├── backend/                   # Express 后端
 │   └── src/
-│       ├── index.js           # 入口，注册路由与中间件
-│       ├── routes/            # 路由层（file、image、clipboard、system）
-│       ├── services/          # 业务逻辑（BaseService → FileService）
+│       ├── index.js           # 入口，加载 dotenv 并启动服务
+│       ├── app.js             # 构建 Express 应用（中间件、路由挂载、静态托管）
+│       ├── routes/            # 路由层（crudRouter 工厂 + 文件/图片/剪贴板/系统路由）
+│       ├── services/          # 业务逻辑（BaseService → FileService、ClipboardService）
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
-│       ├── middleware/        # errorHandler、sanitizeFilename
-│       ├── config/            # multer 存储、logger
-│       └── utils/             # 编译模式检测（runtime.js）、网络信息
-├── request/                   # REST Client 测试文件（.http）
+│       ├── middleware/        # errorHandler、sanitizeFilename、rateLimiter、requireDiskSpace
+│       ├── config/            # multer 存储、logger、paths
+│       └── utils/             # 编译模式检测（runtime.js）、网络信息、分页等
+├── request/                   # REST Client 测试文件（.rest）
 ├── AGENTS.md                  # AI 辅助开发指引
 ├── CONTRIBUTING.md            # 贡献指南
 └── package.json               # 根配置，concurrently 启动前后端
@@ -169,8 +170,9 @@ data/
 |------|------|------|
 | POST | `/api/files/upload` | 上传文件 |
 | GET | `/api/files` | 文件列表（分页） |
-| GET | `/api/files/:fileName` | 获取文件信息 |
+| GET | `/api/files/:fileName` | 获取文件内容（内联返回） |
 | GET | `/api/download/:fileName` | 下载文件 |
+| DELETE | `/api/files` | 批量删除（body: `{ filenames: [...] }`） |
 | DELETE | `/api/files/:fileName` | 删除文件 |
 
 ### 图片
@@ -190,6 +192,7 @@ data/
 | POST | `/api/clipboard` | 保存文本 |
 | GET | `/api/clipboard` | 剪贴板历史（分页） |
 | DELETE | `/api/clipboard/:contentId` | 删除条目 |
+| GET | `/api/clipboard/events` | SSE 订阅剪贴板变更事件 |
 
 ### 系统
 
@@ -199,7 +202,7 @@ data/
 
 ## 手动测试
 
-`request/` 目录包含 REST Client（`.http`）文件，可用于手动测试所有 API 端点。在 VS Code 中安装 REST Client 插件后可直接发送请求。
+`request/` 目录包含 REST Client（`.rest`）文件，可用于手动测试所有 API 端点。在 VS Code 中安装 REST Client 插件后可直接发送请求。
 
 ## 许可证
 
