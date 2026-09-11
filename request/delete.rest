@@ -1,4 +1,18 @@
 @host = http://localhost:5001
 
-### delete content
-DELETE  {{host}}/api/clipboard/6a707139-daea-4644-afec-f3214823a57b
+### delete clipboard entry（替换为真实 contentId）
+DELETE {{host}}/api/clipboard/6a707139-daea-4644-afec-f3214823a57b
+
+### delete a single file（替换为存储文件名，含时间戳前缀）
+DELETE {{host}}/api/files/1720000000000-hello.txt
+
+### batch delete files
+DELETE {{host}}/api/files
+Content-Type: application/json
+
+{
+    "filenames": ["1720000000000-a.txt", "1720000000000-b.txt"]
+}
+
+### delete a single image（替换为存储文件名，含时间戳前缀）
+DELETE {{host}}/api/images/1720000000000-photo.png

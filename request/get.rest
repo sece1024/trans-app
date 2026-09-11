@@ -3,13 +3,17 @@
 ### hello
 GET {{host}}/api
 
-### clipboard
+### server info
+GET {{host}}/api/server-info
+
+### clipboard history
 GET {{host}}/api/clipboard
 
-### get files
+### files (paginated — 可加 ?limit=20&cursor=xxx)
 GET {{host}}/api/files
 
-
-### get images
+### images (paginated — 可加 ?limit=20&cursor=xxx)
 GET {{host}}/api/images
 
+### clipboard SSE subscription（保持连接，响应剪贴板变更广播；断开会自动重连）
+GET {{host}}/api/clipboard/events

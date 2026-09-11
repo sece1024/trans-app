@@ -1,7 +1,31 @@
+@host = http://localhost:5001
+
 ### add text to clipboard
-POST http://localhost:5001/api/clipboard
+POST {{host}}/api/clipboard
 Content-Type: application/json
 
 {
     "text": "test"
 }
+
+### upload a file（改 path 为本地真实文件；`<` 表示从文件读取内容）
+POST {{host}}/api/files/upload
+Content-Type: multipart/form-data; boundary=----TransApp
+
+------TransApp
+Content-Disposition: form-data; name="file"; filename="hello.txt"
+Content-Type: text/plain
+
+< ./test.txt
+------TransApp--
+
+### upload an image（改 path 为本地真实图片；`<` 表示从文件读取内容）
+POST {{host}}/api/images/upload
+Content-Type: multipart/form-data; boundary=----TransApp
+
+------TransApp
+Content-Disposition: form-data; name="image"; filename="photo.png"
+Content-Type: image/png
+
+< ./photo.png
+------TransApp--
