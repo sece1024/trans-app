@@ -36,7 +36,7 @@ cd backend && pnpm run style:format  # 自动修复
 
 配置：单引号、2 空格缩进、100 字符行宽、尾逗号 es5、分号。
 
-前端使用 Vite 默认 ESLint 配置，无额外格式化工具。
+前端使用自定义 ESLint flat config（`frontend/eslint.config.mjs`），无额外的格式化工具；另有 TypeScript `checkJs` 类型检查（`pnpm run typecheck`）。
 
 ## Git 工作流
 
@@ -101,11 +101,13 @@ refactor: 提取 BaseService 公共方法
 
 ### CSS 架构
 
-单文件 `App.css`，使用 `@layer` 分层：
+样式拆分在 `frontend/src/styles/` 下，按 `@layer` 分层（导入顺序即层序）：
 
 ```
 tokens → reset → layout → components → utilities
 ```
+
+文件：`tokens.css`（声明层序）、`base.css`（reset + layout）、`components.css`、`animations.css`（utilities），在 `App.js` 中按序导入。
 
 颜色系统基于 OKLCH，通过 `[data-theme]` 属性切换 5 种主题（light / dark / forest / sunset / ocean）。主题只需覆盖原始值（`--lch-primary` 等），语义 token 自动生效。
 
@@ -127,7 +129,7 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 数据库
 
-`ContentItem`（`src/db/ContentItem.js`）使用 `bun:sqlite` 的 prepared statements，不使用 ORM。表名 `Contents`，方法：`create()`、`findAll()`、`destroy(id)`。`destroy()` 通过 `SELECT changes()` 获取受影响行数（`bun:sqlite` 的 `stmt.run()` 返回 `undefined`）。
+`ContentItem`（`src/db/ContentItem.js`）使用 `bun:sqlite` 的 prepared statements，不使用 ORM。表名 `Contents`，方法：`create()`、`findAll({ limit })`、`findAllAfter(cursor, limit)`、`count()`、`destroy(id)`。`destroy()` 通过 `SELECT changes()` 获取受影响行数（`bun:sqlite` 的 `stmt.run()` 返回 `undefined`）。表不自带 `updatedAt` 列（旧库启动时自动迁移删除），按 `rowid DESC` 排序并裁剪至最近 50 条。
 
 ### 错误处理
 
@@ -143,11 +145,12 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 新增后端 API
 
-1. 在 `src/routes/` 中添加路由，挂载到 `index.js` 的 `/api` 下
+1. 在 `src/routes/` 中添加路由，挂载到 `app.js` 的 `/api` 下
 2. 业务逻辑写在 `src/services/` 中
 3. 需要数据库操作时在 `ContentItem.js` 中添加方法（使用 prepared statements）
 4. 涉及文件名参数时加 `sanitizeFilename` 中间件
-5. 运行 `pnpm run style:format` 格式化
+5. 文件/图片的上传/下载/列表/删除可直接复用 `crudRouter.js` 工厂，避免重复
+6. 运行 `pnpm run style:format` 格式化
 
 ### 新增前端页面
 
@@ -158,7 +161,7 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ## 手动测试
 
-`request/` 目录包含 REST Client（`.http`）文件，可用于手动测试所有 API 端点。在 VS Code 中安装 REST Client 插件后可直接发送请求。
+`request/` 目录包含 REST Client（`.rest`）文件，可用于手动测试所有 API 端点。在 VS Code 中安装 REST Client 插件后可直接发送请求。
 
 ## 常见问题
 
