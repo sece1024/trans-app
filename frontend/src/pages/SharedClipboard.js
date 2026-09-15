@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
-import { containerVariants, cardVariants } from '../utils/animations';
 import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
-import usePaginatedList from '../hooks/usePaginatedList';
-import EmptyState from '../components/EmptyState';
-
-const PAGE_SIZE = 50;
+import useResourceList from '../hooks/useResourceList';
+import ResourceGrid from '../components/ResourceGrid';
 
 function SharedClipboard() {
   const [clipText, setClipText]   = useState('');
@@ -41,6 +37,8 @@ function SharedClipboard() {
     (limit, cursor) => api.getClipboard(limit, cursor),
     []
   );
+  const removeClip = useCallback((item) => api.deleteClipboard(item.id), []);
+
   const {
     items: clips,
     hasMore,
@@ -48,7 +46,18 @@ function SharedClipboard() {
     total,
     loadMore,
     reload: fetchClips,
-  } = usePaginatedList(getClipsPage, { pageSize: PAGE_SIZE });
+    handleDelete,
+  } = useResourceList({
+    fetchPage: getClipsPage,
+    remove: removeClip,
+    getItemId: (clip) => clip.id,
+    // 列表由 SSE 自动刷新驱动，加载失败保持静默，避免轮询失败反复弹窗
+    messages: {
+      loadFailed: null,
+      removeFailed: '删除失败',
+      removed: '已删除',
+    },
+  });
 
   useEffect(() => {
     fetchClips();
@@ -85,14 +94,6 @@ function SharedClipboard() {
     } catch { toast('复制失败', 'error'); }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await api.deleteClipboard(id);
-      await fetchClips();
-      toast('已删除', 'info');
-    } catch { toast('删除失败', 'error'); }
-  };
-
   const toggleExpand = (id, e) => {
     e.stopPropagation();
     setExpandedIds((prev) => {
@@ -123,69 +124,61 @@ function SharedClipboard() {
       </div>
 
       {/* Bento grid */}
-      {clips.length > 0 ? (
-        <>
-          <p className="section-header">已分享 · {clips.length} 条</p>
-          <motion.div className="bento-grid" variants={containerVariants} initial="hidden" animate="visible">
-            {clips.map((clip) => {
-              const isWide = clip.content.length > 120;
-              const isLong = clip.content.length > LONG_TEXT_THRESHOLD;
-              const isExpanded = expandedIds.has(clip.id);
-              return (
-                <motion.div
-                  key={clip.id}
-                  className={`glass-card clip-card${isWide ? ' card--wide' : ''}`}
-                  variants={cardVariants}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="点击复制此剪贴板内容"
-                  onClick={() => handleCopy(clip.content)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleCopy(clip.content);
-                    }
-                  }}
-                >
-                  <pre className={`clip-text${isExpanded ? ' clip-text--expanded' : ''}`}>{clip.content}</pre>
-                  {isLong && (
-                    <button className="btn--expand" onClick={(e) => toggleExpand(clip.id, e)}>
-                      {isExpanded ? '收起' : '展开全文'}
-                    </button>
-                  )}
-                  <div className="clip-footer">
-                    <div>
-                      <span className="device-info">{clip.deviceInfo}</span>
-                    </div>
-                    <span className="time-info">{new Date(clip.createdAt).toLocaleString()}</span>
-                  </div>
-                  <div className="card-actions">
-                    <button className="btn--icon" onClick={(e) => { e.stopPropagation(); handleCopy(clip.content); }}>
-                      复制
-                    </button>
-                    <button className="btn--icon btn--danger" onClick={(e) => { e.stopPropagation(); handleDelete(clip.id); }}>
-                      删除
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-          {hasMore && (
-            <div className="load-more">
-              <button className="btn--text" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? '加载中…' : '加载更多'}
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <EmptyState
-          icon="📋"
-          title="暂无剪贴板内容"
-          description="在上方输入框中输入要分享的文本"
-        />
+      {clips.length > 0 && (
+        <p className="section-header">已分享 · {clips.length} 条</p>
       )}
+
+      <ResourceGrid
+        items={clips}
+        getItemKey={(clip) => clip.id}
+        itemClassName={(clip) => `clip-card${clip.content.length > 120 ? ' card--wide' : ''}`}
+        itemMotionProps={(clip) => ({
+          role: 'button',
+          tabIndex: 0,
+          'aria-label': '点击复制此剪贴板内容',
+          onClick: () => handleCopy(clip.content),
+          onKeyDown: (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCopy(clip.content);
+            }
+          },
+        })}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMore}
+        emptyIcon="📋"
+        emptyTitle="暂无剪贴板内容"
+        emptyDescription="在上方输入框中输入要分享的文本"
+        renderItem={(clip) => {
+          const isLong = clip.content.length > LONG_TEXT_THRESHOLD;
+          const isExpanded = expandedIds.has(clip.id);
+          return (
+            <>
+              <pre className={`clip-text${isExpanded ? ' clip-text--expanded' : ''}`}>{clip.content}</pre>
+              {isLong && (
+                <button className="btn--expand" onClick={(e) => toggleExpand(clip.id, e)}>
+                  {isExpanded ? '收起' : '展开全文'}
+                </button>
+              )}
+              <div className="clip-footer">
+                <div>
+                  <span className="device-info">{clip.deviceInfo}</span>
+                </div>
+                <span className="time-info">{new Date(clip.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="card-actions">
+                <button className="btn--icon" onClick={(e) => { e.stopPropagation(); handleCopy(clip.content); }}>
+                  复制
+                </button>
+                <button className="btn--icon btn--danger" onClick={(e) => { e.stopPropagation(); handleDelete(clip); }}>
+                  删除
+                </button>
+              </div>
+            </>
+          );
+        }}
+      />
     </div>
   );
 }
