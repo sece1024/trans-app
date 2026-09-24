@@ -1,7 +1,12 @@
 import { copyToClipboard } from './copyToClipboard';
 import { MAX_FILE_SIZE } from './uploadLimits';
 
-export function downloadFile(url, filename) {
+export async function downloadFile(url, filename) {
+  // 先 HEAD 探测状态：anchor 点击不会暴露 404 等错误，
+  // 不探测时调用方的 catch 分支永远不会触发
+  const res = await fetch(url, { method: 'HEAD' });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });
   document.body.appendChild(a);
   a.click();
