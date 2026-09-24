@@ -29,10 +29,5 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }
