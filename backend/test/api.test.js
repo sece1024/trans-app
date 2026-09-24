@@ -127,6 +127,28 @@ test('rejects oversized image with 400', async () => {
   expect(res.status).toBe(400);
 });
 
+// 注意：以下两个 SSE 测试的相对顺序是有意安排的——cap 测试必须在 push 测试之前。
+// push 测试的 reader.cancel() 不保证服务端 close→退订会发生（触发时机与运行环境相关：
+// 可能立即、可能延迟、也可能到进程结束都不触发），因此后续测试不能假设连接数已归零。
+// cap 测试放在最前，从确定的 0 起步，不依赖任何 close 行为，两个测试各自确定性通过。
+test('SSE subscription rejects connections over the client cap', async () => {
+  // 用假客户端填满订阅集（while 自愈补填），验证超限返回 503
+  const before = events.clientCount();
+  const fakes = [];
+  while (events.clientCount() < events.MAX_CLIENTS) {
+    const fake = { write() {} };
+    events.subscribe(fake);
+    fakes.push(fake);
+  }
+  expect(events.clientCount()).toBe(events.MAX_CLIENTS);
+
+  const res = await fetch(`${base}/api/clipboard/events`);
+  expect(res.status).toBe(503);
+
+  for (const fake of fakes) events.unsubscribe(fake);
+  expect(events.clientCount()).toBe(before);
+});
+
 test('clipboard SSE pushes events on change', async () => {
   const res = await fetch(`${base}/api/clipboard/events`);
   expect(res.status).toBe(200);
@@ -155,23 +177,7 @@ test('clipboard SSE pushes events on change', async () => {
   const payload = await readNext();
   expect(handshake + payload).toContain('clipboard-changed');
 
+  // 本文件的最后一个测试：cancel 后服务端退订时机不确定（见上方顺序说明），
+  // 不断言连接数，残留连接随测试进程结束回收
   await reader.cancel();
-});
-
-test('SSE subscription rejects connections over the client cap', async () => {
-  // 用假客户端填满订阅集，验证超限返回 503
-  const before = events.clientCount();
-  const fakes = [];
-  for (let i = before; i < events.MAX_CLIENTS; i += 1) {
-    const fake = { write() {} };
-    events.subscribe(fake);
-    fakes.push(fake);
-  }
-  expect(events.clientCount()).toBe(events.MAX_CLIENTS);
-
-  const res = await fetch(`${base}/api/clipboard/events`);
-  expect(res.status).toBe(503);
-
-  for (const fake of fakes) events.unsubscribe(fake);
-  expect(events.clientCount()).toBe(before);
 });
