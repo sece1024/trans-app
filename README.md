@@ -50,6 +50,7 @@ trans-app/
 ├── README.md                  # 项目说明
 ├── AGENTS.md                  # AI 辅助开发指引
 ├── CONTRIBUTING.md            # 贡献指南
+├── pnpm-workspace.yaml        # pnpm 工作区（统一前后端依赖与单一 lockfile）
 └── package.json               # 根配置，concurrently 启动前后端
 ```
 
@@ -62,8 +63,8 @@ trans-app/
 ## 快速开始
 
 ```bash
-# 安装依赖
-pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install
+# 安装依赖（pnpm workspace，根目录一次装完前后端）
+pnpm install
 
 # 启动开发服务器（前端 5173 + 后端 5001）
 pnpm start

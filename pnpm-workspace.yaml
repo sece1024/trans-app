@@ -1,0 +1,8 @@
+# pnpm workspace：统一前后端依赖安装与锁文件（原 frontend/backend 各自独立 lockfile）
+# pnpm 11 移除了 package.json 的 pnpm.onlyBuiltDependencies，构建白名单改用 allowBuilds
+packages:
+  - frontend
+  - backend
+
+allowBuilds:
+  esbuild: true

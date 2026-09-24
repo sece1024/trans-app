@@ -9,7 +9,7 @@
 ## 安装依赖
 
 ```bash
-pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install
+pnpm install   # pnpm workspace，根目录一次装完前后端
 ```
 
 ## 开发

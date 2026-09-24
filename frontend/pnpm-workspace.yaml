@@ -1,3 +1,0 @@
-# pnpm 11 移除了 package.json 的 pnpm.onlyBuiltDependencies，改用 allowBuilds 白名单
-allowBuilds:
-  esbuild: true

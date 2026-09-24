@@ -9,6 +9,7 @@
 - `backend/` — Express server running on Bun (entry: `src/index.js`)
 - `frontend/` — React Vite app (dev proxy `/api` → `http://localhost:5001`)
 - Root `package.json` — runs both with `concurrently`
+- Root `pnpm-workspace.yaml` — single pnpm workspace: one `pnpm install` at the repo root installs both packages (single root `pnpm-lock.yaml`); `allowBuilds` whitelist lives here too
 - Runtime: **Bun** (backend), **Node.js** (frontend Vite)
 - Package manager: **pnpm** (never npm/yarn/npx)
 

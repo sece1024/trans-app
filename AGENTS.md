@@ -15,7 +15,7 @@ LAN file/clipboard/image sharing tool. Single Express server (running on Bun) se
 ## Commands
 
 ```bash
-pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install  # install all deps
+pnpm install                              # install all deps（pnpm workspace：根目录一次装完前后端）
 pnpm start                              # dev: frontend (5173) + backend (5001)
 cd backend && pnpm run dev              # backend only, bun --watch hot-reload
 cd frontend && pnpm run dev             # frontend only (Vite)
