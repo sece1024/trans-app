@@ -23,13 +23,18 @@
 ```
 trans-app/
 ├── frontend/                  # React 前端
+│   ├── test/                  # 前端测试（Vitest）
 │   └── src/
 │       ├── api/client.js      # 统一 fetch 封装
 │       ├── pages/             # 页面组件（FileUpload、ImageUpload、SharedClipboard）
-│       ├── components/        # 通用组件（UploadZone、Toast、ThemePicker…）
+│       ├── components/        # 通用组件（UploadZone、Toast、ThemePicker、ResourceGrid…）
+│       ├── hooks/             # 列表逻辑（usePaginatedList 分页、useResourceList 资源列表）
 │       ├── context/           # ToastContext
-│       └── utils/             # 动画、剪贴板、上传辅助函数
+│       ├── styles/            # 按 @layer 组织的样式（tokens / base / components / animations）
+│       └── utils/             # 动画、剪贴板复制、文件图标、上传限制等辅助函数
 ├── backend/                   # Express 后端
+│   ├── scripts/               # 构建脚本（build.mjs，交叉编译）
+│   ├── test/                  # 后端测试（bun:test）
 │   └── src/
 │       ├── index.js           # 入口，加载 dotenv 并启动服务
 │       ├── app.js             # 构建 Express 应用（中间件、路由挂载、静态托管）
@@ -38,8 +43,11 @@ trans-app/
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
 │       ├── middleware/        # errorHandler、sanitizeFilename、rateLimiter、requireDiskSpace
 │       ├── config/            # multer 存储、logger、paths
-│       └── utils/             # 编译模式检测（runtime.js）、网络信息、分页等
+│       └── utils/             # 编译模式检测（runtime.js）、网络信息、分页、磁盘空间等
 ├── request/                   # REST Client 测试文件（.rest）
+├── deploy/                    # systemd 服务单元（树莓派 24/7 部署）
+├── .github/                   # CI 工作流（workflows/ci.yml）+ copilot-instructions.md
+├── README.md                  # 项目说明
 ├── AGENTS.md                  # AI 辅助开发指引
 ├── CONTRIBUTING.md            # 贡献指南
 └── package.json               # 根配置，concurrently 启动前后端
@@ -170,10 +178,10 @@ data/
 |------|------|------|
 | POST | `/api/files/upload` | 上传文件 |
 | GET | `/api/files` | 文件列表（分页） |
-| GET | `/api/files/:fileName` | 获取文件内容（内联返回） |
-| GET | `/api/download/:fileName` | 下载文件 |
+| GET | `/api/files/:filename` | 获取文件内容（内联返回） |
+| GET | `/api/download/:filename` | 下载文件 |
 | DELETE | `/api/files` | 批量删除（body: `{ filenames: [...] }`） |
-| DELETE | `/api/files/:fileName` | 删除文件 |
+| DELETE | `/api/files/:filename` | 删除文件 |
 
 ### 图片
 
