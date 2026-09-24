@@ -7,6 +7,8 @@ const systemRoutes = require('./routes/systemRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
+const originGuard = require('./middleware/originGuard');
+const { isAllowedOrigin } = originGuard;
 const logger = require('./config/logger');
 const { isCompiled } = require('./utils/runtime');
 
@@ -22,30 +24,32 @@ if (isCompiled()) {
 
 const app = express();
 
+// 不暴露技术栈（X-Powered-By）
+app.disable('x-powered-by');
+
 const staticDir = isCompiled()
   ? path.join(path.dirname(process.execPath), 'public')
   : path.join(__dirname, '../../frontend', 'build');
 
-// 防止浏览器对响应做 MIME 嗅探（缓解上传文件被当作 HTML/SVG 执行的风险）
+// 防止浏览器对响应做 MIME 嗅探（缓解上传文件被当作 HTML/SVG 执行的风险），
+// 并补基础安全头：禁止被跨站 iframe 嵌入、不外泄 Referer
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   next();
 });
 
 // 中间件
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (same-origin, curl, mobile apps)
-      if (!origin) return callback(null, true);
-      // Allow localhost and private network IPs
-      const allowed = /^https?:\/\/(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/;
-      if (allowed.test(origin)) return callback(null, true);
-      callback(null, false);
-    },
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
   })
 );
 app.use(express.json());
+
+// 写接口 CSRF 防护：cors 只控制响应头，这里显式拦截跨站写请求
+app.use('/api', originGuard);
 
 // 写接口按 IP 限流，防止局域网内滥用（GET 读取不受限）
 const writeLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
@@ -81,9 +85,6 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the backend!' });
 });
 
-// 错误处理中间件
-app.use(errorHandler);
-
 // /api 未匹配路由返回 JSON 404（避免被 SPA 兜底吞掉）
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Not found' });
@@ -93,5 +94,8 @@ app.use('/api', (req, res) => {
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'));
 });
+
+// 错误处理中间件必须放在路由链最后：SPA fallback 的 sendFile 出错时也能统一接管
+app.use(errorHandler);
 
 module.exports = app;
