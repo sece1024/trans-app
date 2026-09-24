@@ -39,7 +39,8 @@ function createStorage(subDir, nameGenerator) {
         cb(null, uploadDir);
       },
       filename: function (req, file, cb) {
-        const originalName = decodeFilename(file.originalname);
+        // 控制字符（NUL/换行等）入口即被 sanitizeFilename 拒绝，这里先清洗保证写出的文件都可读回
+        const originalName = decodeFilename(file.originalname).replace(/[\x00-\x1f\x7f]/g, '_');
         cb(null, uniqueName(uploadDir, nameGenerator(originalName)));
       },
     }),

@@ -13,3 +13,10 @@ test('rejects path traversal sequences', () => {
   expect(isValidFilename('a\\b')).toBe(false);
   expect(isValidFilename('/etc/passwd')).toBe(false);
 });
+
+test('rejects control characters', () => {
+  expect(isValidFilename('a\0b.txt')).toBe(false);
+  expect(isValidFilename('a\nb.txt')).toBe(false);
+  expect(isValidFilename('a\rb.txt')).toBe(false);
+  expect(isValidFilename('a\tb.txt')).toBe(false);
+});

@@ -9,7 +9,9 @@ function isValidFilename(filename) {
     normalized.includes('..') ||
     normalized.includes('/') ||
     normalized.includes('\\') ||
-    filename !== path.basename(filename)
+    filename !== path.basename(filename) ||
+    // 控制字符（含 NUL）会让 fs 同步抛错变成裸 500，入口直接拒绝为 400
+    /[\x00-\x1f]/.test(filename)
   ) {
     return false;
   }
