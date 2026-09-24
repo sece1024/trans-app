@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { downloadFile, copyLink, pulseSuccess, formatFileSize, checkFileSize } from '../utils/uploadHelpers';
@@ -44,6 +44,17 @@ function FileUpload() {
     setFileName(file.name);
     fileInputRef.current = file;
   };
+
+  // 列表刷新后清理已不存在条目的选中状态，
+  // 避免「全选/取消全选」判断和批量删除带上陈旧文件名
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      const valid = new Set(uploadedFiles.map((f) => f.filename));
+      const next = new Set([...prev].filter((name) => valid.has(name)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [uploadedFiles]);
 
   const handleUpload = async () => {
     const file = fileInputRef.current;
