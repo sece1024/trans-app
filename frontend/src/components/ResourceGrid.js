@@ -9,7 +9,7 @@ import EmptyState from './EmptyState';
  * @param {Object} props
  * @param {any[]} props.items               当前已加载的条目
  * @param {(item: any) => string} props.getItemKey  条目唯一键
- * @param {(item: any, index: number) => React.ReactNode} props.renderItem
+ * @param {(item: any, index: number) => import('react').ReactNode} props.renderItem
  *        卡片主体渲染函数，返回内容会成为 motion 卡片容器的直接子节点
  *        （Fragments 不产生 DOM 节点，多个兄弟元素可直接包在 Fragment 里）。
  * @param {boolean} [props.hasMore]         是否还有更多
