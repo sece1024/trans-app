@@ -42,7 +42,7 @@ trans-app/
 │       ├── services/          # 业务逻辑（BaseService → FileService、ClipboardService）
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
 │       ├── middleware/        # errorHandler、sanitizeFilename、rateLimiter、requireDiskSpace、originGuard
-│       ├── config/            # multer 存储、logger、paths
+│       ├── config/            # multer 存储、logger、paths、limits（限额唯一真源）
 │       └── utils/             # 编译模式检测（runtime.js）、网络信息、分页、磁盘空间等
 ├── request/                   # REST Client 测试文件（.rest）
 ├── deploy/                    # systemd 服务单元（树莓派 24/7 部署）

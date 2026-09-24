@@ -4,8 +4,8 @@ const clipboardService = require('../services/clipboardService');
 const clipboardEvents = require('../services/clipboardEvents');
 const parsePagination = require('../utils/pagination');
 const logger = require('../config/logger');
+const { MAX_CLIPBOARD_LENGTH } = require('../config/limits');
 
-const MAX_CLIPBOARD_LENGTH = 10000;
 // deviceInfo 由客户端生成（设备 · 浏览器），正常约 30 字符；上限防御异常/恶意超长输入
 const MAX_DEVICE_INFO_LENGTH = 256;
 

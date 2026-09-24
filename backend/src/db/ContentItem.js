@@ -1,5 +1,6 @@
 const { randomUUID } = require('crypto');
 const db = require('./database');
+const { MAX_CLIPBOARD_HISTORY: MAX_HISTORY } = require('../config/limits');
 
 // Prepared statements (cached for performance)
 const insertStmt = db.prepare(`
@@ -25,8 +26,6 @@ const pruneStmt = db.prepare(
     SELECT id FROM Contents ORDER BY rowid DESC LIMIT ?
   )`
 );
-
-const MAX_HISTORY = 50;
 
 const ContentItem = {
   create({ content, type, deviceInfo }) {

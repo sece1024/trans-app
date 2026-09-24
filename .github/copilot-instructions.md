@@ -77,7 +77,7 @@ src/api/client.js     → single fetch wrapper (api object); throws ApiError on 
 src/context/          → ToastContext (useToast hook; toast(message, type))
 src/utils/animations.js  → Framer Motion variants (containerVariants, cardVariants) used across pages
 src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw fetch/anchor
-src/utils/uploadLimits.js  → single source of size limits (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY); keep in sync with backend multer.js and ContentItem.MAX_HISTORY
+src/utils/uploadLimits.js  → front-end mirror of backend src/config/limits.js (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY); drift is caught by backend/test/limits.test.js
 src/utils/copyToClipboard.js → copyToClipboard(text) with execCommand fallback for non-secure contexts (plain-HTTP LAN access)
 src/utils/fileIcon.js  → fileIcon(name) picks an emoji by extension, falls back to 📁
 ```
@@ -120,7 +120,7 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 - **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit })`, `ContentItem.findAllAfter(cursor, limit)`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
-- **Clipboard limit**: single clipboard entry capped at 10000 chars and `deviceInfo` at 256 chars (`MAX_CLIPBOARD_LENGTH` / `MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
+- **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `src/config/limits.js`) and `deviceInfo` at 256 chars (`MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
 - **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). Frontend also runs ESLint (`pnpm run lint`) and TypeScript checkJs (`pnpm run typecheck`). CI runs all via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
