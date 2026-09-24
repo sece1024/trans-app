@@ -60,21 +60,25 @@ src/routes/           → thin Express routers; fileRoutes/imageRoutes are built
 src/services/         → business logic (BaseService ← FileService; ClipboardService singleton; clipboardEvents = SSE client Set)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
-src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js
-src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js
+src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js, requireDiskSpace.js
+src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js, diskSpace.js
 ```
 
-**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `createReadStream()`, and `list()` (paginated: returns `{ items, total, hasMore, nextCursor }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
+**Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `deleteBatch()` (returns `{ deleted, notFound, failed }`), `createReadStream()`, `getOriginalName()` / `getTimestamp()` / `sortByTimeDesc()` (reverse the `Date.now()-` storage-name prefix), and `list()` (paginated: returns `{ items, total, hasMore, nextCursor }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
 
 ### Frontend layers
 ```
 src/pages/            → route-level components (FileUpload, ImageUpload, SharedClipboard)
-src/components/       → reusable UI (Toast, UploadZone, EmptyState, ThemePicker, ServerInfo)
+src/components/       → reusable UI (Toast, UploadZone, EmptyState, ThemePicker, ServerInfo, ResourceGrid, ImagePreview)
+src/hooks/usePaginatedList.js → generic cursor-pagination hook (items / hasMore / loadingMore / isLoading / total / loadMore / reload)
+src/hooks/useResourceList.js  → domain hook on top of usePaginatedList: shared error toasts + single-item delete flow (deletingId / handleDelete) for the three pages
 src/api/client.js     → single fetch wrapper (api object); throws ApiError on non-OK responses
 src/context/          → ToastContext (useToast hook; toast(message, type))
 src/utils/animations.js  → Framer Motion variants (containerVariants, cardVariants) used across pages
 src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw fetch/anchor
 src/utils/uploadLimits.js  → single source of size limits (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY); keep in sync with backend multer.js and ContentItem.MAX_HISTORY
+src/utils/copyToClipboard.js → copyToClipboard(text) with execCommand fallback for non-secure contexts (plain-HTTP LAN access)
+src/utils/fileIcon.js  → fileIcon(name) picks an emoji by extension, falls back to 📁
 ```
 
 ### Data persistence
@@ -89,7 +93,7 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 **Color system (OKLCH)**
 - Primitives: `--lch-primary`, `--lch-danger`, `--lch-accent` — raw `L% C H` values.
 - Semantic tokens: `--color-primary`, `--color-bg-card`, `--color-ink`, etc., built with `oklch(var(--lch-*))`.
-- Five themes via `[data-theme]`: `light`, `dark`, `forest`, `sunset`, `ocean` — each overrides only the primitives.
+- Five themes: `light` (the `:root` default) plus `[data-theme]` overrides `dark`, `forest`, `sunset`, `ocean` — each overrides only the primitives.
 - Hover/active variants: use `filter: brightness(0.92)` instead of separate color tokens. Use `color-mix()` for derived surfaces (e.g. `--color-primary-bg`).
 
 **Spacing**
@@ -185,4 +189,4 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 
 ## Manual Testing
 
-`request/` directory contains REST Client (`.http`) files for manually testing all API endpoints.
+`request/` directory contains REST Client (`.rest`) files for manually testing all API endpoints.
