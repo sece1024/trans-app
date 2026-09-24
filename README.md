@@ -41,7 +41,7 @@ trans-app/
 │       ├── routes/            # 路由层（crudRouter 工厂 + 文件/图片/剪贴板/系统路由）
 │       ├── services/          # 业务逻辑（BaseService → FileService、ClipboardService）
 │       ├── db/                # bun:sqlite 实例 + ContentItem 模型
-│       ├── middleware/        # errorHandler、sanitizeFilename、rateLimiter、requireDiskSpace
+│       ├── middleware/        # errorHandler、sanitizeFilename、rateLimiter、requireDiskSpace、originGuard
 │       ├── config/            # multer 存储、logger、paths
 │       └── utils/             # 编译模式检测（runtime.js）、网络信息、分页、磁盘空间等
 ├── request/                   # REST Client 测试文件（.rest）
@@ -170,7 +170,7 @@ data/
 
 ## API 接口
 
-列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&cursor=` 分页参数（cursor 为上一页最后一项的 name/rowid），返回 `{ items, total, hasMore, nextCursor }`。
+列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&cursor=` 分页参数（cursor 为上一页最后一项的 name/rowid，`limit` 上限 100），返回 `{ items, total, hasMore, nextCursor }`。
 
 ### 文件
 
@@ -200,7 +200,7 @@ data/
 | POST | `/api/clipboard` | 保存文本 |
 | GET | `/api/clipboard` | 剪贴板历史（分页） |
 | DELETE | `/api/clipboard/:contentId` | 删除条目 |
-| GET | `/api/clipboard/events` | SSE 订阅剪贴板变更事件 |
+| GET | `/api/clipboard/events` | SSE 订阅剪贴板变更事件（最多 64 个连接，超出返回 503） |
 
 ### 系统
 

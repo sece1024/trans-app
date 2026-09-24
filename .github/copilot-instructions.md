@@ -60,7 +60,7 @@ src/routes/           → thin Express routers; fileRoutes/imageRoutes are built
 src/services/         → business logic (BaseService ← FileService; ClipboardService singleton; clipboardEvents = SSE client Set)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
 src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
-src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js, requireDiskSpace.js
+src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js, requireDiskSpace.js, originGuard.js
 src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js, diskSpace.js
 ```
 
@@ -114,10 +114,12 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 - **All API routes** are registered under the `/api` prefix in `app.js`.
 - **sanitizeFilename middleware**: use `sanitizeFilename('paramName')` on any route that takes a filename param to prevent path traversal.
 - **Rate limiting**: write methods (POST/PUT/PATCH/DELETE) under `/api` are rate-limited per IP via `src/middleware/rateLimiter.js`.
+- **Origin guard (CSRF)**: the same write methods also reject requests whose `Origin` header is present but neither LAN/localhost nor same-origin, with 403 (`src/middleware/originGuard.js`). Requests without `Origin` (curl, `.rest` clients) pass. `cors()` alone only withholds response headers — it does not block the request, so a cross-site multipart form could otherwise upload files.
+- **Filename validation**: `isValidFilename()` also rejects control characters (`\x00-\x1f`) so paths fail as 400 instead of making `fs` throw a bare 500; multer strips directory components at upload (busboy `basename`) and replaces control chars in stored names.
 - **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit })`, `ContentItem.findAllAfter(cursor, limit)`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
-- **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `clipboardRoutes.js`); longer text returns 400.
+- **Clipboard limit**: single clipboard entry capped at 10000 chars and `deviceInfo` at 256 chars (`MAX_CLIPBOARD_LENGTH` / `MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
 - **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). Frontend also runs ESLint (`pnpm run lint`) and TypeScript checkJs (`pnpm run typecheck`). CI runs all via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
@@ -138,7 +140,7 @@ throw new Error('Failed to save clipboard', { cause: error });
 
 ## API Routes Reference
 
-List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`.
+List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`. `limit` is capped at 100 (`MAX_PAGE_SIZE` in `src/utils/pagination.js`).
 
 ### Files
 | Method | Path | Description |
@@ -165,7 +167,7 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 | POST | `/api/clipboard` | Save text `{ text, deviceInfo }` |
 | GET | `/api/clipboard` | Get history (paginated) |
 | DELETE | `/api/clipboard/:contentId` | Delete entry |
-| GET | `/api/clipboard/events` | SSE stream; pushes `clipboard-changed` on save/delete |
+| GET | `/api/clipboard/events` | SSE stream; pushes `clipboard-changed` on save/delete; max 64 clients, then 503 |
 
 ### System
 | Method | Path | Description |
