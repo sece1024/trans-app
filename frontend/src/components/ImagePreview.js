@@ -54,7 +54,7 @@ function ImagePreview({ images, currentIndex, onClose, onNavigate }) {
           )}
 
           <img
-            src={`/api/images/${image.filename}`}
+            src={`/api/images/${encodeURIComponent(image.filename)}`}
             alt={image.originalName}
             className="image-preview-img"
           />

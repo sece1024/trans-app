@@ -62,12 +62,12 @@ function ImageUpload() {
 
   const handleDownload = async (filename, originalName) => {
     try {
-      await downloadFile(`/api/images/download/${filename}`, originalName);
+      await downloadFile(`/api/images/download/${encodeURIComponent(filename)}`, originalName);
     } catch { toast('下载失败', 'error'); }
   };
 
   const handleCopyLink = async (filename) => {
-    await copyLink(`/api/images/${filename}`, toast);
+    await copyLink(`/api/images/${encodeURIComponent(filename)}`, toast);
   };
 
   return (
@@ -113,7 +113,11 @@ function ImageUpload() {
         emptyDescription="点击上方区域上传图片"
         renderItem={(image) => (
           <>
-            <img src={`/api/images/${image.filename}`} alt={image.originalName} loading="lazy" />
+            <img
+              src={`/api/images/${encodeURIComponent(image.filename)}`}
+              alt={image.originalName}
+              loading="lazy"
+            />
             <div className="image-overlay">
               <p className="image-name-overlay">{image.originalName}</p>
               <div className="card-actions">
