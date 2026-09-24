@@ -93,6 +93,22 @@ test('rejects clipboard content over 10000 chars with 400', async () => {
   expect(res.status).toBe(400);
 });
 
+test('rejects overlong deviceInfo with 400', async () => {
+  const res = await fetch(`${base}/api/clipboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'ok', deviceInfo: 'x'.repeat(257) }),
+  });
+  expect(res.status).toBe(400);
+});
+
+test('caps list limit at 100', async () => {
+  const res = await fetch(`${base}/api/clipboard?limit=999999`);
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(body.items.length).toBeLessThanOrEqual(100);
+});
+
 test('rejects non-image upload with 400', async () => {
   const form = new FormData();
   form.append('image', new Blob(['not an image']), 'note.txt');
@@ -140,4 +156,22 @@ test('clipboard SSE pushes events on change', async () => {
   expect(handshake + payload).toContain('clipboard-changed');
 
   await reader.cancel();
+});
+
+test('SSE subscription rejects connections over the client cap', async () => {
+  // 用假客户端填满订阅集，验证超限返回 503
+  const before = events.clientCount();
+  const fakes = [];
+  for (let i = before; i < events.MAX_CLIENTS; i += 1) {
+    const fake = { write() {} };
+    events.subscribe(fake);
+    fakes.push(fake);
+  }
+  expect(events.clientCount()).toBe(events.MAX_CLIENTS);
+
+  const res = await fetch(`${base}/api/clipboard/events`);
+  expect(res.status).toBe(503);
+
+  for (const fake of fakes) events.unsubscribe(fake);
+  expect(events.clientCount()).toBe(before);
 });

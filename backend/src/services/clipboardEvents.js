@@ -1,6 +1,9 @@
 // 剪贴板变更的 SSE 客户端集合。单进程内存即可（编译二进制为单实例），无需跨进程协调。
 const clients = new Set();
 
+// SSE 订阅上限：该端点是 GET 不受写限流保护，不限连接数会被长连接耗尽句柄/内存
+const MAX_CLIENTS = 64;
+
 function subscribe(res) {
   clients.add(res);
 }
@@ -26,4 +29,4 @@ function clientCount() {
   return clients.size;
 }
 
-module.exports = { subscribe, unsubscribe, notify, clientCount };
+module.exports = { subscribe, unsubscribe, notify, clientCount, MAX_CLIENTS };

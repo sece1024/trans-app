@@ -6,9 +6,16 @@ const parsePagination = require('../utils/pagination');
 const logger = require('../config/logger');
 
 const MAX_CLIPBOARD_LENGTH = 10000;
+// deviceInfo 由客户端生成（设备 · 浏览器），正常约 30 字符；上限防御异常/恶意超长输入
+const MAX_DEVICE_INFO_LENGTH = 256;
 
 // SSE：剪贴板变更实时推送，替代前端轮询
 router.get('/clipboard/events', (req, res) => {
+  // 连接数上限：GET 端点不在写限流范围内，用硬上限兜底
+  if (clipboardEvents.clientCount() >= clipboardEvents.MAX_CLIENTS) {
+    return res.status(503).json({ message: 'Too many SSE connections' });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -46,6 +53,14 @@ router.post('/clipboard', (req, res, next) => {
 
     if (typeof text !== 'string' || text.length > MAX_CLIPBOARD_LENGTH) {
       return res.status(400).json({ message: 'Content too long' });
+    }
+
+    if (
+      deviceInfo !== undefined &&
+      deviceInfo !== null &&
+      (typeof deviceInfo !== 'string' || deviceInfo.length > MAX_DEVICE_INFO_LENGTH)
+    ) {
+      return res.status(400).json({ message: 'Invalid deviceInfo' });
     }
 
     const clips = clipboardService.saveTextContent(text, 'text', deviceInfo);
