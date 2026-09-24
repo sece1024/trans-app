@@ -53,3 +53,11 @@ test('delete removes an entry and reports affected count', () => {
   expect(clipboardService.delete(item.id)).toBe(1);
   expect(clipboardService.delete(item.id)).toBe(0);
 });
+
+test('returns an empty page for a non-numeric cursor', () => {
+  const page = clipboardService.getTextHistory({ limit: 2, cursor: 'garbage' });
+  expect(page.items).toEqual([]);
+  expect(page.hasMore).toBe(false);
+  expect(page.nextCursor).toBeNull();
+  expect(page.total).toBeGreaterThan(0);
+});
