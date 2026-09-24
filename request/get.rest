@@ -12,8 +12,20 @@ GET {{host}}/api/clipboard
 ### files (paginated — 可加 ?limit=20&cursor=xxx)
 GET {{host}}/api/files
 
+### get a file inline（替换为存储文件名，含时间戳前缀；CSP sandbox 返回内容）
+GET {{host}}/api/files/1720000000000-hello.txt
+
+### download a file（替换为存储文件名，含时间戳前缀；attachment 下载）
+GET {{host}}/api/download/1720000000000-hello.txt
+
 ### images (paginated — 可加 ?limit=20&cursor=xxx)
 GET {{host}}/api/images
+
+### get an image inline（替换为存储文件名，含时间戳前缀）
+GET {{host}}/api/images/1720000000000-photo.png
+
+### download an image（替换为存储文件名，含时间戳前缀；attachment 下载）
+GET {{host}}/api/images/download/1720000000000-photo.png
 
 ### clipboard SSE subscription（保持连接，响应剪贴板变更广播；断开会自动重连）
 GET {{host}}/api/clipboard/events

@@ -94,10 +94,11 @@ refactor: 提取 BaseService 公共方法
 | 层 | 目录 | 职责 |
 |---|---|---|
 | 页面 | `src/pages/` | 路由级组件（FileUpload、ImageUpload、SharedClipboard） |
-| 组件 | `src/components/` | 可复用 UI（UploadZone、Toast、ThemePicker、EmptyState…） |
+| 组件 | `src/components/` | 可复用 UI（UploadZone、Toast、ThemePicker、EmptyState、ResourceGrid、ImagePreview…） |
+| Hooks | `src/hooks/` | 列表逻辑（`usePaginatedList` 通用分页、`useResourceList` 资源列表 + 删除编排） |
 | API | `src/api/client.js` | 统一 fetch 封装，所有请求经过 `request()` |
 | Context | `src/context/` | ToastProvider（`useToast` hook） |
-| 工具 | `src/utils/` | 动画变体、剪贴板复制、上传辅助函数 |
+| 工具 | `src/utils/` | 动画变体、剪贴板复制、文件图标、上传辅助函数与大小限制常量 |
 
 ### CSS 架构
 
