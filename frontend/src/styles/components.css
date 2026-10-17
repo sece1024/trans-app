@@ -445,7 +445,9 @@
       width: 100%;
       min-height: 80px;
       padding: calc(var(--block-space) * 0.75) calc(var(--inline-space) * 1.2);
-      border: 1px solid var(--glass-border);
+      /* 输入框描边用 --color-border 而非 --glass-border：浅色主题下后者是
+         半透明白，落在同样接近白色的卡片上几乎看不见，输入区不像输入区 */
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-sm);
       font-size: 14px;
       resize: vertical;
@@ -464,8 +466,26 @@
 
     .clipboard-input-footer {
       display: flex;
+      align-items: flex-start;
       justify-content: space-between;
-      align-items: center;
+      gap: calc(var(--inline-space) * 1.2);
+    }
+
+    .upload-hint {
+      font-size: 12px;
+      color: var(--color-ink-muted);
+      white-space: nowrap;
+      padding-top: calc(var(--block-space) * 0.5);
+    }
+  }
+
+  /* 接近上限时才出现的字数提示，避免平时干扰输入 */
+  .clipboard-counter {
+    font-variant-numeric: tabular-nums;
+
+    &.clipboard-counter--warn {
+      color: var(--color-danger);
+      font-weight: 600;
     }
   }
 
@@ -487,6 +507,8 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       word-break: break-word;
+      /* 磁力链接 / 长 URL 没有可断行的空格，break-word 兜不住时会撑破卡片 */
+      overflow-wrap: anywhere;
       white-space: pre-wrap;
       margin: 0;
       flex: 1;
@@ -522,11 +544,18 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--color-primary);
+    /* 设备名较长时截断，而不是把时间挤到第二行 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   .time-info {
     font-size: 11px;
     color: var(--color-ink-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* ----- Clipboard categories (filter bar / tags / editor) ----- */
@@ -548,6 +577,7 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
     transition: background 0.15s ease, border-color 0.15s ease;
 
     &:hover { background: oklch(100% 0 0 / 0.28); filter: none; box-shadow: none; }
@@ -564,18 +594,52 @@
   .filter-chip-count {
     opacity: 0.6;
     font-size: 11px;
+    font-variant-numeric: tabular-nums;
   }
 
+  /* 「查看全部」：筛选结果为空时也要有一条退回全部的路 */
+  .section-header-reset {
+    margin-left: calc(var(--inline-space) * 0.8);
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 11px;
+  }
+
+  /* ----- 分类输入（输入框 + 已有分类快捷 chip） ----- */
   .clipboard-category-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: calc(var(--inline-space) * 0.8);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn--share { flex-shrink: 0; }
+
+  .category-field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--block-space) * 0.5);
+    flex: 1;
+    min-width: 0;
+    max-width: 44ch;
+
+    &.category-field--compact { max-width: none; }
+  }
+
+  .category-field-row {
     display: flex;
     align-items: center;
     gap: calc(var(--inline-space) * 0.6);
+    min-width: 0;
   }
 
   .category-input {
-    width: 14ch;
+    flex: 1;
+    min-width: 0;
     padding: calc(var(--block-space) * 0.375) calc(var(--inline-space) * 0.8);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
     background: oklch(100% 0 0 / 0.08);
@@ -584,6 +648,51 @@
 
     &::placeholder { color: var(--color-ink-muted); }
     &:focus { outline: none; border-color: var(--color-primary); }
+  }
+
+  /* 已有分类快捷 chip：替代 iOS Safari 不支持的 <datalist> */
+  .category-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--inline-space) * 0.5);
+    min-width: 0;
+  }
+
+  .category-suggestion {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--inline-space) * 0.35);
+    padding: 3px calc(var(--inline-space) * 0.8);
+    background: oklch(100% 0 0 / 0.1);
+    color: var(--color-ink-muted);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      background: oklch(100% 0 0 / 0.24);
+      color: var(--color-ink);
+      filter: none;
+      box-shadow: none;
+    }
+
+    &.is-selected {
+      background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+      border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+
+  .category-suggestion-count {
+    font-size: 11px;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
   }
 
   .category-hint {
@@ -597,11 +706,13 @@
     align-items: center;
     gap: calc(var(--inline-space) * 0.6);
     min-width: 0;
+    flex: 1;
   }
 
   .clip-category {
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
     max-width: 16ch;
     padding: 2px calc(var(--inline-space) * 0.6);
     background: color-mix(in srgb, var(--color-primary) 12%, transparent);
@@ -623,11 +734,17 @@
     gap: calc(var(--inline-space) * 0.5);
     cursor: default;
 
-    .category-input {
+    .category-field {
       flex: 1;
-      min-width: 0;
-      width: auto;
+      max-width: none;
     }
+  }
+
+  .clip-category-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--inline-space) * 0.5);
+    flex-shrink: 0;
   }
 
   /* ----- Image card (full-bleed) ----- */
@@ -786,12 +903,111 @@
       padding: calc(var(--block-space) * 1.25) calc(var(--inline-space) * 2);
     }
 
-    .clipboard-input { flex-direction: column; }
+    /* 手机上垂直空间宝贵，标题与段落间距收紧 */
+    .page-title {
+      font-size: 22px;
+      margin-bottom: calc(var(--block-space) * 1.25);
+    }
+
+    .section-header {
+      margin-top: calc(var(--block-space) * 1.5);
+    }
+
+    /* iOS 在聚焦字号 <16px 的输入框时会自动放大整个页面，导致布局错位 */
+    .clipboard-input-zone textarea,
+    .category-input {
+      font-size: 16px;
+    }
+
+    .clipboard-input-zone textarea { min-height: 96px; }
 
     .clipboard-input-footer {
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: stretch;
+      gap: calc(var(--block-space) * 0.25);
+    }
+
+    /* 触屏没有 ⌘ 键，快捷键提示纯属噪音；字数提示保留 */
+    .clipboard-input-zone .upload-hint--shortcut { display: none; }
+    .clipboard-input-footer .upload-hint { padding-top: 0; }
+
+    /* 分类输入与「分享」在窄屏改为上下排列，都拿到整行宽度 */
+    .clipboard-category-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: calc(var(--block-space) * 0.6);
+    }
+
+    .category-field { max-width: none; }
+
+    .btn--share {
+      width: 100%;
+      min-height: 2.75rem;
+      justify-content: center;
+    }
+
+    /* 分类快捷 chip 单行横滑，分类变多也不会把输入区撑高 */
+    .category-suggestions {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+
+      &::-webkit-scrollbar { display: none; }
+    }
+
+    .category-suggestion {
+      min-height: 2.25rem;
+      padding-inline: calc(var(--inline-space) * 1.2);
+    }
+
+    /* 筛选栏吸顶 + 单行横滑：长列表滚动时仍能随手切换分类 */
+    .clipboard-filter-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      margin-inline: calc(var(--inline-space) * -2);
+      padding: calc(var(--block-space) * 0.5) calc(var(--inline-space) * 2);
+      background: color-mix(in srgb, var(--color-bg-page) 78%, transparent);
+      backdrop-filter: blur(12px) saturate(1.4);
+      -webkit-backdrop-filter: blur(12px) saturate(1.4);
+
+      &::-webkit-scrollbar { display: none; }
+    }
+
+    .filter-chip {
+      min-height: 2.5rem;
+      padding-inline: calc(var(--inline-space) * 1.4);
+      font-size: 13px;
+    }
+
+    /* 卡片内联编辑：改为上下两段，输入框不再被保存/取消挤成一条缝 */
+    .clip-category-edit {
+      flex-direction: column;
+      align-items: stretch;
       gap: calc(var(--block-space) * 0.5);
     }
+
+    .clip-category-edit-actions {
+      justify-content: flex-end;
+
+      .btn--icon { flex: 1; justify-content: center; }
+      .btn--text { min-height: 2.75rem; padding-inline: calc(var(--inline-space) * 1.5); }
+    }
+
+    /* 分类标签本身也是「改分类」入口，手机上要够得着 */
+    .clip-category {
+      min-height: 2rem;
+      max-width: 40vw;
+      padding-inline: calc(var(--inline-space) * 1);
+      font-size: 12px;
+    }
+
+    .btn--expand { min-height: 2.25rem; padding-inline: calc(var(--inline-space) * 1.2); }
   }
 
   /* ----- Empty state ----- */

@@ -139,4 +139,32 @@ describe('SharedClipboard page', () => {
     expect(html).toContain('改分类');
     expect(html).toContain('分类（可选）');
   });
+
+  test('share form uses the tappable category field instead of a datalist', () => {
+    // 回归点：datalist 在 iOS Safari 上完全不可用，手机端选不到已有分类
+    const html = render(SharedClipboard);
+    expect(html).not.toContain('datalist');
+    expect(html).toContain('category-field');
+    expect(html).toContain('分享');
+  });
+
+  test('always renders the 分享 action and the shortcut hint on the share form', () => {
+    const html = render(SharedClipboard);
+    expect(html).toContain('⌘ + ↵ 快速分享');
+    expect(html).toContain('btn--share');
+  });
+
+  test('offers a way back to 全部 only while a category filter is active', () => {
+    listState.items = [
+      {
+        id: 'c1',
+        content: 'hello',
+        category: 'torrent',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        deviceInfo: 'Mac · Chrome',
+      },
+    ];
+    // 默认停在「全部」，此时不需要「查看全部」这种冗余出口
+    expect(render(SharedClipboard)).not.toContain('查看全部');
+  });
 });

@@ -1,0 +1,175 @@
+import { describe, test, expect, vi } from 'vitest';
+import {
+  ALL_CATEGORIES,
+  UNCATEGORIZED,
+  CATEGORY_FILTER_STORAGE_KEY,
+  buildCategoryChips,
+  getSafeStorage,
+  normalizeCategoryInput,
+  readStoredCategoryFilter,
+  sameCategory,
+  writeStoredCategoryFilter,
+} from '../src/utils/clipboardCategories';
+
+// 内存版 Storage，避免测试依赖真实 localStorage
+function makeStorage(initial = {}) {
+  const map = new Map(Object.entries(initial));
+  return {
+    getItem: vi.fn((key) => (map.has(key) ? map.get(key) : null)),
+    setItem: vi.fn((key, value) => map.set(key, String(value))),
+    removeItem: vi.fn((key) => map.delete(key)),
+    get size() {
+      return map.size;
+    },
+  };
+}
+
+describe('normalizeCategoryInput / sameCategory', () => {
+  test('trims and collapses inner whitespace, matching the backend normalizer', () => {
+    expect(normalizeCategoryInput('  运维  ')).toBe('运维');
+    expect(normalizeCategoryInput('a  b\tc')).toBe('a b c');
+    expect(normalizeCategoryInput('\n\t ')).toBe('');
+  });
+
+  test('treats non-strings as uncategorized instead of throwing', () => {
+    expect(normalizeCategoryInput(undefined)).toBe('');
+    expect(normalizeCategoryInput(null)).toBe('');
+    expect(normalizeCategoryInput(42)).toBe('');
+  });
+
+  test('compares categories after normalization, so whitespace-only edits count as unchanged', () => {
+    expect(sameCategory(' torrent ', 'torrent')).toBe(true);
+    expect(sameCategory('', null)).toBe(true);
+    expect(sameCategory(undefined, null)).toBe(true);
+    expect(sameCategory('torrent', 'Link')).toBe(false);
+  });
+});
+
+describe('buildCategoryChips', () => {
+  test('always leads with 全部 carrying the total count', () => {
+    const chips = buildCategoryChips({ total: 7 });
+    expect(chips).toEqual([
+      { key: '__all__', value: ALL_CATEGORIES, label: '全部', count: 7, active: true },
+    ]);
+  });
+
+  test('keeps the summary order and hides 未分类 when there is nothing uncategorized', () => {
+    const chips = buildCategoryChips({
+      categories: [
+        { name: '运维', count: 3 },
+        { name: 'Link', count: 1 },
+      ],
+      uncategorized: 0,
+      total: 4,
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', '运维', 'Link']);
+    expect(chips.map((chip) => chip.count)).toEqual([4, 3, 1]);
+  });
+
+  test('appends 未分类 last when uncategorized items exist', () => {
+    const chips = buildCategoryChips({
+      categories: [{ name: 'torrent', count: 1 }],
+      uncategorized: 2,
+      total: 3,
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', 'torrent', '未分类']);
+    expect(chips.at(-1)).toMatchObject({ value: UNCATEGORIZED, count: 2 });
+  });
+
+  test('keeps a zero-count placeholder for the active category that vanished from the summary', () => {
+    // 场景：正在看「SQL」，最后一条 SQL 被改分类 / 删除
+    const chips = buildCategoryChips({
+      categories: [{ name: 'Link', count: 1 }],
+      uncategorized: 0,
+      total: 1,
+      activeCategory: 'SQL',
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', 'Link', 'SQL']);
+    expect(chips.at(-1)).toMatchObject({ value: 'SQL', count: 0, active: true });
+    // 有且只有一个 chip 处于选中态
+    expect(chips.filter((chip) => chip.active)).toHaveLength(1);
+  });
+
+  test('keeps the 未分类 chip while it is the active filter even at count 0', () => {
+    // 回归点：把最后一条未分类内容改分类后，chip 消失会让用户困在空列表
+    const chips = buildCategoryChips({
+      categories: [],
+      uncategorized: 0,
+      total: 1,
+      activeCategory: UNCATEGORIZED,
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', '未分类']);
+    expect(chips.at(-1)).toMatchObject({ value: UNCATEGORIZED, count: 0, active: true });
+  });
+
+  test('uses distinct keys so a user category named 全部 cannot collide', () => {
+    const chips = buildCategoryChips({
+      categories: [{ name: '全部', count: 1 }],
+      uncategorized: 1,
+      total: 2,
+    });
+    const keys = chips.map((chip) => chip.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('drops malformed summary entries instead of rendering blank chips', () => {
+    const chips = buildCategoryChips({
+      categories: [{ name: '', count: 1 }, { count: 2 }, null, { name: 'ok', count: 1 }],
+      total: 1,
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', 'ok']);
+  });
+});
+
+describe('category filter persistence', () => {
+  test('round-trips a named category and the uncategorized empty string', () => {
+    const storage = makeStorage();
+    writeStoredCategoryFilter(storage, '运维');
+    expect(readStoredCategoryFilter(storage)).toBe('运维');
+
+    writeStoredCategoryFilter(storage, UNCATEGORIZED);
+    expect(readStoredCategoryFilter(storage)).toBe(UNCATEGORIZED);
+  });
+
+  test('clears the stored key when switching back to 全部', () => {
+    const storage = makeStorage({ [CATEGORY_FILTER_STORAGE_KEY]: '运维' });
+    writeStoredCategoryFilter(storage, ALL_CATEGORIES);
+    expect(storage.removeItem).toHaveBeenCalledWith(CATEGORY_FILTER_STORAGE_KEY);
+    expect(readStoredCategoryFilter(storage)).toBe(ALL_CATEGORIES);
+  });
+
+  test('falls back to 全部 for missing, blank or over-long stored values', () => {
+    expect(readStoredCategoryFilter(makeStorage())).toBe(ALL_CATEGORIES);
+    expect(readStoredCategoryFilter(makeStorage({ [CATEGORY_FILTER_STORAGE_KEY]: '   ' }))).toBe(
+      ALL_CATEGORIES
+    );
+    expect(
+      readStoredCategoryFilter(
+        makeStorage({ [CATEGORY_FILTER_STORAGE_KEY]: 'x'.repeat(64) })
+      )
+    ).toBe(ALL_CATEGORIES);
+  });
+
+  test('degrades silently when storage is unavailable or throws', () => {
+    expect(readStoredCategoryFilter(undefined)).toBe(ALL_CATEGORIES);
+    expect(() => writeStoredCategoryFilter(undefined, '运维')).not.toThrow();
+
+    const hostile = {
+      getItem: () => {
+        throw new Error('SecurityError');
+      },
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      removeItem: () => {
+        throw new Error('SecurityError');
+      },
+    };
+    expect(readStoredCategoryFilter(hostile)).toBe(ALL_CATEGORIES);
+    expect(() => writeStoredCategoryFilter(hostile, '运维')).not.toThrow();
+  });
+
+  test('getSafeStorage returns undefined outside a browser (node test env)', () => {
+    expect(getSafeStorage()).toBeUndefined();
+  });
+});

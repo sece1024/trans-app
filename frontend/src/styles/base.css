@@ -26,7 +26,9 @@
 @layer layout {
   .app-layout {
     display: flex;
+    /* 移动端地址栏收放会改变 vh：dvh 跟随可视区域，避免布局跳动 */
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .sidebar {
@@ -38,6 +40,9 @@
     top: 0;
     left: 0;
     height: 100vh;
+    height: 100dvh;
+    /* 桌面端无安全区，取值恒为 0；横屏刘海机型上避免内容被遮挡 */
+    padding-left: env(safe-area-inset-left);
     z-index: 100;
     transition: background-color 0.35s ease;
   }
@@ -101,6 +106,7 @@
     flex: 1;
     padding: calc(var(--block-space) * 3) calc(var(--inline-space) * 4);
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .mobile-server-info { display: none; }
@@ -114,11 +120,16 @@
       position: relative;
       flex-direction: row;
       flex-wrap: wrap;
-      padding: calc(var(--block-space) * 0.625) var(--inline-space);
+      padding: calc(var(--block-space) * 0.625) calc(var(--inline-space) * 2);
+      padding-left: calc(var(--inline-space) * 2 + env(safe-area-inset-left));
+      padding-right: calc(var(--inline-space) * 2 + env(safe-area-inset-right));
       gap: calc(var(--block-space) * 0.5);
     }
 
+    /* 窄屏重排为两行：品牌 + 主题选择在上一行，三个入口独占下一行整行，
+       避免「文件上传」这类标签被挤成两行文字 */
     .sidebar-brand {
+      order: 1;
       padding: calc(var(--block-space) * 0.25) calc(var(--inline-space) * 0.75)
                calc(var(--block-space) * 0.25) calc(var(--inline-space) * 0.25);
       border-bottom: none;
@@ -126,15 +137,30 @@
     }
 
     .sidebar-nav {
-      flex: 1;
+      order: 3;
+      flex-basis: 100%;
       flex-direction: row;
       padding: 0;
-      gap: calc(var(--block-space) * 0.25);
+      gap: calc(var(--inline-space) * 0.5);
+      overflow-x: auto;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar { display: none; }
+
+      a {
+        flex: 1;
+        justify-content: center;
+        white-space: nowrap;
+        padding: calc(var(--block-space) * 0.5) calc(var(--inline-space) * 0.75);
+      }
     }
 
     .sidebar-footer {
-      width: 100%;
+      order: 2;
+      width: auto;
+      margin-left: auto;
       flex-direction: row;
+      align-items: center;
       justify-content: flex-end;
       padding: 0;
       border-top: none;
@@ -159,6 +185,8 @@
     .main-content {
       margin-left: 0;
       padding: var(--block-space) calc(var(--inline-space) * 2);
+      /* 底部横条（home indicator）不遮挡最后一行内容 */
+      padding-bottom: calc(var(--block-space) + env(safe-area-inset-bottom));
     }
   }
 }

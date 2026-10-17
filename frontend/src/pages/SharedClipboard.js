@@ -2,25 +2,33 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api } from '../api/client';
-import {
-  MAX_CLIPBOARD_LENGTH,
-  MAX_CLIPBOARD_HISTORY,
-  MAX_CATEGORY_LENGTH,
-} from '../utils/uploadLimits';
+import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
 import { detectCategory } from '../utils/detectCategory';
+import { formatClipTime, formatClipTimeExact } from '../utils/formatClipTime';
+import {
+  ALL_CATEGORIES,
+  buildCategoryChips,
+  getSafeStorage,
+  normalizeCategoryInput,
+  readStoredCategoryFilter,
+  sameCategory,
+  writeStoredCategoryFilter,
+} from '../utils/clipboardCategories';
 import useResourceList from '../hooks/useResourceList';
 import ResourceGrid from '../components/ResourceGrid';
+import CategoryField from '../components/CategoryField';
 
-const CATEGORY_LIST_ID = 'clipboard-category-options';
 const LONG_TEXT_THRESHOLD = 200;
-// activeCategory 三态：null = 全部，'' = 未分类，其余为分类名
-const ALL_CATEGORIES = null;
-const UNCATEGORIZED = '';
+const COUNTER_VISIBLE_THRESHOLD = 200;
+// 「N 分钟前」这类相对时间需要定期重算，否则页面久留后会一直显示旧值
+const TIME_LABEL_REFRESH_MS = 30000;
 
 function SharedClipboard() {
   const [clipText, setClipText] = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
   const [expandedIds, setExpandedIds] = useState(new Set());
+  // 渲染时间标签用的「当前时间」，由定时器推进（见下方 effect）
+  const [now, setNow] = useState(() => Date.now());
   // 分享表单的分类；categoryTouched 为 true 后不再被自动建议覆盖
   const [categoryInput, setCategoryInput] = useState('');
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -30,7 +38,10 @@ function SharedClipboard() {
     uncategorized: 0,
     total: 0,
   });
-  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
+  // 筛选值三态，从本地记忆恢复：null = 全部，'' = 未分类，其余为分类名
+  const [activeCategory, setActiveCategory] = useState(() =>
+    readStoredCategoryFilter(getSafeStorage())
+  );
   // 卡片内联分类编辑
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [categoryDraft, setCategoryDraft] = useState('');
@@ -80,6 +91,7 @@ function SharedClipboard() {
 
   const {
     items: clips,
+    total: filteredTotal,
     hasMore,
     loadingMore,
     loadMore,
@@ -96,6 +108,7 @@ function SharedClipboard() {
       removed: '已删除',
     },
   });
+  // usePaginatedList 已在 fetchPage 变化时自动重载第一页，这里无需再手动触发
 
   // SSE 回调始终用最新的 fetchClips（筛选切换会更换函数引用），
   // 通过 ref 转发，避免筛选切换导致 SSE 断线重连
@@ -104,14 +117,14 @@ function SharedClipboard() {
     fetchClipsRef.current = fetchClips;
   }, [fetchClips]);
 
-  // 挂载与筛选切换时加载第一页（usePaginatedList 内部已去重，不会重复请求）
-  useEffect(() => {
-    fetchClips();
-  }, [fetchClips]);
-
   useEffect(() => {
     refreshCategories();
   }, [refreshCategories]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), TIME_LABEL_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     // SSE 实时接收剪贴板变更（EventSource 断线会自动重连）
@@ -122,6 +135,13 @@ function SharedClipboard() {
     };
     return () => source.close();
   }, [refreshCategories]);
+
+  const selectCategory = (value) => {
+    setActiveCategory(value);
+    writeStoredCategoryFilter(getSafeStorage(), value);
+    // 切换筛选后列表整体变化，手机上若停留在长列表底部会看到错位内容
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleAdd = async () => {
     if (!clipText.trim()) { toast('请输入内容', 'error'); return; }
@@ -134,7 +154,11 @@ function SharedClipboard() {
       if (!ok) return;
     }
     try {
-      await api.addClipboard(clipText, deviceInfo, categoryInput.trim() || undefined);
+      await api.addClipboard(
+        clipText,
+        deviceInfo,
+        normalizeCategoryInput(categoryInput) || undefined
+      );
       setClipText('');
       setCategoryInput('');
       setCategoryTouched(false);
@@ -172,8 +196,9 @@ function SharedClipboard() {
   };
 
   const saveCategory = async (clip) => {
-    const next = categoryDraft.trim();
-    if (next === (clip.category || '')) {
+    // 归一化后比较：只改了首尾/多余空格的输入不应被判为「未变化」而静默丢弃
+    const next = normalizeCategoryInput(categoryDraft);
+    if (sameCategory(next, clip.category)) {
       setEditingCategoryId(null);
       return;
     }
@@ -190,18 +215,22 @@ function SharedClipboard() {
     }
   };
 
-  // 当前筛选的分类若已从汇总中消失（条目被删 / 改分类），补一个 count=0 的占位 chip，
-  // 让用户仍能看到并退出当前筛选
-  const categoryChips = [...categorySummary.categories];
-  if (
-    activeCategory !== ALL_CATEGORIES &&
-    activeCategory !== UNCATEGORIZED &&
-    !categoryChips.some((c) => c.name === activeCategory)
-  ) {
-    categoryChips.push({ name: activeCategory, count: 0 });
-  }
+  const categoryChips = buildCategoryChips({ ...categorySummary, activeCategory });
 
-  const showFilterBar = clips.length > 0 || categorySummary.total > 0;
+  // 手机上筛选栏是单行横滑的：从本地记忆恢复的筛选项可能落在可视区之外，
+  // 用户会看不到「当前在看哪个分类」。只滚动筛选栏自身，不动页面滚动位置。
+  const activeChipRef = useRef(null);
+  useEffect(() => {
+    const chip = activeChipRef.current;
+    const bar = chip?.parentElement;
+    if (!chip || !bar || bar.scrollWidth <= bar.clientWidth) return;
+    bar.scrollLeft = chip.offsetLeft - (bar.clientWidth - chip.offsetWidth) / 2;
+  }, [activeCategory, categoryChips.length]);
+
+  // 有内容就展示筛选栏；正在筛选时即使结果为空也保留（用户据此退回「全部」）
+  const showFilterBar =
+    clips.length > 0 || categorySummary.total > 0 || activeCategory !== ALL_CATEGORIES;
+  const autoDetected = categoryTouched ? '' : detectCategory(clipText) || '';
 
   return (
     <div className="page">
@@ -217,67 +246,57 @@ function SharedClipboard() {
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAdd(); }}
         />
         <div className="clipboard-input-footer">
-          <span className="upload-hint">⌘ + ↵ 快速分享</span>
+          <span className="upload-hint upload-hint--shortcut">⌘ + ↵ 快速分享</span>
+          {clipText.length > COUNTER_VISIBLE_THRESHOLD && (
+            <span
+              className={`upload-hint clipboard-counter${
+                clipText.length > MAX_CLIPBOARD_LENGTH * 0.9 ? ' clipboard-counter--warn' : ''
+              }`}
+            >
+              {clipText.length} / {MAX_CLIPBOARD_LENGTH}
+            </span>
+          )}
           <div className="clipboard-category-row">
-            <input
-              className="category-input"
-              list={CATEGORY_LIST_ID}
+            <CategoryField
               value={categoryInput}
-              maxLength={MAX_CATEGORY_LENGTH}
-              placeholder="分类（可选）"
-              aria-label="分类"
-              onChange={(e) => { setCategoryTouched(true); setCategoryInput(e.target.value); }}
+              onChange={(value) => { setCategoryTouched(true); setCategoryInput(value); }}
+              suggestions={categorySummary.categories}
+              autoDetected={autoDetected}
+              onSubmit={handleAdd}
             />
-            {!categoryTouched && categoryInput && (
-              <span className="category-hint" title="根据内容自动识别，可修改">自动识别</span>
-            )}
-            <button onClick={handleAdd}>分享</button>
+            <button className="btn--share" onClick={handleAdd}>分享</button>
           </div>
         </div>
-        <datalist id={CATEGORY_LIST_ID}>
-          {categorySummary.categories.map((c) => (
-            <option key={c.name} value={c.name} />
-          ))}
-        </datalist>
       </div>
 
-      {/* 分类筛选栏 */}
+      {/* 分类筛选栏：手机上单行横向滑动 + 吸顶，桌面端换行平铺 */}
       {showFilterBar && (
         <div className="clipboard-filter-bar" role="group" aria-label="按分类筛选">
-          <button
-            className={`filter-chip${activeCategory === ALL_CATEGORIES ? ' filter-chip--active' : ''}`}
-            aria-pressed={activeCategory === ALL_CATEGORIES}
-            onClick={() => setActiveCategory(ALL_CATEGORIES)}
-          >
-            全部
-          </button>
-          {categoryChips.map(({ name, count }) => (
+          {categoryChips.map(({ key, label, count, active, value }) => (
             <button
-              key={name}
-              className={`filter-chip${activeCategory === name ? ' filter-chip--active' : ''}`}
-              aria-pressed={activeCategory === name}
-              onClick={() => setActiveCategory(name)}
+              key={key}
+              ref={active ? activeChipRef : undefined}
+              className={`filter-chip${active ? ' filter-chip--active' : ''}`}
+              aria-pressed={active}
+              onClick={() => selectCategory(value)}
             >
-              {name}
+              {label}
               <span className="filter-chip-count">{count}</span>
             </button>
           ))}
-          {categorySummary.uncategorized > 0 && (
-            <button
-              className={`filter-chip${activeCategory === UNCATEGORIZED ? ' filter-chip--active' : ''}`}
-              aria-pressed={activeCategory === UNCATEGORIZED}
-              onClick={() => setActiveCategory(UNCATEGORIZED)}
-            >
-              未分类
-              <span className="filter-chip-count">{categorySummary.uncategorized}</span>
-            </button>
-          )}
         </div>
       )}
 
       {/* Bento grid */}
-      {clips.length > 0 && (
-        <p className="section-header">已分享 · {clips.length} 条</p>
+      {(clips.length > 0 || activeCategory !== ALL_CATEGORIES) && (
+        <p className="section-header">
+          已分享 · {filteredTotal || clips.length} 条
+          {activeCategory !== ALL_CATEGORIES && (
+            <button className="btn--text section-header-reset" onClick={() => selectCategory(ALL_CATEGORIES)}>
+              查看全部
+            </button>
+          )}
+        </p>
       )}
 
       <ResourceGrid
@@ -331,7 +350,9 @@ function SharedClipboard() {
                   )}
                   <span className="device-info">{clip.deviceInfo}</span>
                 </div>
-                <span className="time-info">{new Date(clip.createdAt).toLocaleString()}</span>
+                <span className="time-info" title={formatClipTimeExact(clip.createdAt)}>
+                  {formatClipTime(clip.createdAt, now)}
+                </span>
               </div>
               {isEditingCategory && (
                 <div
@@ -339,33 +360,29 @@ function SharedClipboard() {
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <input
-                    className="category-input"
-                    list={CATEGORY_LIST_ID}
-                    value={categoryDraft}
-                    maxLength={MAX_CATEGORY_LENGTH}
-                    placeholder="输入分类名，留空则清除分类"
-                    aria-label="分类名"
+                  <CategoryField
+                    compact
                     autoFocus
-                    onChange={(e) => setCategoryDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        saveCategory(clip);
-                      }
-                      if (e.key === 'Escape') setEditingCategoryId(null);
-                    }}
+                    value={categoryDraft}
+                    onChange={setCategoryDraft}
+                    suggestions={categorySummary.categories}
+                    placeholder="输入分类名，留空则清除分类"
+                    ariaLabel="分类名"
+                    onSubmit={() => saveCategory(clip)}
+                    onCancel={() => setEditingCategoryId(null)}
                   />
-                  <button
-                    className="btn--icon"
-                    onClick={() => saveCategory(clip)}
-                    disabled={savingCategoryId === clip.id}
-                  >
-                    {savingCategoryId === clip.id ? '保存中…' : '保存'}
-                  </button>
-                  <button className="btn--text" onClick={() => setEditingCategoryId(null)}>
-                    取消
-                  </button>
+                  <div className="clip-category-edit-actions">
+                    <button
+                      className="btn--icon"
+                      onClick={() => saveCategory(clip)}
+                      disabled={savingCategoryId === clip.id}
+                    >
+                      {savingCategoryId === clip.id ? '保存中…' : '保存'}
+                    </button>
+                    <button className="btn--text" onClick={() => setEditingCategoryId(null)}>
+                      取消
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="card-actions">
