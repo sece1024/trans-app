@@ -9,6 +9,12 @@ GET {{host}}/api/server-info
 ### clipboard history
 GET {{host}}/api/clipboard
 
+### clipboard history filtered by category（空值 = 只看未分类）
+GET {{host}}/api/clipboard?category=torrent
+
+### clipboard category summary（分类及计数）
+GET {{host}}/api/clipboard/categories
+
 ### files (paginated — 可加 ?limit=20&cursor=xxx)
 GET {{host}}/api/files
 

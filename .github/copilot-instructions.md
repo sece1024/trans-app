@@ -77,7 +77,8 @@ src/api/client.js     → single fetch wrapper (api object); throws ApiError on 
 src/context/          → ToastContext (useToast hook; toast(message, type))
 src/utils/animations.js  → Framer Motion variants (containerVariants, cardVariants) used across pages
 src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw fetch/anchor
-src/utils/uploadLimits.js  → front-end mirror of backend src/config/limits.js (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY); drift is caught by backend/test/limits.test.js
+src/utils/uploadLimits.js  → front-end mirror of backend src/config/limits.js (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY / MAX_CATEGORY_LENGTH); drift is caught by backend/test/limits.test.js
+src/utils/detectCategory.js → detectCategory(text) suggests a clipboard category (magnet → torrent, single http(s) URL → Link), used as an editable default in SharedClipboard
 src/utils/copyToClipboard.js → copyToClipboard(text) with execCommand fallback for non-secure contexts (plain-HTTP LAN access)
 src/utils/fileIcon.js  → fileIcon(name) picks an emoji by extension, falls back to 📁
 ```
@@ -117,10 +118,11 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 - **Rate limiting**: write methods (POST/PUT/PATCH/DELETE) under `/api` are rate-limited per IP via `src/middleware/rateLimiter.js`.
 - **Origin guard (CSRF)**: the same write methods also reject requests whose `Origin` header is present but neither LAN/localhost nor same-origin, with 403 (`src/middleware/originGuard.js`). Requests without `Origin` (curl, `.rest` clients) pass. `cors()` alone only withholds response headers — it does not block the request, so a cross-site multipart form could otherwise upload files.
 - **Filename validation**: `isValidFilename()` also rejects control characters (`\x00-\x1f`) so paths fail as 400 instead of making `fs` throw a bare 500; multer strips directory components at upload (busboy `basename`) and replaces control chars in stored names.
-- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit })`, `ContentItem.findAllAfter(cursor, limit)`, `ContentItem.count()`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
+- **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit, category })`, `ContentItem.findAllAfter(cursor, limit, category)`, `ContentItem.count({ category })`, `ContentItem.categorySummary()`, `ContentItem.updateCategory(id, category)`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
 - **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
 - **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `src/config/limits.js`) and `deviceInfo` at 256 chars (`MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
+- **Clipboard category**: one optional category per entry, ≤ 32 chars (`MAX_CATEGORY_LENGTH`), normalized via `src/utils/normalizeCategory.js` (whitespace collapsed; blank/null = uncategorized). Filtering semantics: `undefined` = all, `null` = uncategorized, string = exact match. `POST` and `PATCH` return 400 on invalid categories; frontend suggests `torrent` for magnet links and `Link` for single URLs (`frontend/src/utils/detectCategory.js`).
 - **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). Frontend also runs ESLint (`pnpm run lint`) and TypeScript checkJs (`pnpm run typecheck`). CI runs all via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
@@ -165,10 +167,12 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 ### Clipboard
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/clipboard` | Save text `{ text, deviceInfo }` |
-| GET | `/api/clipboard` | Get history (paginated) |
+| POST | `/api/clipboard` | Save text `{ text, deviceInfo, category? }` (category ≤ 32 chars) |
+| GET | `/api/clipboard` | Get history (paginated; `?category=` filters by exact name, empty value = uncategorized) |
+| GET | `/api/clipboard/categories` | Category summary `{ categories: [{ name, count }], uncategorized, total }` |
+| PATCH | `/api/clipboard/:contentId` | Set/clear category `{ category }` (`null` = clear); 400 without the field, 404 unknown id |
 | DELETE | `/api/clipboard/:contentId` | Delete entry |
-| GET | `/api/clipboard/events` | SSE stream; pushes `clipboard-changed` on save/delete; max 64 clients, then 503 |
+| GET | `/api/clipboard/events` | SSE stream; pushes `clipboard-changed` on save/category-update/delete; max 64 clients, then 503 |
 
 ### System
 | Method | Path | Description |

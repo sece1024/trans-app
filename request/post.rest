@@ -8,6 +8,23 @@ Content-Type: application/json
     "text": "test"
 }
 
+### add text to clipboard with category（分类名 ≤ 32 字符，留空 / 不传 = 未分类）
+POST {{host}}/api/clipboard
+Content-Type: application/json
+
+{
+    "text": "magnet:?xt=urn:btih:example",
+    "category": "torrent"
+}
+
+### set / clear clipboard category（category 为 null 或空串时清除分类；contentId 需替换）
+PATCH {{host}}/api/clipboard/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+    "category": "torrent"
+}
+
 ### upload a file（改 path 为本地真实文件；`<` 表示从文件读取内容）
 POST {{host}}/api/files/upload
 Content-Type: multipart/form-data; boundary=----TransApp
