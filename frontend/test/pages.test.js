@@ -31,9 +31,11 @@ const api = {
   getFiles: vi.fn(),
   getImages: vi.fn(),
   getClipboard: vi.fn(),
+  getClipboardCategories: vi.fn(),
   deleteFile: vi.fn(),
   deleteImage: vi.fn(),
   deleteClipboard: vi.fn(),
+  updateClipboardCategory: vi.fn(),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   addClipboard: vi.fn(),
@@ -117,5 +119,24 @@ describe('SharedClipboard page', () => {
     // 超过 200 字符才显示展开按钮
     expect(html.match(/展开全文/g)).toHaveLength(1);
     expect(html).toContain('Mac · Chrome');
+  });
+
+  test('renders category filter bar, item tag and category actions', () => {
+    listState.items = [
+      {
+        id: 'c1',
+        content: 'magnet:?xt=urn:btih:abc',
+        category: 'torrent',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        deviceInfo: 'Mac · Chrome',
+      },
+    ];
+    const html = render(SharedClipboard);
+    expect(html).toContain('按分类筛选');
+    expect(html).toContain('全部');
+    expect(html).toContain('🏷 torrent');
+    expect(html).toContain('修改分类：torrent');
+    expect(html).toContain('改分类');
+    expect(html).toContain('分类（可选）');
   });
 });

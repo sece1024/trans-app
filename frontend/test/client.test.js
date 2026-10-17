@@ -51,4 +51,38 @@ describe('api client', () => {
       body: JSON.stringify({ text: 'hello', deviceInfo: 'Mac' }),
     });
   });
+
+  test('filters clipboard by category, keeping the empty-string (uncategorized) param', async () => {
+    const fn = mockFetch({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ items: [] }),
+    });
+
+    await api.getClipboard(50, undefined, 'torrent');
+    expect(fn).toHaveBeenCalledWith('/api/clipboard?limit=50&category=torrent', {});
+
+    await api.getClipboard(50, undefined, '');
+    expect(fn).toHaveBeenCalledWith('/api/clipboard?limit=50&category=', {});
+
+    await api.getClipboard(50, undefined, undefined);
+    expect(fn).toHaveBeenCalledWith('/api/clipboard?limit=50', {});
+  });
+
+  test('updates clipboard category via PATCH (null clears it)', async () => {
+    const fn = mockFetch({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ message: 'Updated successfully' }),
+    });
+
+    await api.updateClipboardCategory('c1', null);
+    expect(fn).toHaveBeenCalledWith('/api/clipboard/c1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: null }),
+    });
+  });
 });

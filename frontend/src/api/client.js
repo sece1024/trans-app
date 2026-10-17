@@ -7,10 +7,18 @@ class ApiError extends Error {
   }
 }
 
-function withPagination(path, { limit, cursor }) {
+/**
+ * 拼接分页查询串。category 允许空串（筛选「未分类」），
+ * undefined / null 表示不筛选。
+ * @param {string} path
+ * @param {{ limit?: ?number, cursor?: ?string, category?: ?string }} params
+ */
+function withPagination(path, { limit, cursor, category }) {
   const params = new URLSearchParams();
   if (limit) params.set('limit', String(limit));
   if (cursor !== undefined && cursor !== null && cursor !== '') params.set('cursor', String(cursor));
+  // category 允许空串（筛选「未分类」），因此只排除 undefined / null
+  if (category !== undefined && category !== null) params.set('category', String(category));
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
 }
@@ -33,13 +41,21 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Clipboard
-  getClipboard: (limit, cursor) => request(withPagination('/clipboard', { limit, cursor })),
-  addClipboard: (text, deviceInfo) =>
+  getClipboard: (limit, cursor, category) =>
+    request(withPagination('/clipboard', { limit, cursor, category })),
+  addClipboard: (text, deviceInfo, category) =>
     request('/clipboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, deviceInfo }),
+      body: JSON.stringify({ text, deviceInfo, category }),
     }),
+  updateClipboardCategory: (id, category) =>
+    request(`/clipboard/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category }),
+    }),
+  getClipboardCategories: () => request('/clipboard/categories'),
   deleteClipboard: (id) => request(`/clipboard/${id}`, { method: 'DELETE' }),
 
   // Files
