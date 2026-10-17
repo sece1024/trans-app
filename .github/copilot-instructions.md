@@ -79,6 +79,9 @@ src/utils/animations.js  → Framer Motion variants (containerVariants, cardVari
 src/utils/uploadHelpers.js → downloadFile(), copyLink() — use these, not raw fetch/anchor
 src/utils/uploadLimits.js  → front-end mirror of backend src/config/limits.js (MAX_FILE_SIZE / MAX_IMAGE_SIZE / MAX_CLIPBOARD_LENGTH / MAX_CLIPBOARD_HISTORY / MAX_CATEGORY_LENGTH); drift is caught by backend/test/limits.test.js
 src/utils/detectCategory.js → detectCategory(text) suggests a clipboard category (magnet → torrent, single http(s) URL → Link), used as an editable default in SharedClipboard
+src/utils/clipboardCategories.js → pure clipboard-category logic: normalizeCategoryInput / sameCategory (mirror the backend normalizer), buildCategoryChips (filter-bar chips incl. the no-dead-end placeholders), getSafeStorage + read/writeStoredCategoryFilter (remembers the active filter)
+src/utils/formatClipTime.js → formatClipTime(iso, now) compact card timestamp (刚刚 / N 分钟前 / HH:mm / 昨天 HH:mm / M月D日); formatClipTimeExact for the title tooltip
+src/components/CategoryField.js → category input + tappable existing-category chips; replaces `<datalist>`, which iOS Safari does not support
 src/utils/copyToClipboard.js → copyToClipboard(text) with execCommand fallback for non-secure contexts (plain-HTTP LAN access)
 src/utils/fileIcon.js  → fileIcon(name) picks an emoji by extension, falls back to 📁
 ```
@@ -123,6 +126,8 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
 - **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `src/config/limits.js`) and `deviceInfo` at 256 chars (`MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
 - **Clipboard category**: one optional category per entry, ≤ 32 chars (`MAX_CATEGORY_LENGTH`), normalized via `src/utils/normalizeCategory.js` (whitespace collapsed; blank/null = uncategorized). Filtering semantics: `undefined` = all, `null` = uncategorized, string = exact match. `POST` and `PATCH` return 400 on invalid categories; frontend suggests `torrent` for magnet links and `Link` for single URLs (`frontend/src/utils/detectCategory.js`).
+- **Clipboard category UI**: the share form and the in-card editor both use `components/CategoryField.js` (input + tappable chips). Never reintroduce `<datalist>` — iOS Safari ignores it, leaving phone users unable to pick an existing category. The filter bar keeps a zero-count placeholder chip for the active category and for 未分类, so emptying a filter can never trap the user on a blank list; the page also remembers the active filter in `localStorage` and centres it inside the horizontally scrolling bar.
+- **Mobile (≤ 100ch)**: the sidebar collapses to brand + theme on row 1 and the three nav entries on row 2; the clipboard filter bar becomes sticky and horizontally scrollable; text inputs are bumped to `16px` so iOS does not zoom the page on focus; interactive chips/buttons keep a ≥ 44px touch target; layout height uses `100dvh` with `env(safe-area-inset-*)` padding.
 - **Tests**: backend `bun test --isolate` (`backend/test/`), frontend `vitest run` (`frontend/test/`). Frontend also runs ESLint (`pnpm run lint`) and TypeScript checkJs (`pnpm run typecheck`). CI runs all via `.github/workflows/ci.yml`.
 - **Mixed languages**: UI strings and some comments are in Chinese; code/API responses use English.
 
