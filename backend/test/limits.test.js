@@ -9,4 +9,5 @@ test('frontend uploadLimits mirrors backend config/limits', () => {
   expect(frontendLimits.MAX_IMAGE_SIZE).toBe(backendLimits.MAX_IMAGE_SIZE);
   expect(frontendLimits.MAX_CLIPBOARD_LENGTH).toBe(backendLimits.MAX_CLIPBOARD_LENGTH);
   expect(frontendLimits.MAX_CLIPBOARD_HISTORY).toBe(backendLimits.MAX_CLIPBOARD_HISTORY);
+  expect(frontendLimits.MAX_CATEGORY_LENGTH).toBe(backendLimits.MAX_CATEGORY_LENGTH);
 });

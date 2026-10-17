@@ -61,3 +61,50 @@ test('returns an empty page for a non-numeric cursor', () => {
   expect(page.nextCursor).toBeNull();
   expect(page.total).toBeGreaterThan(0);
 });
+
+test('saves, filters and updates categories', () => {
+  const torrentItem = clipboardService.saveTextContent('magnet:?xt=1', 'text', 'Device', 'torrent');
+  const linkItem = clipboardService.saveTextContent(
+    'https://example.com',
+    'text',
+    'Device',
+    'Link'
+  );
+  const plainItem = clipboardService.saveTextContent('plain text', 'text', 'Device');
+  expect(torrentItem.category).toBe('torrent');
+  expect(plainItem.category).toBeNull();
+
+  // 指定分类筛选
+  const torrentPage = clipboardService.getTextHistory({ category: 'torrent' });
+  expect(torrentPage.items.some((item) => item.id === torrentItem.id)).toBe(true);
+  expect(torrentPage.items.every((item) => item.category === 'torrent')).toBe(true);
+
+  // category = null 表示只查未分类
+  const uncategorized = clipboardService.getTextHistory({ category: null });
+  expect(uncategorized.items.some((item) => item.id === plainItem.id)).toBe(true);
+  expect(uncategorized.items.every((item) => item.category === null)).toBe(true);
+
+  // 改分类：改走后不再出现在原分类，清空后进入未分类
+  expect(clipboardService.updateCategory(linkItem.id, 'torrent')).toBe(1);
+  expect(
+    clipboardService.getTextHistory({ category: 'Link' }).items.some((c) => c.id === linkItem.id)
+  ).toBe(false);
+
+  expect(clipboardService.updateCategory(linkItem.id, null)).toBe(1);
+  expect(
+    clipboardService.getTextHistory({ category: null }).items.some((c) => c.id === linkItem.id)
+  ).toBe(true);
+
+  // 不存在的 id 影响行数为 0
+  expect(clipboardService.updateCategory('missing-id', 'torrent')).toBe(0);
+});
+
+test('category summary reports counts and global total', () => {
+  const summary = clipboardService.getCategorySummary();
+  const torrent = summary.categories.find((c) => c.name === 'torrent');
+  expect(torrent).toBeTruthy();
+  expect(torrent.count).toBeGreaterThanOrEqual(1);
+
+  const categorizedTotal = summary.categories.reduce((sum, c) => sum + c.count, 0);
+  expect(summary.total).toBe(categorizedTotal + summary.uncategorized);
+});

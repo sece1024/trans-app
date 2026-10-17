@@ -39,7 +39,8 @@ try {
       content TEXT NOT NULL,
       type TEXT NOT NULL,
       createdAt TEXT NOT NULL,
-      deviceInfo TEXT
+      deviceInfo TEXT,
+      category TEXT
     )
   `);
 
@@ -48,6 +49,12 @@ try {
   if (columns.some((col) => col.name === 'updatedAt')) {
     db.exec('ALTER TABLE Contents DROP COLUMN updatedAt');
     logger.info('[database]: dropped legacy updatedAt column');
+  }
+
+  // 迁移：为旧库补上剪贴板分类列（新库建表时已包含）
+  if (!columns.some((col) => col.name === 'category')) {
+    db.exec('ALTER TABLE Contents ADD COLUMN category TEXT');
+    logger.info('[database]: added category column');
   }
 } catch (error) {
   db.close();

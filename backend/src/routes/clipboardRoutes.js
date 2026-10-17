@@ -3,11 +3,25 @@ const router = express.Router();
 const clipboardService = require('../services/clipboardService');
 const clipboardEvents = require('../services/clipboardEvents');
 const parsePagination = require('../utils/pagination');
+const normalizeCategory = require('../utils/normalizeCategory');
 const logger = require('../config/logger');
 const { MAX_CLIPBOARD_LENGTH } = require('../config/limits');
 
 // deviceInfo 由客户端生成（设备 · 浏览器），正常约 30 字符；上限防御异常/恶意超长输入
 const MAX_DEVICE_INFO_LENGTH = 256;
+
+// 从请求体读取分类字段：present=false 表示未传（POST 视为未分类），
+// present=true 时 category 为归一化结果（null = 未分类）或 error 提示
+function readCategoryField(body) {
+  if (!Object.prototype.hasOwnProperty.call(body ?? {}, 'category')) {
+    return { present: false };
+  }
+  try {
+    return { present: true, category: normalizeCategory(body.category) };
+  } catch (error) {
+    return { present: true, error: error.message };
+  }
+}
 
 // SSE：剪贴板变更实时推送，替代前端轮询
 router.get('/clipboard/events', (req, res) => {
@@ -46,6 +60,7 @@ router.get('/clipboard/events', (req, res) => {
 router.post('/clipboard', (req, res, next) => {
   try {
     const { text, deviceInfo } = req.body;
+    const categoryField = readCategoryField(req.body);
 
     if (!text) {
       return res.status(400).json({ message: 'content is required' });
@@ -63,7 +78,16 @@ router.post('/clipboard', (req, res, next) => {
       return res.status(400).json({ message: 'Invalid deviceInfo' });
     }
 
-    const clips = clipboardService.saveTextContent(text, 'text', deviceInfo);
+    if (categoryField.present && categoryField.error) {
+      return res.status(400).json({ message: categoryField.error });
+    }
+
+    const clips = clipboardService.saveTextContent(
+      text,
+      'text',
+      deviceInfo,
+      categoryField.present ? categoryField.category : undefined
+    );
     clipboardEvents.notify('clipboard-changed');
     res.json(clips);
   } catch (error) {
@@ -75,9 +99,56 @@ router.post('/clipboard', (req, res, next) => {
 router.get('/clipboard', (req, res, next) => {
   try {
     const { limit, cursor } = parsePagination(req.query);
-    res.json(clipboardService.getTextHistory({ limit, cursor }));
+
+    // 分类筛选：未传 = 全部，空串 = 未分类，其余按归一化后的名称精确匹配
+    let category;
+    if (req.query.category !== undefined) {
+      if (typeof req.query.category !== 'string') {
+        return res.status(400).json({ message: 'Invalid category' });
+      }
+      try {
+        category = normalizeCategory(req.query.category);
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
+
+    res.json(clipboardService.getTextHistory({ limit, cursor, category }));
   } catch (error) {
     logger.error('clipboard get failed:', error);
+    next(error);
+  }
+});
+
+router.get('/clipboard/categories', (req, res, next) => {
+  try {
+    res.json(clipboardService.getCategorySummary());
+  } catch (error) {
+    logger.error('clipboard categories failed:', error);
+    next(error);
+  }
+});
+
+router.patch('/clipboard/:contentId', (req, res, next) => {
+  try {
+    const categoryField = readCategoryField(req.body);
+
+    // PATCH 只用于改分类：必须显式携带 category（null / 空串 = 清除分类）
+    if (!categoryField.present) {
+      return res.status(400).json({ message: 'category is required' });
+    }
+    if (categoryField.error) {
+      return res.status(400).json({ message: categoryField.error });
+    }
+
+    const changes = clipboardService.updateCategory(req.params.contentId, categoryField.category);
+    if (changes === 0) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    clipboardEvents.notify('clipboard-changed');
+    res.json({ message: 'Updated successfully', category: categoryField.category });
+  } catch (error) {
+    logger.error('clipboard category update failed:', error);
     next(error);
   }
 });

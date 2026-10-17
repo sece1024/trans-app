@@ -9,6 +9,7 @@ let server;
 let base;
 let db;
 let events;
+let MAX_CATEGORY_LENGTH;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), 'trans-api-'));
@@ -16,6 +17,7 @@ beforeAll(async () => {
   app = (await import('../src/app')).default;
   db = (await import('../src/db/database')).default;
   events = await import('../src/services/clipboardEvents');
+  MAX_CATEGORY_LENGTH = (await import('../src/config/limits')).MAX_CATEGORY_LENGTH;
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -125,6 +127,69 @@ test('rejects oversized image with 400', async () => {
   );
   const res = await fetch(`${base}/api/images/upload`, { method: 'POST', body: form });
   expect(res.status).toBe(400);
+});
+
+test('clipboard category save → filter → patch round trip', async () => {
+  const tag = 'api-test-category';
+  const saveRes = await fetch(`${base}/api/clipboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'magnet:?xt=urn:btih:api', deviceInfo: 'Test', category: tag }),
+  });
+  expect(saveRes.status).toBe(200);
+  const saved = await saveRes.json();
+  expect(saved.category).toBe(tag);
+
+  const filtered = await (await fetch(`${base}/api/clipboard?category=${tag}`)).json();
+  expect(filtered.items.some((c) => c.id === saved.id)).toBe(true);
+  expect(filtered.items.every((c) => c.category === tag)).toBe(true);
+
+  const summary = await (await fetch(`${base}/api/clipboard/categories`)).json();
+  expect(summary.categories.some((c) => c.name === tag && c.count >= 1)).toBe(true);
+  expect(summary.total).toBeGreaterThanOrEqual(1);
+
+  // 显式传 null 清除分类，条目进入「未分类」筛选
+  const patchRes = await fetch(`${base}/api/clipboard/${saved.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category: null }),
+  });
+  expect(patchRes.status).toBe(200);
+
+  const uncategorized = await (await fetch(`${base}/api/clipboard?category=`)).json();
+  expect(uncategorized.items.some((c) => c.id === saved.id)).toBe(true);
+  expect(uncategorized.items.every((c) => c.category === null)).toBe(true);
+});
+
+test('rejects invalid clipboard category with 400', async () => {
+  const post = (body) =>
+    fetch(`${base}/api/clipboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  expect((await post({ text: 'ok', category: 'x'.repeat(MAX_CATEGORY_LENGTH + 1) })).status).toBe(
+    400
+  );
+  expect((await post({ text: 'ok', category: 123 })).status).toBe(400);
+
+  const saved = await (await post({ text: 'ok', category: 'temp-cat' })).json();
+
+  // PATCH 必须显式携带 category 字段
+  const missingField = await fetch(`${base}/api/clipboard/${saved.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  expect(missingField.status).toBe(400);
+
+  const patchMissingId = await fetch(`${base}/api/clipboard/no-such-id`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category: 'torrent' }),
+  });
+  expect(patchMissingId.status).toBe(404);
 });
 
 // 注意：以下两个 SSE 测试的相对顺序是有意安排的——cap 测试必须在 push 测试之前。
