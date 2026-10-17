@@ -20,6 +20,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  *  - total        总条数（若后端返回）
  *  - loadMore     加载下一页
  *  - reload       重新加载第一页（重置列表）
+ *
+ * 竞态约定：effect 在 fetchPage 引用变化时自动重载第一页（如切换分类筛选）。
+ * 只有最新一次请求的结果会写入状态，切换筛选时在途的旧请求会被丢弃。
  */
 function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError } = {}) {
   const [items, setItems] = useState([]);
@@ -38,29 +41,40 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
     };
   }, []);
 
-  // 记录进行中的 reload，轮询重入时直接跳过（复用同一个 promise），
-  // 避免慢请求与定时轮询叠加导致请求风暴 / 竞态覆盖。
+  // 记录进行中的 reload：同一个 fetchPage 的重入直接复用同一个 promise
+  // （避免慢请求与定时轮询叠加造成请求风暴）。fetchPage 变化（如切换分类筛选）
+  // 时必须另起请求，否则新筛选永远等不到自己的第一页。
   const reloadingRef = useRef(null);
+  // 请求序号：只有最新一次请求的结果才允许写入状态，
+  // 否则先发的慢请求后到会覆盖新筛选的数据（列表与筛选栏对不上）
+  const requestIdRef = useRef(0);
 
-  const reload = useCallback(async () => {
-    if (reloadingRef.current) return reloadingRef.current;
-    reloadingRef.current = (async () => {
+  const reload = useCallback(() => {
+    const inFlight = reloadingRef.current;
+    if (inFlight && inFlight.fetchPage === fetchPage) return inFlight.promise;
+
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    const promise = (async () => {
       setIsLoading(true);
       try {
         const data = await fetchPage(pageSize, undefined);
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
         setItems(data.items ?? []);
         setHasMore(data.hasMore ?? false);
         nextCursorRef.current = data.nextCursor ?? null;
         if (typeof data.total === 'number') setTotal(data.total);
       } catch (error) {
-        if (onError) onError(error);
+        if (requestId === requestIdRef.current && onError) onError(error);
       } finally {
-        reloadingRef.current = null;
-        if (mountedRef.current) setIsLoading(false);
+        if (reloadingRef.current?.promise === promise) reloadingRef.current = null;
+        if (mountedRef.current && requestId === requestIdRef.current) setIsLoading(false);
       }
     })();
-    return reloadingRef.current;
+
+    reloadingRef.current = { fetchPage, promise };
+    return promise;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPage, pageSize, ...dependencies, onError]);
 
@@ -70,16 +84,18 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
+    // 追加时也要比对序号：加载更多期间若切换了筛选，这一页属于旧筛选，必须丢弃
+    const requestId = requestIdRef.current;
     setLoadingMore(true);
     try {
       const data = await fetchPage(pageSize, nextCursorRef.current);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
       setItems((prev) => [...prev, ...(data.items ?? [])]);
       setHasMore(data.hasMore ?? false);
       nextCursorRef.current = data.nextCursor ?? null;
       if (typeof data.total === 'number') setTotal(data.total);
     } catch (error) {
-      if (onError) onError(error);
+      if (requestId === requestIdRef.current && onError) onError(error);
     } finally {
       if (mountedRef.current) setLoadingMore(false);
     }
