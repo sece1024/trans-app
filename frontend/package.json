@@ -23,6 +23,7 @@
     "vitest": "^4.1.10"
   },
   "scripts": {
+    "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

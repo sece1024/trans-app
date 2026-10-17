@@ -78,7 +78,7 @@ pnpm start
 |------|------|
 | `pnpm start` | 同时启动前后端 |
 | `cd backend && pnpm run dev` | 仅启动后端（bun --watch 热重载） |
-| `cd frontend && pnpm run dev` | 仅启动前端（Vite dev server，/api 代理到 5001） |
+| `cd frontend && pnpm run dev` | 仅启动前端（Vite dev server，/api 代理到 5001；`pnpm start` 同义） |
 | `cd backend && pnpm run style:check` | 检查后端代码格式 |
 | `cd backend && pnpm run style:format` | 自动修复格式 |
 | `cd backend && pnpm test` | 后端测试（bun:test） |
