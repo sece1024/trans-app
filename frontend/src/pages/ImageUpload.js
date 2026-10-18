@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
-import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
+import { downloadFile, copyLink, pulseSuccess, formatFileSize } from '../utils/uploadHelpers';
 import { MAX_IMAGE_SIZE } from '../utils/uploadLimits';
 import { isSelfKeyboardEvent } from '../utils/keyboard';
 import useResourceList from '../hooks/useResourceList';
@@ -49,7 +49,10 @@ function ImageUpload() {
 
   const handleUpload = async () => {
     if (!selectedImage) { toast('请先选择图片', 'error'); return; }
-    if (selectedImage.size > MAX_IMAGE_SIZE) { toast('图片过大，最大支持 5MB', 'error'); return; }
+    if (selectedImage.size > MAX_IMAGE_SIZE) {
+      toast(`图片过大，最大支持 ${formatFileSize(MAX_IMAGE_SIZE)}`, 'error');
+      return;
+    }
     const formData = new FormData();
     formData.append('image', selectedImage);
     setIsLoading(true);
