@@ -125,7 +125,10 @@ function FileUpload() {
 
   return (
     <div className="page">
-      <h1 className="page-title">文件</h1>
+      <header className="page-header">
+        <h1 className="page-title">文件</h1>
+        <p className="page-subtitle">上传后即可在局域网内下载，或复制链接分享给其他设备。</p>
+      </header>
 
       <UploadZone
         icon="📂"

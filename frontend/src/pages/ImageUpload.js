@@ -78,7 +78,10 @@ function ImageUpload() {
 
   return (
     <div className="page">
-      <h1 className="page-title">图片</h1>
+      <header className="page-header">
+        <h1 className="page-title">图片</h1>
+        <p className="page-subtitle">上传图片后可直接预览、下载，或复制链接分享。</p>
+      </header>
 
       <UploadZone
         icon="🖼️"

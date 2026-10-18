@@ -236,7 +236,10 @@ function SharedClipboard() {
 
   return (
     <div className="page">
-      <h1 className="page-title">剪贴板</h1>
+      <header className="page-header">
+        <h1 className="page-title">剪贴板</h1>
+        <p className="page-subtitle">输入文本即可同步到其他设备，支持分类筛选与一键复制。</p>
+      </header>
 
       {/* Input zone */}
       <div className="glass-card clipboard-input-zone">
