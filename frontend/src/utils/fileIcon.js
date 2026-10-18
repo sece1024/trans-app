@@ -12,5 +12,3 @@ export function fileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
   return EXT_ICONS[ext] || '📁';
 }
-
-export default fileIcon;

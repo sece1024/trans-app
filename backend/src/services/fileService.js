@@ -19,7 +19,7 @@ class FileService extends BaseService {
     const files = await fs.readdir(this.uploadDir);
 
     // 装饰-排序-还原：预计算时间戳，避免比较器在排序过程中反复 parse 文件名前缀。
-    // 稳定降序（ts 相同保持 readdir 原序），与 sortByTimeDesc 行为一致。
+    // 稳定降序（ts 相同保持 readdir 原序）。
     const decorated = files.map((name) => ({ name, ts: this.getTimestamp(name) }));
     decorated.sort((a, b) => b.ts - a.ts);
     const total = decorated.length;

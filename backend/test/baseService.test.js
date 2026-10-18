@@ -26,10 +26,6 @@ test('getTimestamp parses prefix or falls back to 0', () => {
   expect(service.getTimestamp('no-prefix')).toBe(0);
 });
 
-test('sortByTimeDesc sorts newest first', () => {
-  expect(service.sortByTimeDesc(['1-a', '3-c', '2-b'])).toEqual(['3-c', '2-b', '1-a']);
-});
-
 test('delete removes an existing file', async () => {
   writeFileSync(path.join(dir, 'f.txt'), 'x');
   expect(await service.delete('f.txt')).toBe(true);

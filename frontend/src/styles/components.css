@@ -259,38 +259,6 @@
     }
   }
 
-  /* Theme picker */
-  .theme-picker {
-    display: flex;
-    gap: calc(var(--inline-space) * 0.6);
-    flex-wrap: wrap;
-    padding: calc(var(--block-space) * 0.25) 0;
-  }
-
-  .theme-swatch {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-    box-shadow: 0 0 0 1px oklch(100% 0 0 / 20%);
-
-    &:hover { transform: scale(1.2); filter: none; }
-
-    &[aria-pressed='true'] {
-      box-shadow: 0 0 0 2px #fff;
-      transform: scale(1.15);
-    }
-
-    &[data-theme='light']  { background: linear-gradient(135deg, oklch(100% 0 0) 50%, oklch(55% 0.21 264) 50%); }
-    &[data-theme='dark']   { background: linear-gradient(135deg, oklch(12% 0.03 255) 50%, oklch(72% 0.18 264) 50%); }
-    &[data-theme='forest'] { background: linear-gradient(135deg, oklch(10% 0.025 150) 50%, oklch(65% 0.20 150) 50%); }
-    &[data-theme='sunset'] { background: linear-gradient(135deg, oklch(100% 0 0) 50%, oklch(60% 0.19 50) 50%); }
-    &[data-theme='ocean']  { background: linear-gradient(135deg, oklch(10% 0.035 220) 50%, oklch(70% 0.17 200) 50%); }
-  }
-
   /* Collapsible theme picker */
   .theme-picker-wrapper {
     position: relative;
@@ -948,10 +916,6 @@
   }
 
   @media (max-width: 100ch) {
-    .page-container {
-      padding: calc(var(--block-space) * 1.25) calc(var(--inline-space) * 2);
-    }
-
     /* 手机上垂直空间宝贵，标题与段落间距收紧 */
     .page-title {
       font-size: 22px;

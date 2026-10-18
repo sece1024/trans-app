@@ -25,11 +25,6 @@ class BaseService {
     return Number.isFinite(ts) ? ts : 0;
   }
 
-  // 按上传时间倒序（新文件在前）
-  sortByTimeDesc(filenames) {
-    return [...filenames].sort((a, b) => this.getTimestamp(b) - this.getTimestamp(a));
-  }
-
   exists(filename) {
     return fsSync.existsSync(this.getFilePath(filename));
   }
