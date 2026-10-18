@@ -3,6 +3,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 import { downloadFile, copyLink, pulseSuccess } from '../utils/uploadHelpers';
 import { MAX_IMAGE_SIZE } from '../utils/uploadLimits';
+import { isSelfKeyboardEvent } from '../utils/keyboard';
 import useResourceList from '../hooks/useResourceList';
 import ResourceGrid from '../components/ResourceGrid';
 import UploadZone from '../components/UploadZone';
@@ -102,6 +103,7 @@ function ImageUpload() {
           'aria-label': `预览图片：${image.originalName}`,
           onClick: () => setPreviewIndex(index),
           onKeyDown: (e) => {
+            if (!isSelfKeyboardEvent(e)) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               setPreviewIndex(index);

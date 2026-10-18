@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
 import { detectCategory } from '../utils/detectCategory';
 import { formatClipTime, formatClipTimeExact } from '../utils/formatClipTime';
+import { isSelfKeyboardEvent } from '../utils/keyboard';
 import {
   ALL_CATEGORIES,
   buildCategoryChips,
@@ -311,6 +312,7 @@ function SharedClipboard() {
           'aria-label': '点击复制此剪贴板内容',
           onClick: () => handleCopy(clip.content),
           onKeyDown: (e) => {
+            if (!isSelfKeyboardEvent(e)) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               handleCopy(clip.content);
