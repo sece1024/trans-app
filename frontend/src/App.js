@@ -4,6 +4,7 @@ import FileUpload from './pages/FileUpload';
 import SharedClipboard from './pages/SharedClipboard';
 import ServerInfo from './components/ServerInfo';
 import ImageUpload from './pages/ImageUpload';
+import NotFound from './pages/NotFound';
 import ThemePicker from './components/ThemePicker';
 import { ToastProvider } from './context/ToastContext';
 // CSS 按 @layer 顺序导入：tokens 必须最先（声明全局层序）
@@ -47,6 +48,7 @@ function App() {
             <Route path="/" element={<FileUpload />} />
             <Route path="/clipboard" element={<SharedClipboard />} />
             <Route path="/image" element={<ImageUpload />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
       </div>

@@ -1088,6 +1088,12 @@
     margin: 0;
   }
 
+  .empty-state-action {
+    display: inline-flex;
+    margin-top: calc(var(--block-space) * 1.25);
+    text-decoration: none;
+  }
+
   /* ----- Image preview lightbox ----- */
   .image-preview-overlay {
     position: fixed;
