@@ -85,20 +85,20 @@ refactor: 提取 BaseService 公共方法
 | 路由 | `src/routes/` | 参数校验、调用服务、返回响应 |
 | 服务 | `src/services/` | 业务逻辑（BaseService 提供文件操作公共方法） |
 | 数据 | `src/db/` | `database.js` 初始化连接，`ContentItem.js` 封装 prepared statements |
-| 中间件 | `src/middleware/` | 错误处理、文件名消毒 |
-| 配置 | `src/config/` | multer 存储工厂、logger |
-| 工具 | `src/utils/` | `isCompiled()` 编译二进制检测、网络信息 |
+| 中间件 | `src/middleware/` | 错误处理、文件名消毒、写接口 Origin 校验与限流、上传前磁盘空间检查 |
+| 配置 | `src/config/` | multer 存储工厂、logger、运行时路径、前后端共享限额 |
+| 工具 | `src/utils/` | 编译二进制检测、网络信息、分页、磁盘空间、分类归一化、Content-Disposition |
 
 ### 前端分层
 
 | 层 | 目录 | 职责 |
 |---|---|---|
-| 页面 | `src/pages/` | 路由级组件（FileUpload、ImageUpload、SharedClipboard） |
-| 组件 | `src/components/` | 可复用 UI（UploadZone、Toast、ThemePicker、EmptyState、ResourceGrid、ImagePreview…） |
+| 页面 | `src/pages/` | 路由级组件（FileUpload、ImageUpload、SharedClipboard、NotFound） |
+| 组件 | `src/components/` | 可复用 UI（UploadZone、Toast、ThemePicker、EmptyState、ResourceGrid、ImagePreview、CategoryField…） |
 | Hooks | `src/hooks/` | 列表逻辑（`usePaginatedList` 通用分页、`useResourceList` 资源列表 + 删除编排） |
 | API | `src/api/client.js` | 统一 fetch 封装，所有请求经过 `request()` |
 | Context | `src/context/` | ToastProvider（`useToast` hook） |
-| 工具 | `src/utils/` | 动画变体、剪贴板复制、文件图标、上传辅助函数与大小限制常量 |
+| 工具 | `src/utils/` | 动画、剪贴板分类/复制、时间格式、键盘事件判断、文件图标、上传辅助与限额常量 |
 
 ### CSS 架构
 
@@ -116,13 +116,13 @@ tokens → reset → layout → components → utilities
 
 ### 文件名编码
 
-Multer 将文件名按 `latin1` 接收。上传响应中返回原始文件名时必须解码：
+Multer 将文件名按 `latin1` 接收。上传响应中返回原始文件名时统一使用 `src/utils/decodeFilename.js`：
 
 ```js
-const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+const originalName = decodeFilename(req.file.originalname);
 ```
 
-存储时 `config/multer.js` 已自动解码并添加时间戳前缀。
+不要在各路由里手写 `Buffer.from(..., 'latin1')`，避免解码逻辑分散。存储时 `config/multer.js` 已自动解码并添加时间戳前缀。
 
 ### 文件名安全
 
@@ -130,7 +130,24 @@ const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8
 
 ### 数据库
 
-`ContentItem`（`src/db/ContentItem.js`）使用 `bun:sqlite` 的 prepared statements，不使用 ORM。表名 `Contents`，方法：`create()`、`findAll({ limit })`、`findAllAfter(cursor, limit)`、`count()`、`destroy(id)`。`destroy()` 通过 `SELECT changes()` 获取受影响行数（`bun:sqlite` 的 `stmt.run()` 返回 `undefined`）。表不自带 `updatedAt` 列（旧库启动时自动迁移删除），按 `rowid DESC` 排序并裁剪至最近 50 条。
+`ContentItem`（`src/db/ContentItem.js`）使用 `bun:sqlite` 的 prepared statements，不使用 ORM。表名 `Contents`，当前方法：
+
+- `create({ content, type, deviceInfo, category })`
+- `findAll({ limit, category })`
+- `findAllAfter(cursor, limit, category)`
+- `count({ category })`
+- `categorySummary()` → `{ categories, uncategorized, total }`
+- `updateCategory(id, category)`
+- `destroy(id)`
+
+`destroy()` / `updateCategory()` 通过 `SELECT changes()` 获取受影响行数（`bun:sqlite` 的 `stmt.run()` 返回 `undefined`）。分类筛选三态：`undefined` = 全部、`null` = 未分类、字符串 = 精确匹配。旧库启动时会删除遗留的 `updatedAt` 列并补充 `category` 列；表按 `rowid DESC` 排序并裁剪至最近 50 条。
+
+### 剪贴板分类
+
+- 分类输入使用 `components/CategoryField.js`（输入框 + 可点选 chip）；不要用 `<datalist>`，iOS Safari 不支持。
+- 归一化统一走 `utils/normalizeCategory.js`（折叠空白、去首尾空格、空值 = 未分类），长度上限见 `config/limits.js`。
+- 列表筛选 `GET /api/clipboard?category=`：不传 = 全部，空串 = 未分类，其余按分类名精确匹配。
+- 分类逻辑变更时同步检查前端 `utils/clipboardCategories.js` 与后端归一化行为，避免两端漂移。
 
 ### 错误处理
 

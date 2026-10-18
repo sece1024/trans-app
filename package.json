@@ -2,7 +2,7 @@
   "name": "trans-app",
   "private": true,
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.13.1"
   },
   "scripts": {
     "start:backend": "cd backend && pnpm start",

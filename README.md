@@ -7,6 +7,7 @@
 - 📁 **文件共享**：上传、下载、删除文件
 - 🖼️ **图片共享**：上传、查看、下载、删除图片
 - 📋 **剪贴板同步**：在不同设备间同步文本内容（SSE 实时推送，变更即时刷新）
+- 🏷️ **剪贴板分类**：可为条目设置分类、按分类筛选，并自动建议 `torrent` / `Link`
 - 🌐 **局域网访问**：支持局域网内多设备访问
 - 🎨 **多主题切换**：支持亮色、暗色、森林、日落、海洋五种主题
 
@@ -26,12 +27,12 @@ trans-app/
 │   ├── test/                  # 前端测试（Vitest）
 │   └── src/
 │       ├── api/client.js      # 统一 fetch 封装
-│       ├── pages/             # 页面组件（FileUpload、ImageUpload、SharedClipboard）
-│       ├── components/        # 通用组件（UploadZone、Toast、ThemePicker、ResourceGrid…）
+│       ├── pages/             # 页面组件（FileUpload、ImageUpload、SharedClipboard、NotFound）
+│       ├── components/        # 通用组件（UploadZone、Toast、ThemePicker、ResourceGrid、CategoryField…）
 │       ├── hooks/             # 列表逻辑（usePaginatedList 分页、useResourceList 资源列表）
 │       ├── context/           # ToastContext
 │       ├── styles/            # 按 @layer 组织的样式（tokens / base / components / animations）
-│       └── utils/             # 动画、剪贴板复制、文件图标、上传限制等辅助函数
+│       └── utils/             # 动画、剪贴板分类/复制、时间格式、文件图标、上传限制等辅助函数
 ├── backend/                   # Express 后端
 │   ├── scripts/               # 构建脚本（build.mjs，交叉编译）
 │   ├── test/                  # 后端测试（bun:test）
@@ -155,11 +156,11 @@ journalctl -u transapp -f
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `PORT` | `5001` | HTTP 服务端口 |
-| `DATA_DIR` | `./data` | 运行时数据根目录（数据库 + 上传文件） |
+| `DATA_DIR` | `process.cwd()/data` | 运行时数据根目录（数据库 + 上传文件）；相对路径按启动目录解析 |
 
 ## 数据存储
 
-运行时数据默认在 `data/`（可用 `DATA_DIR` 环境变量覆盖，不提交到 Git）：
+运行时数据默认在 `process.cwd()/data/`。从 `backend/` 目录启动时即 `backend/data/`，从编译产物目录启动时即二进制旁的 `data/`（可用 `DATA_DIR` 环境变量覆盖，不提交到 Git）：
 
 ```
 data/
@@ -171,7 +172,7 @@ data/
 
 ## API 接口
 
-列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&cursor=` 分页参数（cursor 为上一页最后一项的 name/rowid，`limit` 上限 100），返回 `{ items, total, hasMore, nextCursor }`。
+列表接口（`GET /api/files`、`GET /api/images`、`GET /api/clipboard`）支持 `?limit=&cursor=` 分页参数（cursor 为上一页最后一项的 name/rowid，单页默认 50、上限 100），返回 `{ items, total, hasMore, nextCursor }`。
 
 ### 文件
 
@@ -198,8 +199,10 @@ data/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/clipboard` | 保存文本 |
-| GET | `/api/clipboard` | 剪贴板历史（分页） |
+| POST | `/api/clipboard` | 保存文本 `{ text, deviceInfo, category? }` |
+| GET | `/api/clipboard` | 剪贴板历史（分页；`?category=` 按分类精确筛选，空值 = 未分类） |
+| GET | `/api/clipboard/categories` | 分类汇总 `{ categories, uncategorized, total }` |
+| PATCH | `/api/clipboard/:contentId` | 设置/清除分类（`category: null` 或空串清除，字段必传） |
 | DELETE | `/api/clipboard/:contentId` | 删除条目 |
 | GET | `/api/clipboard/events` | SSE 订阅剪贴板变更事件（最多 64 个连接，超出返回 503） |
 
@@ -208,6 +211,12 @@ data/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/server-info` | 服务器信息（IP、端口等） |
+
+## 安全说明
+
+- 本项目面向**可信局域网**，没有账号体系；不要把端口直接暴露到公网。
+- 写接口（POST/PUT/PATCH/DELETE）有按 IP 限流，并校验 `Origin`：只接受 localhost、回环地址与私有网段的精确主机名（`localhost.evil.com` 这类前缀域名会被拒绝）。
+- 上传文件的内联响应带 `CSP: sandbox` 与 `X-Content-Type-Options: nosniff`，避免上传的 HTML/SVG 在同源下执行脚本。
 
 ## 手动测试
 

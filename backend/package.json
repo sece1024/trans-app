@@ -2,7 +2,7 @@
   "name": "trans",
   "version": "0.0.1",
   "engines": {
-    "bun": ">=1.0.0"
+    "bun": ">=1.1.5"
   },
   "main": "src/index.js",
   "scripts": {
@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "LAN file, image and clipboard sharing server",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

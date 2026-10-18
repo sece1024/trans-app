@@ -14,7 +14,7 @@
  *   bun scripts/build.mjs --skip-frontend # assumes frontend/build/ already exists
  *
  * Requirements:
- *   - Bun >= 1.13 (cross-compilation target support)
+ *   - Bun >= 1.1.5 (cross-compilation target support)
  *   - Node.js + pnpm (frontend Vite build)
  */
 

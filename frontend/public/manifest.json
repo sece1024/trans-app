@@ -1,6 +1,8 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "TransApp",
+  "name": "TransApp 局域网共享",
+  "description": "在局域网内共享文本、图片和文件",
+  "lang": "zh-CN",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +20,8 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#eef2f7",
+  "background_color": "#eef2f7"
 }

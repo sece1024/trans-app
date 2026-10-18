@@ -60,17 +60,17 @@ src/app.js            → builds/configure the Express app (middleware, routes, 
 src/routes/           → thin Express routers; fileRoutes/imageRoutes are built from the shared crudRouter.js factory (upload/list/download/inline-get/delete), clipboardRoutes.js (REST + SSE events), systemRoutes.js
 src/services/         → business logic (BaseService ← FileService; ClipboardService singleton; clipboardEvents = SSE client Set)
 src/db/               → bun:sqlite instance (database.js) + active-record-style model (ContentItem.js)
-src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js)
+src/config/           → multer storage factories (multer.js), logger wrapper (logger.js), paths (paths.js), shared limits (limits.js)
 src/middleware/       → errorHandler.js, sanitizeFilename.js, rateLimiter.js, requireDiskSpace.js, originGuard.js
-src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js, diskSpace.js
+src/utils/            → IP/network info, runtime.js (compiled-binary detection), contentDisposition.js, decodeFilename.js, streamResponse.js, pagination.js, diskSpace.js, normalizeCategory.js
 ```
 
 **Service inheritance**: `BaseService` provides `getFilePath()`, `exists()`, `delete()`, `deleteBatch()` (returns `{ deleted, notFound, failed }`), `createReadStream()`, `getOriginalName()` / `getTimestamp()` / `sortByTimeDesc()` (reverse the `Date.now()-` storage-name prefix), and `list()` (paginated: returns `{ items, total, hasMore, nextCursor }`). `ClipboardService` is independent (DB only) and exported as a singleton (`module.exports = new ClipboardService()`). `FileService` is exported as a class (instantiated in routes with the upload dir path; `{ includeSize: true }` adds file sizes to `list()` for the files endpoint). `BaseService.delete()` catches `ENOENT` and returns `false` (not found) rather than pre-checking with `existsSync`.
 
 ### Frontend layers
 ```
-src/pages/            → route-level components (FileUpload, ImageUpload, SharedClipboard)
-src/components/       → reusable UI (Toast, UploadZone, EmptyState, ThemePicker, ServerInfo, ResourceGrid, ImagePreview)
+src/pages/            → route-level components (FileUpload, ImageUpload, SharedClipboard, NotFound)
+src/components/       → reusable UI (Toast, UploadZone, EmptyState, ThemePicker, ServerInfo, ResourceGrid, ImagePreview, CategoryField)
 src/hooks/usePaginatedList.js → generic cursor-pagination hook (items / hasMore / loadingMore / isLoading / total / loadMore / reload)
 src/hooks/useResourceList.js  → domain hook on top of usePaginatedList: shared error toasts + single-item delete flow (deletingId / handleDelete) for the three pages
 src/api/client.js     → single fetch wrapper (api object); throws ApiError on non-OK responses
@@ -122,7 +122,7 @@ Styles are split under `frontend/src/styles/`, organised into named `@layer` blo
 - **Origin guard (CSRF)**: the same write methods also reject requests whose `Origin` header is present but neither LAN/localhost nor same-origin, with 403 (`src/middleware/originGuard.js`). Requests without `Origin` (curl, `.rest` clients) pass. `cors()` alone only withholds response headers — it does not block the request, so a cross-site multipart form could otherwise upload files.
 - **Filename validation**: `isValidFilename()` also rejects control characters (`\x00-\x1f`) so paths fail as 400 instead of making `fs` throw a bare 500; multer strips directory components at upload (busboy `basename`) and replaces control chars in stored names.
 - **Database model**: `ContentItem` in `src/db/ContentItem.js` uses `bun:sqlite` prepared statements (not an ORM). Table name is `Contents`, ordered by `rowid DESC`. Methods: `ContentItem.create()`, `ContentItem.findAll({ limit, category })`, `ContentItem.findAllAfter(cursor, limit, category)`, `ContentItem.count({ category })`, `ContentItem.categorySummary()`, `ContentItem.updateCategory(id, category)`, `ContentItem.destroy(id)`. `destroy()` uses `SELECT changes()` to get the affected row count since `bun:sqlite`'s `stmt.run()` returns `undefined`.
-- **CORS**: allows `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x` — i.e., LAN only.
+- **CORS / Origin guard**: exact hostname match only — `localhost`, `[::1]`, 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16. Prefix regexes are forbidden (`localhost.evil.com` must be rejected).
 - **Image upload limit**: 5 MB enforced by multer; non-image MIME types are rejected.
 - **Clipboard limit**: single clipboard entry capped at 10000 chars (`MAX_CLIPBOARD_LENGTH` in `src/config/limits.js`) and `deviceInfo` at 256 chars (`MAX_DEVICE_INFO_LENGTH` in `clipboardRoutes.js`); violations return 400. The SSE endpoint `/api/clipboard/events` allows at most 64 concurrent clients (`MAX_CLIENTS` in `services/clipboardEvents.js`), extra connections get 503.
 - **Clipboard category**: one optional category per entry, ≤ 32 chars (`MAX_CATEGORY_LENGTH`), normalized via `src/utils/normalizeCategory.js` (whitespace collapsed; blank/null = uncategorized). Filtering semantics: `undefined` = all, `null` = uncategorized, string = exact match. `POST` and `PATCH` return 400 on invalid categories; frontend suggests `torrent` for magnet links and `Link` for single URLs (`frontend/src/utils/detectCategory.js`).
@@ -148,7 +148,7 @@ throw new Error('Failed to save clipboard', { cause: error });
 
 ## API Routes Reference
 
-List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`. `limit` is capped at 100 (`MAX_PAGE_SIZE` in `src/utils/pagination.js`).
+List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limit=&cursor=` (cursor = last item's name/rowid) and return `{ items, total, hasMore, nextCursor }`. Default page size is 50 (`DEFAULT_PAGE_SIZE`), capped at 100 (`MAX_PAGE_SIZE`), both in `src/utils/pagination.js`; services must apply the default themselves.
 
 ### Files
 | Method | Path | Description |
