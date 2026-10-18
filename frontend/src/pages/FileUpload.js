@@ -24,6 +24,7 @@ function FileUpload() {
 
   const {
     items: uploadedFiles,
+    total,
     isLoading: isLoadingList,
     hasMore,
     loadingMore,
@@ -138,7 +139,7 @@ function FileUpload() {
 
       {uploadedFiles.length > 0 && (
         <div className="section-header-row">
-          <p className="section-header">已上传 · {uploadedFiles.length} 个文件</p>
+          <p className="section-header">已上传 · {total || uploadedFiles.length} 个文件</p>
           <div className="section-actions">
             {selectMode ? (
               <>

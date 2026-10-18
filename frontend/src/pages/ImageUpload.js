@@ -23,6 +23,7 @@ function ImageUpload() {
 
   const {
     items: imageList,
+    total,
     isLoading: isLoadingList,
     hasMore,
     loadingMore,
@@ -87,7 +88,7 @@ function ImageUpload() {
       />
 
       {imageList.length > 0 && (
-        <p className="section-header">图片库 · {imageList.length} 张</p>
+        <p className="section-header">图片库 · {total || imageList.length} 张</p>
       )}
 
       <ResourceGrid

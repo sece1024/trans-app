@@ -53,6 +53,7 @@ beforeEach(() => {
   listState.hasMore = false;
   listState.loadingMore = false;
   listState.isLoading = false;
+  listState.total = 0;
   listState.deletingId = null;
 });
 
@@ -92,6 +93,12 @@ describe('FileUpload page', () => {
     listState.hasMore = true;
     expect(render(FileUpload)).toContain('加载更多');
   });
+
+  test('shows the total count rather than just the loaded page size', () => {
+    listState.items = [{ filename: '100-a.txt', originalName: 'a.txt', size: 1 }];
+    listState.total = 120;
+    expect(render(FileUpload)).toContain('已上传 · 120 个文件');
+  });
 });
 
 describe('ImageUpload page', () => {
@@ -106,6 +113,12 @@ describe('ImageUpload page', () => {
     expect(html).toContain('/api/images/200-p.png');
     expect(html).toContain('图片库 · 1 张');
     expect(html).toContain('预览图片：p.png');
+  });
+
+  test('shows the total count rather than just the loaded page size', () => {
+    listState.items = [{ filename: '200-p.png', originalName: 'p.png' }];
+    listState.total = 42;
+    expect(render(ImageUpload)).toContain('图片库 · 42 张');
   });
 });
 
