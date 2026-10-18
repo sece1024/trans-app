@@ -1,4 +1,5 @@
 const ContentItem = require('../db/ContentItem');
+const { DEFAULT_PAGE_SIZE } = require('../utils/pagination');
 
 class ClipboardService {
   saveTextContent(content, type, deviceInfo, category) {
@@ -13,7 +14,7 @@ class ClipboardService {
   getTextHistory({ limit, cursor, category } = {}) {
     try {
       const total = ContentItem.count({ category });
-      const pageSize = limit || 50;
+      const pageSize = limit || DEFAULT_PAGE_SIZE;
 
       let rows;
       if (cursor === undefined) {

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const BaseService = require('./baseService');
+const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = require('../utils/pagination');
 
 class FileService extends BaseService {
   constructor(uploadDir, { includeSize = false } = {}) {
@@ -13,6 +14,8 @@ class FileService extends BaseService {
     if (!fsSync.existsSync(this.uploadDir)) {
       return { items: [], total: 0, hasMore: false, nextCursor: null };
     }
+    // 服务层兜底：未传 / 传非法 limit 时也必须分页，避免一次请求 readdir + stat 整个目录
+    const pageSize = Math.min(limit > 0 ? limit : DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const files = await fs.readdir(this.uploadDir);
 
     // 装饰-排序-还原：预计算时间戳，避免比较器在排序过程中反复 parse 文件名前缀。
@@ -26,7 +29,7 @@ class FileService extends BaseService {
       start = findCursorIndex(decorated, cursor, this.getTimestamp(cursor));
     }
 
-    const page = decorated.slice(start, limit ? start + limit : decorated.length);
+    const page = decorated.slice(start, start + pageSize);
     const items = await Promise.all(
       page.map(async ({ name }) => {
         const info = { filename: name, originalName: this.getOriginalName(name) };

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import FileService from '../src/services/fileService';
+import { DEFAULT_PAGE_SIZE } from '../src/utils/pagination';
 
 test('list returns filename/originalName/size sorted newest first', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'trans-file-'));
@@ -54,6 +55,31 @@ test('list paginates with cursor', async () => {
     expect(page2.items.map((f) => f.filename)).toEqual(['1-a.txt']);
     expect(page2.hasMore).toBe(false);
     expect(page2.nextCursor).toBe('1-a.txt');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('list defaults to a bounded page when limit is omitted', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'trans-file-'));
+  try {
+    // 回归点：未传 limit 时旧实现返回整个目录并逐项 stat，目录大时会拖垮请求
+    const fileCount = DEFAULT_PAGE_SIZE + 10;
+    for (let i = 1; i <= fileCount; i += 1) {
+      writeFileSync(path.join(dir, `${1000 + i}-f${i}.txt`), 'x');
+    }
+
+    const service = new FileService(dir);
+    const page1 = await service.list();
+
+    expect(page1.items).toHaveLength(DEFAULT_PAGE_SIZE);
+    expect(page1.total).toBe(fileCount);
+    expect(page1.hasMore).toBe(true);
+    expect(page1.items[0].filename).toBe(`${1000 + fileCount}-f${fileCount}.txt`);
+
+    const page2 = await service.list({ cursor: page1.nextCursor });
+    expect(page2.items).toHaveLength(10);
+    expect(page2.hasMore).toBe(false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
