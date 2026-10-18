@@ -50,7 +50,7 @@ function buildCrudRouter({
     (req, res, next) => {
       try {
         if (!req.file) {
-          return res.status(400).json({ message: notFoundMessage });
+          return res.status(400).json({ message: `${resourceName} is required` });
         }
         const originalName = decodeFilename(req.file.originalname);
         res.json({

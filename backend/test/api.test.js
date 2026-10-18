@@ -38,6 +38,15 @@ test('server-info returns ips and port', async () => {
   expect(res.headers.get('x-content-type-options')).toBe('nosniff');
 });
 
+test('upload without a file returns a clear 400 message', async () => {
+  const res = await fetch(`${base}/api/files/upload`, {
+    method: 'POST',
+    body: new FormData(),
+  });
+  expect(res.status).toBe(400);
+  expect((await res.json()).message).toBe('file is required');
+});
+
 test('file upload → list → download → delete round trip', async () => {
   const form = new FormData();
   form.append('file', new Blob(['hello world']), '测试.txt');
