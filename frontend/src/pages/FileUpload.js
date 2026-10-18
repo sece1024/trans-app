@@ -24,6 +24,7 @@ function FileUpload() {
 
   const {
     items: uploadedFiles,
+    isLoading: isLoadingList,
     hasMore,
     loadingMore,
     loadMore,
@@ -158,6 +159,7 @@ function FileUpload() {
 
       <ResourceGrid
         items={uploadedFiles}
+        isLoading={isLoadingList}
         getItemKey={(file) => file.filename}
         itemClassName={(file) =>
           `file-card${selectMode ? ' file-card--selectable' : ''}${selected.has(file.filename) ? ' file-card--selected' : ''}`

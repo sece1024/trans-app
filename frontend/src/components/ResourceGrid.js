@@ -12,6 +12,7 @@ import EmptyState from './EmptyState';
  * @param {(item: any, index: number) => import('react').ReactNode} props.renderItem
  *        卡片主体渲染函数，返回内容会成为 motion 卡片容器的直接子节点
  *        （Fragments 不产生 DOM 节点，多个兄弟元素可直接包在 Fragment 里）。
+ * @param {boolean} [props.isLoading]       是否正在加载第一页（空列表时渲染骨架屏）
  * @param {boolean} [props.hasMore]         是否还有更多
  * @param {boolean} [props.loadingMore]     是否正在加载更多
  * @param {() => void} [props.onLoadMore]   加载更多回调
@@ -28,6 +29,7 @@ function ResourceGrid({
   items,
   getItemKey,
   renderItem,
+  isLoading = false,
   hasMore = false,
   loadingMore = false,
   onLoadMore,
@@ -37,6 +39,26 @@ function ResourceGrid({
   itemClassName = '',
   itemMotionProps = () => ({}),
 }) {
+  // 首屏加载时先占位，避免「暂无内容」闪一下再被真实列表替换
+  if (isLoading && items.length === 0) {
+    return (
+      <div
+        className="bento-grid skeleton-grid"
+        role="status"
+        aria-live="polite"
+        aria-label="正在加载列表"
+      >
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="glass-card skeleton-card" aria-hidden="true">
+            <span className="skeleton-line skeleton-line--title" />
+            <span className="skeleton-line" />
+            <span className="skeleton-line skeleton-line--short" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />;
   }

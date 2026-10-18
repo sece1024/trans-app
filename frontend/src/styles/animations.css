@@ -6,6 +6,11 @@
     to   { transform: translateY(0);    opacity: 1; }
   }
 
+  @keyframes skeleton-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+
   @keyframes spinner-bounce {
     0%    { -webkit-mask-position: 0% 0%,   50% 0%,   100% 0%;   mask-position: 0% 0%,   50% 0%,   100% 0%   }
     12.5% { -webkit-mask-position: 0% 50%,  50% 0%,   100% 0%;   mask-position: 0% 50%,  50% 0%,   100% 0%   }

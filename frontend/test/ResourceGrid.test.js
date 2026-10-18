@@ -25,6 +25,25 @@ describe('ResourceGrid', () => {
     expect(html).not.toContain('加载更多');
   });
 
+  test('renders skeleton cards instead of the empty state while the first page loads', () => {
+    const html = render({ isLoading: true, emptyTitle: '暂无文件' });
+    expect(html).toContain('skeleton-grid');
+    expect(html.match(/skeleton-card/g)).toHaveLength(3);
+    expect(html).not.toContain('empty-state');
+    expect(html).not.toContain('暂无文件');
+  });
+
+  test('keeps existing items visible while a refresh is in flight', () => {
+    const html = render({
+      items: [{ id: 'a' }],
+      isLoading: true,
+      itemClassName: 'file-card',
+      renderItem: () => null,
+    });
+    expect(html).toContain('bento-grid');
+    expect(html).not.toContain('skeleton-grid');
+  });
+
   test('wraps each item in a glass-card carrying its class name', () => {
     const html = render({
       items: [{ id: 'a' }, { id: 'b' }],

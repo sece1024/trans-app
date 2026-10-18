@@ -52,6 +52,7 @@ beforeEach(() => {
   listState.items = [];
   listState.hasMore = false;
   listState.loadingMore = false;
+  listState.isLoading = false;
   listState.deletingId = null;
 });
 
@@ -61,6 +62,13 @@ describe('FileUpload page', () => {
     expect(html).toContain('暂无文件');
     expect(html).toContain('选择文件');
     expect(html).not.toContain('bento-grid');
+  });
+
+  test('shows skeleton cards instead of the empty state while the first page loads', () => {
+    listState.isLoading = true;
+    const html = render(FileUpload);
+    expect(html).toContain('skeleton-card');
+    expect(html).not.toContain('暂无文件');
   });
 
   test('renders file cards with icon, size and actions', () => {

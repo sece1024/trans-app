@@ -23,6 +23,7 @@ function ImageUpload() {
 
   const {
     items: imageList,
+    isLoading: isLoadingList,
     hasMore,
     loadingMore,
     loadMore,
@@ -91,6 +92,7 @@ function ImageUpload() {
 
       <ResourceGrid
         items={imageList}
+        isLoading={isLoadingList}
         getItemKey={(image) => image.filename}
         itemClassName="image-card"
         itemMotionProps={(image, index) => ({

@@ -28,7 +28,8 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
   const [items, setItems] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // 初始即视为加载中：effect 要等首帧之后才跑，若从 false 起步会先闪一下空状态
+  const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const nextCursorRef = useRef(null);
 

@@ -92,6 +92,7 @@ function SharedClipboard() {
   const {
     items: clips,
     total: filteredTotal,
+    isLoading: isLoadingClips,
     hasMore,
     loadingMore,
     loadMore,
@@ -301,6 +302,7 @@ function SharedClipboard() {
 
       <ResourceGrid
         items={clips}
+        isLoading={isLoadingClips}
         getItemKey={(clip) => clip.id}
         itemClassName={(clip) => `clip-card${clip.content.length > 120 ? ' card--wide' : ''}`}
         itemMotionProps={(clip) => ({
