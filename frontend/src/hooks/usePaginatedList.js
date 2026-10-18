@@ -57,6 +57,11 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
 
+    // 立刻作废旧 cursor：否则 reload 期间点到「加载更多」会用上一份筛选的
+    // cursor 请求新筛选的第二页，追加出与第一页不连续的数据
+    nextCursorRef.current = null;
+    setHasMore(false);
+
     const promise = (async () => {
       setIsLoading(true);
       try {
