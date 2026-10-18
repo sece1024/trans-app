@@ -26,6 +26,8 @@ function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUplo
 
   const handleChange = (e) => {
     const file = e.target.files[0];
+    // 清空 input 的值：否则上传成功后再次选择同一个文件不会触发 change
+    e.target.value = '';
     if (file && onFileChange) onFileChange(file);
   };
 
@@ -65,7 +67,7 @@ function UploadZone({ icon, label, accept, hint, isLoading, onFileChange, onUplo
           ref={fileInputRef}
           accept={accept}
           onChange={handleChange}
-          style={{ display: 'none' }}
+          className="visually-hidden"
         />
       </label>
       {hint && <span className="upload-hint">{hint}</span>}

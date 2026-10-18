@@ -230,6 +230,12 @@
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
+  /* 文件选择 input 视觉隐藏但保留可聚焦性，键盘用户也能打开文件选择器 */
+  .file-input-button:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
   /* Icon-style action buttons inside cards */
   .btn--icon {
     padding: calc(var(--block-space) * 0.35) calc(var(--inline-space) * 0.9);
