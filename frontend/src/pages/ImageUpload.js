@@ -138,14 +138,14 @@ function ImageUpload() {
         )}
       />
 
-      {previewIndex !== null && (
-        <ImagePreview
-          images={imageList}
-          currentIndex={previewIndex}
-          onClose={() => setPreviewIndex(null)}
-          onNavigate={setPreviewIndex}
-        />
-      )}
+      {/* 保持挂载，AnimatePresence 才能播放关闭动画 */}
+      <ImagePreview
+        open={previewIndex !== null}
+        images={imageList}
+        currentIndex={previewIndex ?? 0}
+        onClose={() => setPreviewIndex(null)}
+        onNavigate={setPreviewIndex}
+      />
     </div>
   );
 }
