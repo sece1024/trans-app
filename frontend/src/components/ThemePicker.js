@@ -1,12 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-
-const THEMES = [
-  { id: 'light',  label: '浅色' },
-  { id: 'dark',   label: '深色' },
-  { id: 'forest', label: '森林' },
-  { id: 'sunset', label: '日落' },
-  { id: 'ocean',  label: '海洋' },
-];
+import { THEMES } from '../utils/themes';
 
 function ThemePicker({ theme, onThemeChange }) {
   const [isOpen, setIsOpen] = useState(false);

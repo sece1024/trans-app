@@ -5,6 +5,8 @@
 
 @layer tokens {
   :root {
+    color-scheme: light;
+
     /* Color primitives */
     --lch-primary: 55% 0.21 264;
     --lch-danger:  57% 0.22 27;
@@ -52,6 +54,13 @@
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 14px;
+  }
+
+  /* 让原生控件（滚动条、日期选择器等）跟随暗色主题 */
+  [data-theme='dark'],
+  [data-theme='forest'],
+  [data-theme='ocean'] {
+    color-scheme: dark;
   }
 
   [data-theme='dark'] {
