@@ -29,8 +29,22 @@ test('isAllowedOrigin accepts empty, localhost and LAN origins', () => {
   expect(isAllowedOrigin('http://127.0.0.1:5001')).toBe(true);
   expect(isAllowedOrigin('http://192.168.1.10:5001')).toBe(true);
   expect(isAllowedOrigin('http://10.0.0.1:5001')).toBe(true);
+  expect(isAllowedOrigin('http://172.16.0.1:5001')).toBe(true);
+  expect(isAllowedOrigin('http://[::1]:5001')).toBe(true);
   expect(isAllowedOrigin('https://evil.example.com')).toBe(false);
   expect(isAllowedOrigin('https://172.32.1.1:5001')).toBe(false);
+});
+
+test('isAllowedOrigin rejects lookalike hosts that merely start with an allowed prefix', () => {
+  // 回归点：前缀正则曾把下面这些攻击者域名全部放行
+  expect(isAllowedOrigin('http://localhost.evil.com')).toBe(false);
+  expect(isAllowedOrigin('http://127.evil.com')).toBe(false);
+  expect(isAllowedOrigin('http://10.evil.com')).toBe(false);
+  expect(isAllowedOrigin('http://192.168.evil.com')).toBe(false);
+  expect(isAllowedOrigin('http://172.16.evil.com')).toBe(false);
+  expect(isAllowedOrigin('http://localhost.evil.com:5173')).toBe(false);
+  expect(isAllowedOrigin('ftp://localhost:5001')).toBe(false);
+  expect(isAllowedOrigin('null')).toBe(false);
 });
 
 test('blocks cross-origin write requests with 403', async () => {
@@ -41,6 +55,18 @@ test('blocks cross-origin write requests with 403', async () => {
       Origin: 'https://evil.example.com',
     },
     body: JSON.stringify({ text: 'csrf attempt' }),
+  });
+  expect(res.status).toBe(403);
+});
+
+test('blocks lookalike-prefix origins on write requests', async () => {
+  const res = await fetch(`${base}/api/clipboard`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'http://localhost.evil.com',
+    },
+    body: JSON.stringify({ text: 'csrf attempt via lookalike host' }),
   });
   expect(res.status).toBe(403);
 });
