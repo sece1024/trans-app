@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  *  - loadingMore  是否正在加载更多
  *  - isLoading    是否正在加载第一页
  *  - total        总条数（若后端返回）
+ *  - setTotal     直接修正总条数（用于 SSE 事件驱动的局部补丁，不必重拉列表）
  *  - loadMore     加载下一页
  *  - reload       重新加载第一页（重置列表）
  *
@@ -107,7 +108,7 @@ function usePaginatedList(fetchPage, { pageSize = 50, dependencies = [], onError
     }
   }, [fetchPage, pageSize, hasMore, loadingMore, onError]);
 
-  return { items, setItems, hasMore, loadingMore, isLoading, total, loadMore, reload };
+  return { items, setItems, hasMore, loadingMore, isLoading, total, setTotal, loadMore, reload };
 }
 
 export default usePaginatedList;

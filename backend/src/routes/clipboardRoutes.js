@@ -10,6 +10,18 @@ const { MAX_CLIPBOARD_LENGTH } = require('../config/limits');
 // deviceInfo 由客户端生成（设备 · 浏览器），正常约 30 字符；上限防御异常/恶意超长输入
 const MAX_DEVICE_INFO_LENGTH = 256;
 
+// 客户端实例 ID 由前端生成（UUID，36 字符），仅用于在 SSE 广播里回显给自己
+const MAX_CLIENT_ID_LENGTH = 64;
+
+// 读取发起本次写操作的客户端 ID：缺失或非法时返回 undefined（退化为「无法识别来源」）
+function readClientId(req) {
+  const raw = req.get('x-client-id');
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > MAX_CLIENT_ID_LENGTH) return undefined;
+  return trimmed;
+}
+
 // 从请求体读取分类字段：present=false 表示未传（POST 视为未分类），
 // present=true 时 category 为归一化结果（null = 未分类）或 error 提示
 function readCategoryField(body) {
@@ -88,7 +100,7 @@ router.post('/clipboard', (req, res, next) => {
       deviceInfo,
       categoryField.present ? categoryField.category : undefined
     );
-    clipboardEvents.notify('clipboard-changed');
+    clipboardEvents.notify({ type: 'created', item: clips, originId: readClientId(req) });
     res.json(clips);
   } catch (error) {
     logger.error('clipboard save failed:', error);
@@ -145,7 +157,12 @@ router.patch('/clipboard/:contentId', (req, res, next) => {
     if (changes === 0) {
       return res.status(404).json({ message: 'Not found' });
     }
-    clipboardEvents.notify('clipboard-changed');
+    clipboardEvents.notify({
+      type: 'updated',
+      id: String(req.params.contentId),
+      category: categoryField.category,
+      originId: readClientId(req),
+    });
     res.json({ message: 'Updated successfully', category: categoryField.category });
   } catch (error) {
     logger.error('clipboard category update failed:', error);
@@ -160,7 +177,7 @@ router.delete('/clipboard/:contentId', (req, res, next) => {
     if (changes === 0) {
       return res.status(404).json({ message: 'Not found' });
     }
-    clipboardEvents.notify('clipboard-changed');
+    clipboardEvents.notify({ type: 'deleted', id: String(contentId), originId: readClientId(req) });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
     logger.error('clipboard delete failed:', error);

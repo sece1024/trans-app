@@ -240,16 +240,53 @@ test('clipboard SSE pushes events on change', async () => {
   // 首次读取 retry 握手
   const handshake = await readNext();
 
-  // 触发一次剪贴板新增
+  // 触发一次剪贴板新增（带上客户端 ID，服务端需原样回显）
   await fetch(`${base}/api/clipboard`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'client-abc' },
     body: JSON.stringify({ text: 'sse test', deviceInfo: 'Test' }),
   });
 
-  // 读取广播事件
+  // 读取广播事件：必须是可解析的变更描述，而不是笼统的「有东西变了」
   const payload = await readNext();
-  expect(handshake + payload).toContain('clipboard-changed');
+  expect(handshake).toContain('retry:');
+  const dataLine = payload.split('\n').find((line) => line.startsWith('data: '));
+  const event = JSON.parse(dataLine.slice('data: '.length));
+  expect(event.type).toBe('created');
+  expect(event.item.content).toBe('sse test');
+  expect(event.originId).toBe('client-abc');
+
+  // 改分类 → 订阅者收到的是「改了哪条、改成什么」，足以本地打补丁
+  await fetch(`${base}/api/clipboard/${event.item.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'client-abc' },
+    body: JSON.stringify({ category: '运维' }),
+  });
+  const updated = JSON.parse(
+    (await readNext())
+      .split('\n')
+      .find((line) => line.startsWith('data: '))
+      .slice('data: '.length)
+  );
+  expect(updated).toEqual({
+    type: 'updated',
+    id: event.item.id,
+    category: '运维',
+    originId: 'client-abc',
+  });
+
+  // 删除 → 带 id 即可让订阅者本地移除该条
+  await fetch(`${base}/api/clipboard/${event.item.id}`, {
+    method: 'DELETE',
+    headers: { 'X-Client-Id': 'client-abc' },
+  });
+  const deleted = JSON.parse(
+    (await readNext())
+      .split('\n')
+      .find((line) => line.startsWith('data: '))
+      .slice('data: '.length)
+  );
+  expect(deleted).toEqual({ type: 'deleted', id: event.item.id, originId: 'client-abc' });
 
   // 本文件的最后一个测试：cancel 后服务端退订时机不确定（见上方顺序说明），
   // 不断言连接数，残留连接随测试进程结束回收

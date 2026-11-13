@@ -1,5 +1,30 @@
 const BASE_URL = '/api';
 
+// 本页面的客户端实例 ID：随写请求以 X-Client-Id 发出，服务端在 SSE 广播里原样回显。
+// 前端据此忽略自己发起的变更回显，避免「本地已应用的结果被同一条事件再应用一次」。
+// 只在模块加载时生成一次（同一次页面会话内稳定）。
+function generateClientId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // 旧浏览器 / 非安全上下文：退化为时间戳 + 随机串
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const CLIENT_ID = generateClientId();
+
+/**
+ * 当前页面会话的客户端 ID（与写请求头、SSE 事件里的 originId 比对用）。
+ *
+ * @returns {string}
+ */
+export function getClientId() {
+  return CLIENT_ID;
+}
+
 class ApiError extends Error {
   constructor(message, status) {
     super(message);
@@ -25,7 +50,11 @@ function withPagination(path, { limit, cursor, category }) {
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  const res = await fetch(url, options);
+  const method = (options.method ?? 'GET').toUpperCase();
+  // 只在写请求上带自定义头：GET 保持「simple request」，不引入额外预检
+  const headers =
+    method === 'GET' ? options.headers : { ...options.headers, 'X-Client-Id': CLIENT_ID };
+  const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

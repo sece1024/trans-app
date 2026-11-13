@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from 'vitest';
-import { api } from '../src/api/client';
+import { api, getClientId } from '../src/api/client';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -47,7 +47,7 @@ describe('api client', () => {
     await api.addClipboard('hello', 'Mac');
     expect(fn).toHaveBeenCalledWith('/api/clipboard', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': getClientId() },
       body: JSON.stringify({ text: 'hello', deviceInfo: 'Mac' }),
     });
   });
@@ -81,8 +81,29 @@ describe('api client', () => {
     await api.updateClipboardCategory('c1', null);
     expect(fn).toHaveBeenCalledWith('/api/clipboard/c1', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': getClientId() },
       body: JSON.stringify({ category: null }),
     });
+  });
+
+  test('tags write requests with the client id so SSE echoes can be deduped', async () => {
+    const fn = mockFetch({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({}),
+    });
+
+    await api.deleteClipboard('c1');
+    expect(fn.mock.calls[0][1].headers['X-Client-Id']).toBe(getClientId());
+
+    // GET 保持 simple request：不带自定义头，避免额外预检
+    await api.getClipboardCategories();
+    expect(fn.mock.calls[1][1]).toEqual({});
+  });
+
+  test('client id is stable for the page session and non-empty', () => {
+    expect(getClientId()).toBe(getClientId());
+    expect(getClientId().length).toBeGreaterThan(8);
   });
 });

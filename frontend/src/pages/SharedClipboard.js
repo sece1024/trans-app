@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
-import { api } from '../api/client';
+import { api, getClientId } from '../api/client';
 import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
 import { detectCategory } from '../utils/detectCategory';
 import { formatClipTime, formatClipTimeExact } from '../utils/formatClipTime';
@@ -15,6 +15,7 @@ import {
   sameCategory,
   writeStoredCategoryFilter,
 } from '../utils/clipboardCategories';
+import { applyClipboardEvent, isOwnClipboardEvent } from '../utils/clipboardListPatch';
 import useResourceList from '../hooks/useResourceList';
 import ResourceGrid from '../components/ResourceGrid';
 import CategoryField from '../components/CategoryField';
@@ -23,6 +24,8 @@ const LONG_TEXT_THRESHOLD = 200;
 const COUNTER_VISIBLE_THRESHOLD = 200;
 // 「N 分钟前」这类相对时间需要定期重算，否则页面久留后会一直显示旧值
 const TIME_LABEL_REFRESH_MS = 30000;
+// 分类汇总刷新的合并窗口：连续事件（多设备同时操作）只打一次请求
+const SUMMARY_REFRESH_DEBOUNCE_MS = 150;
 
 function SharedClipboard() {
   const [clipText, setClipText] = useState('');
@@ -98,6 +101,8 @@ function SharedClipboard() {
     loadingMore,
     loadMore,
     reload: fetchClips,
+    setItems: setClips,
+    setTotal: setFilteredTotal,
     handleDelete,
   } = useResourceList({
     fetchPage: getClipsPage,
@@ -119,6 +124,58 @@ function SharedClipboard() {
     fetchClipsRef.current = fetchClips;
   }, [fetchClips]);
 
+  // 汇总刷新做短促合并：一次变更的 SSE 广播 + 本地的显式刷新常常撞在一起
+  const summaryTimerRef = useRef(null);
+  const scheduleSummaryRefresh = useCallback(() => {
+    if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+    summaryTimerRef.current = setTimeout(() => {
+      summaryTimerRef.current = null;
+      refreshCategories();
+    }, SUMMARY_REFRESH_DEBOUNCE_MS);
+  }, [refreshCategories]);
+  useEffect(
+    () => () => {
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+    },
+    []
+  );
+
+  // 事件回调要读到最新的列表与筛选值，但又不能让它们进入 SSE effect 的依赖
+  // （切换筛选会更换引用，否则每切一次分类都断线重连一次 EventSource）
+  const clipsRef = useRef(clips);
+  useEffect(() => {
+    clipsRef.current = clips;
+  }, [clips]);
+  const categoryFilterRef = useRef(categoryFilter);
+  useEffect(() => {
+    categoryFilterRef.current = categoryFilter;
+  }, [categoryFilter]);
+
+  // 应用一条剪贴板变更事件：能在本地精确应用的就打补丁，只有「新增」需要重拉。
+  const applyEvent = useCallback(
+    (event) => {
+      const patch = applyClipboardEvent({
+        items: clipsRef.current,
+        filter: categoryFilterRef.current,
+        event,
+      });
+
+      if (patch.needsRefetch) {
+        fetchClipsRef.current();
+      } else if (patch.items !== clipsRef.current) {
+        // 同步更新 ref：同一轮里连续到达的事件不会基于过期列表计算
+        clipsRef.current = patch.items;
+        setClips(patch.items);
+      }
+
+      if (patch.totalDelta) {
+        setFilteredTotal((prev) => Math.max(0, prev + patch.totalDelta));
+      }
+      scheduleSummaryRefresh();
+    },
+    [setClips, setFilteredTotal, scheduleSummaryRefresh]
+  );
+
   useEffect(() => {
     refreshCategories();
   }, [refreshCategories]);
@@ -130,13 +187,36 @@ function SharedClipboard() {
 
   useEffect(() => {
     // SSE 实时接收剪贴板变更（EventSource 断线会自动重连）
+    const clientId = getClientId();
     const source = new EventSource('/api/clipboard/events');
-    source.onmessage = () => {
-      fetchClipsRef.current();
-      refreshCategories();
+    let hasConnected = false;
+
+    source.onopen = () => {
+      // 重连成功意味着断线期间的事件可能已丢失，本地补丁无法自愈 → 重拉第一页与汇总。
+      // 首次连接不重拉：初始加载已经在进行中。
+      if (hasConnected) {
+        fetchClipsRef.current();
+        refreshCategories();
+      }
+      hasConnected = true;
     };
+
+    source.onmessage = (message) => {
+      let event;
+      try {
+        event = JSON.parse(message.data);
+      } catch {
+        // 非 JSON 载荷（旧后端 / keep-alive 注释）：退化为重拉，保证最终一致
+        fetchClipsRef.current();
+        return;
+      }
+      // 自己发起的写操作已经由调用方本地应用，忽略回显
+      if (isOwnClipboardEvent(event, clientId)) return;
+      applyEvent(event);
+    };
+
     return () => source.close();
-  }, [refreshCategories]);
+  }, [refreshCategories, applyEvent]);
 
   const selectCategory = (value) => {
     setActiveCategory(value);
@@ -208,7 +288,9 @@ function SharedClipboard() {
     try {
       await api.updateClipboardCategory(clip.id, next || null);
       setEditingCategoryId(null);
-      await Promise.all([fetchClips(), refreshCategories()]);
+      // 本地应用同一条变更（自己的 SSE 回显会被忽略），
+      // 避免为了改一个字段重载整页、丢掉分页进度与滚动位置
+      applyEvent({ type: 'updated', id: clip.id, category: next || null });
       toast(next ? '分类已更新' : '已清除分类', 'success');
     } catch {
       toast('分类更新失败', 'error');
