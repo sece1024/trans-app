@@ -19,6 +19,7 @@ import { applyClipboardEvent, isOwnClipboardEvent } from '../utils/clipboardList
 import useResourceList from '../hooks/useResourceList';
 import ResourceGrid from '../components/ResourceGrid';
 import CategoryField from '../components/CategoryField';
+import CategoryManager from '../components/CategoryManager';
 
 const LONG_TEXT_THRESHOLD = 200;
 const COUNTER_VISIBLE_THRESHOLD = 200;
@@ -50,6 +51,8 @@ function SharedClipboard() {
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [categoryDraft, setCategoryDraft] = useState('');
   const [savingCategoryId, setSavingCategoryId] = useState(null);
+  // 分类管理弹层（重命名 / 合并 / 清空）
+  const [isManagingCategories, setIsManagingCategories] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -301,6 +304,36 @@ function SharedClipboard() {
 
   const categoryChips = buildCategoryChips({ ...categorySummary, activeCategory });
 
+  // 分类级操作：改的是「分类」而不是「条目」，因此需要一次批量更新 + 列表/汇总重拉。
+  // 返回布尔值给弹层，用于决定是否退出编辑态（失败时保留输入让用户重试）。
+  const handleRenameCategory = async (from, to) => {
+    try {
+      await api.renameClipboardCategory(from, to);
+      // 正在筛的分支类被改名后要跟着走，否则筛选指向一个已不存在的名字
+      if (activeCategory === from) selectCategory(to);
+      await Promise.all([fetchClips(), refreshCategories()]);
+      toast('分类已重命名', 'success');
+      return true;
+    } catch (error) {
+      toast(error?.status === 404 ? '分类已不存在' : '重命名失败', 'error');
+      return false;
+    }
+  };
+
+  const handleClearCategory = async (name) => {
+    try {
+      await api.clearClipboardCategory(name);
+      // 条目被改为未分类：停在被清空的分类上只会看到一个空列表
+      if (activeCategory === name) selectCategory(ALL_CATEGORIES);
+      await Promise.all([fetchClips(), refreshCategories()]);
+      toast('分类已清空', 'success');
+      return true;
+    } catch (error) {
+      toast(error?.status === 404 ? '分类已不存在' : '清空失败', 'error');
+      return false;
+    }
+  };
+
   // 手机上筛选栏是单行横滑的：从本地记忆恢复的筛选项可能落在可视区之外，
   // 用户会看不到「当前在看哪个分类」。只滚动筛选栏自身，不动页面滚动位置。
   const activeChipRef = useRef(null);
@@ -371,6 +404,15 @@ function SharedClipboard() {
               <span className="filter-chip-count">{count}</span>
             </button>
           ))}
+          {categorySummary.categories.length > 0 && (
+            <button
+              className="filter-chip filter-chip--manage"
+              onClick={() => setIsManagingCategories(true)}
+              aria-label="管理分类"
+            >
+              管理分类
+            </button>
+          )}
         </div>
       )}
 
@@ -488,6 +530,14 @@ function SharedClipboard() {
             </>
           );
         }}
+      />
+
+      <CategoryManager
+        open={isManagingCategories}
+        categories={categorySummary.categories}
+        onRename={handleRenameCategory}
+        onClear={handleClearCategory}
+        onClose={() => setIsManagingCategories(false)}
       />
     </div>
   );

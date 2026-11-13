@@ -14,6 +14,7 @@ const listState = {
   loadMore: vi.fn(),
   reload: vi.fn(),
   setItems: vi.fn(),
+  setTotal: vi.fn(),
   handleDelete: vi.fn(),
 };
 
@@ -36,11 +37,13 @@ const api = {
   deleteImage: vi.fn(),
   deleteClipboard: vi.fn(),
   updateClipboardCategory: vi.fn(),
+  renameClipboardCategory: vi.fn(),
+  clearClipboardCategory: vi.fn(),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   addClipboard: vi.fn(),
 };
-vi.mock('../src/api/client', () => ({ api }));
+vi.mock('../src/api/client', () => ({ api, getClientId: () => 'test-client' }));
 
 const FileUpload = (await import('../src/pages/FileUpload')).default;
 const ImageUpload = (await import('../src/pages/ImageUpload')).default;

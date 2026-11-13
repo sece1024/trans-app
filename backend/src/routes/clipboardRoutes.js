@@ -35,6 +35,15 @@ function readCategoryField(body) {
   }
 }
 
+// 按名称精准匹配前先归一化：用户可能手工拼 URL，名称里的空白/全角空格要能对上
+function readCategoryParam(raw) {
+  try {
+    return normalizeCategory(raw);
+  } catch {
+    return null;
+  }
+}
+
 // SSE：剪贴板变更实时推送，替代前端轮询
 router.get('/clipboard/events', (req, res) => {
   // 连接数上限：GET 端点不在写限流范围内，用硬上限兜底
@@ -137,6 +146,60 @@ router.get('/clipboard/categories', (req, res, next) => {
     res.json(clipboardService.getCategorySummary());
   } catch (error) {
     logger.error('clipboard categories failed:', error);
+    next(error);
+  }
+});
+
+// 分类级操作：重命名（目标已存在即合并）。分类名走路径参数，前端负责 encodeURIComponent。
+router.put('/clipboard/categories/:name', (req, res, next) => {
+  try {
+    const from = readCategoryParam(req.params.name);
+    if (!from) return res.status(400).json({ message: 'Invalid category' });
+
+    let to;
+    try {
+      to = normalizeCategory(req.body?.name);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+    // 改成空名等同于「清空分类」，那是 DELETE 的语义，避免两个入口做同一件事
+    if (!to) return res.status(400).json({ message: 'name is required' });
+
+    if (to === from) {
+      return res.json({ message: 'No changes', from, to, changes: 0 });
+    }
+
+    const changes = clipboardService.renameCategory(from, to);
+    if (changes === 0) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    clipboardEvents.notify({
+      type: 'category-renamed',
+      from,
+      to,
+      originId: readClientId(req),
+    });
+    res.json({ message: 'Renamed successfully', from, to, changes });
+  } catch (error) {
+    logger.error('clipboard category rename failed:', error);
+    next(error);
+  }
+});
+
+// 分类级操作：清空（该分类下条目改为未分类，分类本身随条数归零而消失）
+router.delete('/clipboard/categories/:name', (req, res, next) => {
+  try {
+    const name = readCategoryParam(req.params.name);
+    if (!name) return res.status(400).json({ message: 'Invalid category' });
+
+    const changes = clipboardService.clearCategory(name);
+    if (changes === 0) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    clipboardEvents.notify({ type: 'category-cleared', from: name, originId: readClientId(req) });
+    res.json({ message: 'Cleared successfully', from: name, changes });
+  } catch (error) {
+    logger.error('clipboard category clear failed:', error);
     next(error);
   }
 });

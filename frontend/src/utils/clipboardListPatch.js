@@ -10,10 +10,12 @@
 
 /**
  * @typedef {Object} ClipboardEvent
- * @property {'created'|'updated'|'deleted'} type 变更类型
+ * @property {'created'|'updated'|'deleted'|'category-renamed'|'category-cleared'} type 变更类型
  * @property {Object} [item]        created 时的完整条目
  * @property {string} [id]          updated / deleted 时的条目 id
  * @property {string|null} [category] updated 后的分类（null = 未分类）
+ * @property {string} [from]        category-renamed / category-cleared 的原分类名
+ * @property {string} [to]          category-renamed 后的分类名
  * @property {string} [originId]    发起该写操作的客户端 ID
  */
 
@@ -92,6 +94,7 @@ export function applyClipboardEvent({ items = [], filter, event }) {
     return { items: next, totalDelta: -1, needsRefetch: false };
   }
 
-  // 未知事件（旧后端 / 未来新增类型）：保守地沿用旧行为，全量失效
+  // 分类级变更（重命名 / 合并 / 清空）与未知事件（旧后端、未来新增类型）：
+  // 影响行数在服务端才知道，保守地全量失效
   return { items, totalDelta: 0, needsRefetch: true };
 }

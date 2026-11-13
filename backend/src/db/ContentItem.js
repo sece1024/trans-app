@@ -46,6 +46,11 @@ const deleteStmt = db.prepare('DELETE FROM Contents WHERE id = ?');
 
 const updateCategoryStmt = db.prepare('UPDATE Contents SET category = ? WHERE id = ?');
 
+// 分类级操作：一次改一批条目（重命名 / 合并 / 清空到未分类）
+const renameCategoryStmt = db.prepare('UPDATE Contents SET category = ? WHERE category = ?');
+
+const clearCategoryStmt = db.prepare('UPDATE Contents SET category = NULL WHERE category = ?');
+
 const changesStmt = db.prepare('SELECT changes() AS count');
 
 // 分类汇总：按最近使用排序（MAX(rowid) 越大代表最近有新内容使用该分类）
@@ -112,6 +117,18 @@ const ContentItem = {
 
   updateCategory(id, category) {
     updateCategoryStmt.run(category ?? null, id);
+    return changesStmt.get().count;
+  },
+
+  // 重命名一个分类；目标名已存在即合并（两条 UPDATE 到同一个名字，无需特殊分支）
+  renameCategory(from, to) {
+    renameCategoryStmt.run(to, from);
+    return changesStmt.get().count;
+  },
+
+  // 把某分类下的所有条目改为未分类（分类本身不需要单独的行存在）
+  clearCategory(name) {
+    clearCategoryStmt.run(name);
     return changesStmt.get().count;
   },
 

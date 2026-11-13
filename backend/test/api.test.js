@@ -170,6 +170,83 @@ test('clipboard category save → filter → patch round trip', async () => {
   expect(uncategorized.items.every((c) => c.category === null)).toBe(true);
 });
 
+// 分类级操作：重命名即合并、清空即批量改为未分类
+test('renames and merges clipboard categories in bulk', async () => {
+  const post = (text, category) =>
+    fetch(`${base}/api/clipboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, deviceInfo: 'Test', category }),
+    });
+
+  const a = await (await post('one', 'rename-a')).json();
+  const b = await (await post('two', 'rename-a')).json();
+  const c = await (await post('three', 'rename-b')).json();
+
+  const rename = (from, to) =>
+    fetch(`${base}/api/clipboard/categories/${encodeURIComponent(from)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: to }),
+    });
+
+  const res = await rename('rename-a', 'rename-b');
+  expect(res.status).toBe(200);
+  expect((await res.json()).changes).toBe(2);
+
+  // 合并后的分类同时包含两批条目，旧分类名彻底消失
+  const merged = await (await fetch(`${base}/api/clipboard?category=rename-b`)).json();
+  const ids = merged.items.map((item) => item.id);
+  expect(ids).toEqual(expect.arrayContaining([a.id, b.id, c.id]));
+
+  const summary = await (await fetch(`${base}/api/clipboard/categories`)).json();
+  expect(summary.categories.some((category) => category.name === 'rename-a')).toBe(false);
+  expect(summary.categories.find((category) => category.name === 'rename-b').count).toBe(3);
+});
+
+test('clears a clipboard category without deleting its items', async () => {
+  const post = (text, category) =>
+    fetch(`${base}/api/clipboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, deviceInfo: 'Test', category }),
+    });
+  const saved = await (await post('clear me', 'clear-me')).json();
+
+  const res = await fetch(`${base}/api/clipboard/categories/clear-me`, { method: 'DELETE' });
+  expect(res.status).toBe(200);
+  expect((await res.json()).changes).toBe(1);
+
+  // 条目仍在，只是变成未分类
+  const uncategorized = await (await fetch(`${base}/api/clipboard?category=`)).json();
+  expect(uncategorized.items.find((item) => item.id === saved.id)?.category).toBeNull();
+
+  const summary = await (await fetch(`${base}/api/clipboard/categories`)).json();
+  expect(summary.categories.some((category) => category.name === 'clear-me')).toBe(false);
+
+  // 分类已不存在时再清空返回 404，前端据此提示而不是静静重拉
+  const again = await fetch(`${base}/api/clipboard/categories/clear-me`, { method: 'DELETE' });
+  expect(again.status).toBe(404);
+});
+
+test('rejects invalid category-level operations with 400', async () => {
+  const put = (from, body) =>
+    fetch(`${base}/api/clipboard/categories/${encodeURIComponent(from)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  // 目标名为空 = 清空分类，那是 DELETE 的语义 → 400
+  expect((await put('anything', { name: '   ' })).status).toBe(400);
+  expect((await put('anything', { name: 123 })).status).toBe(400);
+  expect((await put('anything', { name: 'x'.repeat(MAX_CATEGORY_LENGTH + 1) })).status).toBe(400);
+  // 原分类名为空（未分类）不允许重命名
+  expect((await put('   ', { name: 'ok' })).status).toBe(400);
+  // 不存在的原分类 → 404
+  expect((await put('no-such-category', { name: 'ok' })).status).toBe(404);
+});
+
 test('rejects invalid clipboard category with 400', async () => {
   const post = (body) =>
     fetch(`${base}/api/clipboard`, {

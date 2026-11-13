@@ -85,6 +85,15 @@ export const api = {
       body: JSON.stringify({ category }),
     }),
   getClipboardCategories: () => request('/clipboard/categories'),
+  // 分类级操作：重命名（目标已存在即合并）/ 清空（该分类下条目改为未分类）
+  renameClipboardCategory: (from, to) =>
+    request(`/clipboard/categories/${encodeURIComponent(from)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: to }),
+    }),
+  clearClipboardCategory: (name) =>
+    request(`/clipboard/categories/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   deleteClipboard: (id) => request(`/clipboard/${id}`, { method: 'DELETE' }),
 
   // Files

@@ -176,8 +176,10 @@ List endpoints (`GET /api/files`, `/api/images`, `/api/clipboard`) accept `?limi
 | GET | `/api/clipboard` | Get history (paginated; `?category=` filters by exact name, empty value = uncategorized) |
 | GET | `/api/clipboard/categories` | Category summary `{ categories: [{ name, count }], uncategorized, total }` |
 | PATCH | `/api/clipboard/:contentId` | Set/clear category `{ category }` (`null` = clear); 400 without the field, 404 unknown id |
+| PUT | `/api/clipboard/categories/:name` | Rename a category `{ name }`; target already exists = merge; 400 on blank/non-string name, 404 when the source is gone |
+| DELETE | `/api/clipboard/categories/:name` | Clear a category (its entries become uncategorized; rows are kept); 404 when the category is gone |
 | DELETE | `/api/clipboard/:contentId` | Delete entry |
-| GET | `/api/clipboard/events` | SSE stream; pushes `{ type: 'created'\|'updated'\|'deleted', item?, id?, category?, originId? }` on save/category-update/delete; max 64 clients, then 503 |
+| GET | `/api/clipboard/events` | SSE stream; pushes `{ type: 'created'\|'updated'\|'deleted'\|'category-renamed'\|'category-cleared', item?, id?, category?, from?, to?, originId? }` on save/category-update/category-rename/category-clear/delete; max 64 clients, then 503 |
 
 ### System
 | Method | Path | Description |

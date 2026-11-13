@@ -108,3 +108,31 @@ test('category summary reports counts and global total', () => {
   const categorizedTotal = summary.categories.reduce((sum, c) => sum + c.count, 0);
   expect(summary.total).toBe(categorizedTotal + summary.uncategorized);
 });
+
+test('renameCategory merges into the target and reports affected rows', () => {
+  const a = clipboardService.saveTextContent('a', 'text', 'Device', 'merge-from');
+  const b = clipboardService.saveTextContent('b', 'text', 'Device', 'merge-from');
+  clipboardService.saveTextContent('c', 'text', 'Device', 'merge-to');
+
+  expect(clipboardService.renameCategory('merge-from', 'merge-to')).toBe(2);
+
+  const merged = clipboardService.getTextHistory({ category: 'merge-to' });
+  const ids = merged.items.map((item) => item.id);
+  expect(ids).toEqual(expect.arrayContaining([a.id, b.id]));
+  expect(clipboardService.getTextHistory({ category: 'merge-from' }).items).toHaveLength(0);
+});
+
+test('renameCategory returns 0 for a category that does not exist', () => {
+  expect(clipboardService.renameCategory('nope', 'target')).toBe(0);
+});
+
+test('clearCategory moves entries to uncategorized instead of deleting them', () => {
+  const item = clipboardService.saveTextContent('clear', 'text', 'Device', 'clear-svc');
+
+  expect(clipboardService.clearCategory('clear-svc')).toBe(1);
+
+  const uncategorized = clipboardService.getTextHistory({ category: null });
+  expect(uncategorized.items.find((row) => row.id === item.id)).toBeTruthy();
+  expect(clipboardService.getTextHistory({ category: 'clear-svc' }).items).toHaveLength(0);
+  expect(clipboardService.clearCategory('clear-svc')).toBe(0);
+});
