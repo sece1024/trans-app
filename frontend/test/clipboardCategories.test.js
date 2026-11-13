@@ -7,6 +7,7 @@ import {
   getSafeStorage,
   normalizeCategoryInput,
   readStoredCategoryFilter,
+  resolveExistingCategory,
   sameCategory,
   writeStoredCategoryFilter,
 } from '../src/utils/clipboardCategories';
@@ -42,6 +43,40 @@ describe('normalizeCategoryInput / sameCategory', () => {
     expect(sameCategory('', null)).toBe(true);
     expect(sameCategory(undefined, null)).toBe(true);
     expect(sameCategory('torrent', 'Link')).toBe(false);
+  });
+
+  test('ignores case, matching the backend category identity (Link = link)', () => {
+    expect(sameCategory('link', 'Link')).toBe(true);
+    expect(sameCategory(' LINK ', 'link')).toBe(true);
+    // 未分类仍是空串，不能和任意具名分类相等
+    expect(sameCategory('', 'Link')).toBe(false);
+  });
+
+  test('folds composed and decomposed accents to one identity', () => {
+    expect(normalizeCategoryInput('cafe\u0301')).toBe(normalizeCategoryInput('caf\u00e9'));
+    expect(sameCategory('cafe\u0301', 'caf\u00e9')).toBe(true);
+  });
+});
+
+describe('resolveExistingCategory', () => {
+  const categories = [{ name: 'Torrent', count: 2 }, { name: '运维', count: 1 }];
+
+  test('reuses the existing spelling instead of creating a near-duplicate', () => {
+    // 自动识别建议 torrent，但库里已有 Torrent → 沿用 Torrent
+    expect(resolveExistingCategory(categories, 'torrent')).toBe('Torrent');
+    expect(resolveExistingCategory(categories, '运维')).toBe('运维');
+  });
+
+  test('keeps the suggested name when nothing matches', () => {
+    expect(resolveExistingCategory(categories, 'Link')).toBe('Link');
+    expect(resolveExistingCategory([], 'Link')).toBe('Link');
+  });
+
+  test('returns an empty string for uncategorized and survives malformed input', () => {
+    expect(resolveExistingCategory(categories, '')).toBe('');
+    expect(resolveExistingCategory(categories, undefined)).toBe('');
+    expect(resolveExistingCategory(undefined, 'Link')).toBe('Link');
+    expect(resolveExistingCategory([{ count: 1 }, null], 'Link')).toBe('Link');
   });
 });
 
@@ -110,6 +145,18 @@ describe('buildCategoryChips', () => {
     });
     const keys = chips.map((chip) => chip.key);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('marks the chip active even when the stored filter uses another case', () => {
+    // 场景：本地记忆里的筛选值是旧写法 link，库里已收敛为 Link
+    const chips = buildCategoryChips({
+      categories: [{ name: 'Link', count: 1 }],
+      total: 1,
+      activeCategory: 'link',
+    });
+    expect(chips.map((chip) => chip.label)).toEqual(['全部', 'Link']);
+    expect(chips.filter((chip) => chip.active)).toHaveLength(1);
+    expect(chips[1].active).toBe(true);
   });
 
   test('drops malformed summary entries instead of rendering blank chips', () => {

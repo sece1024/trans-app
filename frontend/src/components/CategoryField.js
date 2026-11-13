@@ -1,5 +1,5 @@
 import { MAX_CATEGORY_LENGTH } from '../utils/uploadLimits';
-import { normalizeCategoryInput } from '../utils/clipboardCategories';
+import { normalizeCategoryInput, sameCategory } from '../utils/clipboardCategories';
 
 /**
  * 分类输入框 + 已有分类快捷选择行。
@@ -34,7 +34,8 @@ function CategoryField({
   compact = false,
 }) {
   const normalized = normalizeCategoryInput(value);
-  const isAutoDetected = Boolean(autoDetected) && normalized === autoDetected;
+  // 分类身份忽略大小写（与后端一致）：输入 link 时已有的 Link chip 也是选中态
+  const isAutoDetected = Boolean(autoDetected) && sameCategory(normalized, autoDetected);
   const chips = suggestions.filter((category) => category?.name);
 
   return (
@@ -66,7 +67,7 @@ function CategoryField({
       {chips.length > 0 && (
         <div className="category-suggestions" role="group" aria-label="选择已有分类">
           {chips.map(({ name, count }) => {
-            const selected = normalized === name;
+            const selected = sameCategory(normalized, name);
             return (
               <button
                 key={name}

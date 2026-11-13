@@ -46,6 +46,17 @@ describe('CategoryField', () => {
     expect(html).toContain('取消分类 运维');
   });
 
+  test('matches the selected chip ignoring case (Link = link)', () => {
+    // 分类身份忽略大小写：输入 link 时已有的 torrent chip 不该被选中，
+    // 但输入 TORRENT 时应认作同一个分类
+    const lower = render({ value: 'TORRENT', suggestions: CATEGORIES });
+    expect(lower.match(/aria-pressed="true"/g)).toHaveLength(1);
+    expect(lower).toContain('取消分类 torrent');
+
+    const other = render({ value: 'link', suggestions: CATEGORIES });
+    expect(other.match(/aria-pressed="true"/g) ?? []).toHaveLength(0);
+  });
+
   test('caps input length with the shared category limit', () => {
     const html = render({ suggestions: CATEGORIES });
     // renderToStaticMarkup 保留 React 的驼峰属性名，真实 DOM 中映射为 maxlength

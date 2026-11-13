@@ -12,6 +12,7 @@ import {
   getSafeStorage,
   normalizeCategoryInput,
   readStoredCategoryFilter,
+  resolveExistingCategory,
   sameCategory,
   writeStoredCategoryFilter,
 } from '../utils/clipboardCategories';
@@ -254,8 +255,13 @@ function SharedClipboard() {
 
   const handleTextChange = (value) => {
     setClipText(value);
-    // 用户未手动编辑过分类时，分类跟随内容自动建议（磁力 → torrent，单个链接 → Link）
-    if (!categoryTouched) setCategoryInput(detectCategory(value) || '');
+    // 用户未手动编辑过分类时，分类跟随内容自动建议（磁力 → torrent，单个链接 → Link）。
+    // 已有同名分类时沿用它的写法，避免大小写不同而多出一个重复分类。
+    if (!categoryTouched) {
+      setCategoryInput(
+        resolveExistingCategory(categorySummary.categories, detectCategory(value) || '')
+      );
+    }
   };
 
   const handleCopy = async (text) => {

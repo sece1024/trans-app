@@ -16,26 +16,50 @@ const UNCATEGORIZED_KEY = '__uncategorized__';
 
 /**
  * 归一化分类输入，与后端 `utils/normalizeCategory.js` 保持一致：
- * 折叠连续空白为单个空格并去除首尾空格；空串表示「未分类」。
+ * Unicode NFC + 折叠连续空白为单个空格 + 去除首尾空格；空串表示「未分类」。
+ *
+ * NFC 是分类的「身份」前提：同一个名字用组合字符（macOS 粘贴常见）与预组合字符
+ * 写出来是两个不同字符串，不归一就会在精确匹配下变成两个分类。
  *
  * @param {unknown} value 原始输入
  * @returns {string} 归一化后的分类名（未分类时为空串）
  */
 export function normalizeCategoryInput(value) {
   if (typeof value !== 'string') return '';
-  return value.replace(/\s+/g, ' ').trim();
+  return value.normalize('NFC').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * 判断两个分类值是否等价（都做归一化后比较）。
- * 避免「用户只改了首尾空格」时前端误判为无变化而不发请求。
+ * 判断两个分类值是否等价（归一化 + 忽略大小写后比较）。
+ * 与后端一致：Link / link 是同一个分类，只有大小写不同的输入不应被判为「有变化」。
  *
  * @param {unknown} a
  * @param {unknown} b
  * @returns {boolean}
  */
 export function sameCategory(a, b) {
-  return normalizeCategoryInput(a) === normalizeCategoryInput(b);
+  return normalizeCategoryInput(a).toLowerCase() === normalizeCategoryInput(b).toLowerCase();
+}
+
+/**
+ * 把分类名收敛到已有分类的写法（忽略大小写）。
+ *
+ * 用途：自动识别的默认值（torrent / Link）不该因为大小写不同而新建一个重复分类，
+ * 库里已有 `Torrent` 时就沿用 `Torrent`。只对「系统建议值」用，不重写用户手打的输入。
+ *
+ * @param {{name: string}[]} categories 已有分类
+ * @param {string} name 待收敛的分类名
+ * @returns {string} 已有分类的写法；没有匹配时原样返回
+ */
+export function resolveExistingCategory(categories, name) {
+  const normalized = normalizeCategoryInput(name);
+  if (!normalized) return '';
+  const key = normalized.toLowerCase();
+  const hit = (categories ?? []).find(
+    (category) =>
+      typeof category?.name === 'string' && category.name.toLowerCase() === key
+  );
+  return hit ? hit.name : normalized;
 }
 
 /**
@@ -58,21 +82,26 @@ export function buildCategoryChips({
   total = 0,
   activeCategory = ALL_CATEGORIES,
 } = {}) {
+  // 分类的「身份」忽略大小写（与后端 COLLATE NOCASE 一致）：
+  // 本地存的是旧写法（如 link）而库里已收敛为 Link 时，也要能对上同一个 chip。
+  const sameValue = (a, b) => {
+    if (a === ALL_CATEGORIES || b === ALL_CATEGORIES) return a === b;
+    return String(a).toLowerCase() === String(b).toLowerCase();
+  };
+
   const chips = [{ key: ALL_KEY, value: ALL_CATEGORIES, label: '全部', count: total }];
-  const names = new Set();
 
   for (const category of categories) {
     const name = typeof category?.name === 'string' ? category.name : '';
     if (!name) continue;
-    names.add(name);
     chips.push({ key: name, value: name, label: name, count: category.count ?? 0 });
   }
 
-  if (
-    activeCategory !== ALL_CATEGORIES &&
-    activeCategory !== UNCATEGORIZED &&
-    !names.has(activeCategory)
-  ) {
+  const isNamedActive =
+    activeCategory !== ALL_CATEGORIES && activeCategory !== UNCATEGORIZED;
+  const hasActiveChip = isNamedActive && chips.some((chip) => sameValue(chip.value, activeCategory));
+
+  if (isNamedActive && !hasActiveChip) {
     chips.push({ key: activeCategory, value: activeCategory, label: activeCategory, count: 0 });
   }
 
@@ -85,7 +114,7 @@ export function buildCategoryChips({
     });
   }
 
-  return chips.map((chip) => ({ ...chip, active: chip.value === activeCategory }));
+  return chips.map((chip) => ({ ...chip, active: sameValue(chip.value, activeCategory) }));
 }
 
 /**

@@ -25,3 +25,18 @@ test('rejects non-string and overlong input', () => {
   expect(() => normalizeCategory({ name: 'torrent' })).toThrow('Invalid category');
   expect(() => normalizeCategory('x'.repeat(MAX_CATEGORY_LENGTH + 1))).toThrow('Category too long');
 });
+
+test('normalizes to NFC so composed and decomposed spellings share one identity', () => {
+  // macOS 粘贴常见分解形（e + 组合重音）与预组合形；不归一会在精确匹配下分裂成两个分类
+  const decomposed = 'cafe\u0301';
+  const composed = 'caf\u00e9';
+  expect(normalizeCategory(decomposed)).toBe(composed);
+  expect(normalizeCategory(composed)).toBe(composed);
+  expect(normalizeCategory(decomposed)).toHaveLength(4);
+});
+
+test('keeps the display spelling (case is not folded at normalization)', () => {
+  // 大小写只影响显示；身份折叠交给 SQL 的 COLLATE NOCASE 与 resolveCategory
+  expect(normalizeCategory('Link')).toBe('Link');
+  expect(normalizeCategory('link')).toBe('link');
+});

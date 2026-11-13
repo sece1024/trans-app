@@ -136,3 +136,47 @@ test('clearCategory moves entries to uncategorized instead of deleting them', ()
   expect(clipboardService.getTextHistory({ category: 'clear-svc' }).items).toHaveLength(0);
   expect(clipboardService.clearCategory('clear-svc')).toBe(0);
 });
+
+test('category identity ignores case so Link / link never fork into two categories', () => {
+  const upper = clipboardService.saveTextContent('upper', 'text', 'Device', 'Link');
+  const lower = clipboardService.saveTextContent('lower', 'text', 'Device', 'link');
+
+  // 写入口把新名字收敛到已有写法：显示名保持第一次出现的 Link
+  expect(lower.category).toBe('Link');
+
+  // 两个拼写都能查到同一批条目
+  const byUpper = clipboardService.getTextHistory({ category: 'Link' });
+  const byLower = clipboardService.getTextHistory({ category: 'link' });
+  const ids = byUpper.items.map((item) => item.id);
+  expect(ids).toEqual(expect.arrayContaining([upper.id, lower.id]));
+  expect(byLower.total).toBe(byUpper.total);
+
+  // 汇总里只有一个 Link，而不是 Link + link
+  const summary = clipboardService.getCategorySummary();
+  const linkChips = summary.categories.filter((c) => c.name.toLowerCase() === 'link');
+  expect(linkChips).toHaveLength(1);
+  expect(linkChips[0].count).toBe(byUpper.total);
+});
+
+test('renaming only the case of a category updates the display spelling', () => {
+  clipboardService.saveTextContent('c1', 'text', 'Device', 'spell');
+  clipboardService.saveTextContent('c2', 'text', 'Device', 'spell');
+
+  expect(clipboardService.renameCategory('spell', 'Spell')).toBe(2);
+
+  const summary = clipboardService.getCategorySummary();
+  expect(summary.categories.find((c) => c.name === 'Spell')?.count).toBe(2);
+  expect(summary.categories.some((c) => c.name === 'spell')).toBe(false);
+});
+
+test('merging into an existing category adopts that category spelling', () => {
+  clipboardService.saveTextContent('t1', 'text', 'Device', 'Target');
+  clipboardService.saveTextContent('t2', 'text', 'Device', 'other-one');
+
+  // 目标已存在（大小写不同也算存在）→ 合并，并沿用 Target 的写法
+  expect(clipboardService.renameCategory('other-one', 'target')).toBe(1);
+
+  const items = clipboardService.getTextHistory({ category: 'Target' });
+  expect(items.items.every((item) => item.category === 'Target')).toBe(true);
+  expect(items.total).toBe(2);
+});
