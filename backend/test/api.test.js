@@ -35,6 +35,10 @@ test('server-info returns ips and port', async () => {
   const body = await res.json();
   expect(Array.isArray(body.ips)).toBe(true);
   expect(body.port).toBeTruthy();
+  // 剪贴板历史上限可由环境变量覆盖，前端需要从接口拿到实际值
+  expect(body.maxClipboardHistory).toBe(
+    (await import('../src/config/limits')).MAX_CLIPBOARD_HISTORY
+  );
   expect(res.headers.get('x-content-type-options')).toBe('nosniff');
 });
 

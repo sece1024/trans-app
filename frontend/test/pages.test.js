@@ -42,6 +42,7 @@ const api = {
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   addClipboard: vi.fn(),
+  getServerInfo: vi.fn(() => Promise.resolve({ ips: [], port: 5001, maxClipboardHistory: 50 })),
 };
 vi.mock('../src/api/client', () => ({ api, getClientId: () => 'test-client' }));
 

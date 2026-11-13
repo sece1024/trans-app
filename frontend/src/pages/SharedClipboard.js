@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { api, getClientId } from '../api/client';
-import { MAX_CLIPBOARD_LENGTH, MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
+import { MAX_CLIPBOARD_LENGTH, DEFAULT_MAX_CLIPBOARD_HISTORY } from '../utils/uploadLimits';
 import { detectCategory } from '../utils/detectCategory';
+import { fetchServerInfoOnce } from '../utils/serverInfo';
 import { formatClipTime, formatClipTimeExact } from '../utils/formatClipTime';
 import { isSelfKeyboardEvent } from '../utils/keyboard';
 import {
@@ -55,6 +56,8 @@ function SharedClipboard() {
   const [categoryDraft, setCategoryDraft] = useState('');
   // 分类管理弹层（重命名 / 合并 / 清空）
   const [isManagingCategories, setIsManagingCategories] = useState(false);
+  // 剪贴板历史上限由后端环境变量配置，运行时从 /api/server-info 取（默认值兜底）
+  const [maxHistory, setMaxHistory] = useState(DEFAULT_MAX_CLIPBOARD_HISTORY);
   const toast = useToast();
 
   useEffect(() => {
@@ -186,6 +189,17 @@ function SharedClipboard() {
   }, [refreshCategories]);
 
   useEffect(() => {
+    // 上限只影响「已满」提示，取不到就继续用默认值，不打扰用户
+    fetchServerInfoOnce()
+      .then((info) => {
+        if (Number.isInteger(info?.maxClipboardHistory) && info.maxClipboardHistory > 0) {
+          setMaxHistory(info.maxClipboardHistory);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TIME_LABEL_REFRESH_MS);
     return () => clearInterval(timer);
   }, []);
@@ -236,8 +250,10 @@ function SharedClipboard() {
       toast(`内容过长，最多 ${MAX_CLIPBOARD_LENGTH} 字符`, 'error');
       return;
     }
-    if (categorySummary.total >= MAX_CLIPBOARD_HISTORY) {
-      const ok = window.confirm('剪贴板已达到上限，保存将自动删除最早的记录，是否继续？');
+    if (categorySummary.total >= maxHistory) {
+      const ok = window.confirm(
+        `剪贴板已达到上限（${maxHistory} 条），保存将自动删除最早的记录，是否继续？`
+      );
       if (!ok) return;
     }
     try {

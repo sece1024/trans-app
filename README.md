@@ -157,6 +157,7 @@ journalctl -u transapp -f
 |------|--------|------|
 | `PORT` | `5001` | HTTP 服务端口 |
 | `DATA_DIR` | `process.cwd()/data` | 运行时数据根目录（数据库 + 上传文件）；相对路径按启动目录解析 |
+| `MAX_CLIPBOARD_HISTORY` | `50` | 剪贴板历史保留条数（超出后自动删除最早的记录），取值 `1`–`1000`；非法值告警并回退默认值。前端通过 `/api/server-info` 获取实际值 |
 
 ## 数据存储
 
