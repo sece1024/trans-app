@@ -1,5 +1,6 @@
+import { useRef } from 'react';
 import { MAX_CATEGORY_LENGTH } from '../utils/uploadLimits';
-import { normalizeCategoryInput, sameCategory } from '../utils/clipboardCategories';
+import { buildCategoryOptions } from '../utils/clipboardCategories';
 
 /**
  * 分类输入框 + 已有分类快捷选择行。
@@ -8,6 +9,9 @@ import { normalizeCategoryInput, sameCategory } from '../utils/clipboardCategori
  * 手机用户既看不到已有分类也无法从列表中选取（只能手打），
  * Android 上触屏操作原生下拉也不如一行 chip 直观。
  * 因此改为「输入框 + 可点选的分类 chip 行」，两种设备行为一致。
+ *
+ * chip 的排序/截断/「将新建」判定全部下沉到 `buildCategoryOptions`（纯函数、可单测），
+ * 本组件只负责交互与可访问性：点击选中、再点取消、方向键在 chip 间移动焦点。
  *
  * @param {Object} props
  * @param {string} props.value                当前分类输入值
@@ -19,7 +23,9 @@ import { normalizeCategoryInput, sameCategory } from '../utils/clipboardCategori
  * @param {boolean} [props.autoFocus]
  * @param {string} [props.placeholder]
  * @param {string} [props.ariaLabel]
- * @param {boolean} [props.compact]          紧凑模式（卡片内联编辑用）
+ * @param {'form'|'inline'|'manage'} [props.variant='form']
+ *        使用场景而不是一堆布尔开关：`form` = 分享表单（默认），
+ *        `inline` = 卡片内联编辑，`manage` = 分类管理弹层里重命名（此时不提示「新建分类」）
  */
 function CategoryField({
   value,
@@ -31,15 +37,54 @@ function CategoryField({
   autoFocus = false,
   placeholder = '分类（可选）',
   ariaLabel = '分类',
-  compact = false,
+  variant = 'form',
 }) {
-  const normalized = normalizeCategoryInput(value);
-  // 分类身份忽略大小写（与后端一致）：输入 link 时已有的 Link chip 也是选中态
-  const isAutoDetected = Boolean(autoDetected) && sameCategory(normalized, autoDetected);
-  const chips = suggestions.filter((category) => category?.name);
+  const chipsRef = useRef(null);
+  const isCompact = variant !== 'form';
+  const { query, options, isNew, hiddenCount, overflow } = buildCategoryOptions({
+    suggestions,
+    value,
+    // 紧凑场景（卡片内联 / 管理弹层）空间更小，少放几个 chip
+    maxItems: isCompact ? 6 : 8,
+  });
+  // 管理弹层里改的是「分类本身的名字」，提示「将新建分类」会误导
+  const showNewHint = isNew && variant !== 'manage';
+  const normalized = query;
+  const isAutoDetected =
+    Boolean(autoDetected) && normalized.toLowerCase() === autoDetected.toLowerCase();
+
+  // 方向键在 chip 之间移动焦点（Tab 会经过每个 chip，但一长排 chip 用方向键更自然）
+  const handleChipsKeyDown = (event) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    const buttons = Array.from(chipsRef.current?.querySelectorAll('[data-category-chip]') ?? []);
+    if (buttons.length === 0) return;
+
+    const current = buttons.indexOf(document.activeElement);
+    if (event.key === 'Home') {
+      event.preventDefault();
+      buttons[0].focus();
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      buttons[buttons.length - 1].focus();
+      return;
+    }
+    // 没有焦点在 chip 上时，从第一个开始
+    if (current === -1) {
+      event.preventDefault();
+      buttons[0].focus();
+      return;
+    }
+    const offset = event.key === 'ArrowRight' ? 1 : -1;
+    const next = (current + offset + buttons.length) % buttons.length;
+    event.preventDefault();
+    buttons[next].focus();
+  };
 
   return (
-    <div className={`category-field${compact ? ' category-field--compact' : ''}`}>
+    <div className={`category-field${isCompact ? ' category-field--compact' : ''}`}>
       <div className="category-field-row">
         <input
           className="category-input"
@@ -62,29 +107,50 @@ function CategoryField({
             自动识别
           </span>
         )}
+        {overflow && (
+          <span className="category-hint category-hint--warn" role="status">
+            已达 {MAX_CATEGORY_LENGTH} 字上限
+          </span>
+        )}
       </div>
 
-      {chips.length > 0 && (
-        <div className="category-suggestions" role="group" aria-label="选择已有分类">
-          {chips.map(({ name, count }) => {
-            const selected = sameCategory(normalized, name);
-            return (
-              <button
-                key={name}
-                className={`category-suggestion${selected ? ' is-selected' : ''}`}
-                aria-pressed={selected}
-                aria-label={selected ? `取消分类 ${name}` : `设为分类 ${name}`}
-                // 再点一次已选中的分类即取消，等价于清空分类
-                onClick={() => onChange(selected ? '' : name)}
-              >
-                {name}
-                {typeof count === 'number' && (
-                  <span className="category-suggestion-count">{count}</span>
-                )}
-              </button>
-            );
-          })}
+      {options.length > 0 && (
+        <div
+          ref={chipsRef}
+          className="category-suggestions"
+          role="group"
+          aria-label="选择已有分类"
+          onKeyDown={handleChipsKeyDown}
+        >
+          {options.map(({ name, count, selected }) => (
+            <button
+              key={name}
+              type="button"
+              data-category-chip=""
+              className={`category-suggestion${selected ? ' is-selected' : ''}`}
+              aria-pressed={selected}
+              // 已选中时再点一次 = 取消分类，这个隐式约定用 title 说明
+              title={selected ? '再点一次取消选择' : undefined}
+              aria-label={selected ? `取消分类 ${name}` : `设为分类 ${name}`}
+              onClick={() => onChange(selected ? '' : name)}
+            >
+              {name}
+              {typeof count === 'number' && (
+                <span className="category-suggestion-count">{count}</span>
+              )}
+            </button>
+          ))}
+          {hiddenCount > 0 && (
+            <span className="category-hint">还有 {hiddenCount} 个，输入可筛选</span>
+          )}
         </div>
+      )}
+
+      {/* 显式告知「这个输入会新建分类」：过去用户不知道可以直接打字创建 */}
+      {showNewHint && (
+        <span className="category-new-hint" role="status">
+          ＋ 将新建分类「{query}」
+        </span>
       )}
     </div>
   );

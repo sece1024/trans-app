@@ -4,6 +4,8 @@ import {
   UNCATEGORIZED,
   CATEGORY_FILTER_STORAGE_KEY,
   buildCategoryChips,
+  buildCategoryOptions,
+  matchesCategoryFilter,
   getSafeStorage,
   normalizeCategoryInput,
   readStoredCategoryFilter,
@@ -218,5 +220,106 @@ describe('category filter persistence', () => {
 
   test('getSafeStorage returns undefined outside a browser (node test env)', () => {
     expect(getSafeStorage()).toBeUndefined();
+  });
+});
+
+describe('buildCategoryOptions', () => {
+  const suggestions = [
+    { name: 'torrent', count: 5 },
+    { name: '运维', count: 3 },
+    { name: 'Link', count: 1 },
+  ];
+
+  test('keeps the summary order when nothing is typed', () => {
+    const result = buildCategoryOptions({ suggestions, value: '' });
+    expect(result.options.map((option) => option.name)).toEqual(['torrent', '运维', 'Link']);
+    expect(result.options.every((option) => option.selected === false)).toBe(true);
+    expect(result.isNew).toBe(false);
+  });
+
+  test('ranks matches first instead of hiding the rest (no "typing hides options" trap)', () => {
+    const result = buildCategoryOptions({ suggestions, value: '运' });
+    expect(result.options[0].name).toBe('运维');
+    // 其余分类仍然可见：自动识别预填 torrent 时用户还能换成别的分类
+    expect(result.options).toHaveLength(3);
+    expect(result.options[0].selected).toBe(false);
+  });
+
+  test('prefers prefix matches over substring matches', () => {
+    const result = buildCategoryOptions({
+      suggestions: [{ name: 'x-link' }, { name: 'Link' }, { name: 'torrent' }],
+      value: 'link',
+    });
+    expect(result.options.map((option) => option.name)).toEqual(['Link', 'x-link', 'torrent']);
+    expect(result.options[0].selected).toBe(true);
+  });
+
+  test('marks the exact match as selected, ignoring case and stray whitespace', () => {
+    const result = buildCategoryOptions({ suggestions, value: '  TORRENT ' });
+    expect(result.options[0]).toMatchObject({ name: 'torrent', selected: true });
+    expect(result.matched).toBe(true);
+    expect(result.isNew).toBe(false);
+  });
+
+  test('flags a brand new category so the UI can say so', () => {
+    const result = buildCategoryOptions({ suggestions, value: '新分类' });
+    expect(result.isNew).toBe(true);
+    expect(result.matched).toBe(false);
+    expect(result.query).toBe('新分类');
+    expect(result.options).toHaveLength(3);
+  });
+
+  test('blank input never counts as a new category', () => {
+    expect(buildCategoryOptions({ suggestions, value: '   ' }).isNew).toBe(false);
+    expect(buildCategoryOptions({ suggestions, value: undefined }).isNew).toBe(false);
+  });
+
+  test('caps the chip row and reports how many were dropped', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ name: `c${i}`, count: i }));
+    const result = buildCategoryOptions({ suggestions: many, value: '', maxItems: 5 });
+    expect(result.options).toHaveLength(5);
+    expect(result.hiddenCount).toBe(7);
+  });
+
+  test('dedupes case-variant suggestions so no chip appears twice', () => {
+    const result = buildCategoryOptions({
+      suggestions: [{ name: 'Link' }, { name: 'link' }, { name: 'LINK' }],
+      value: '',
+    });
+    expect(result.options.map((option) => option.name)).toEqual(['Link']);
+  });
+
+  test('drops malformed entries and survives missing suggestions', () => {
+    const result = buildCategoryOptions({
+      suggestions: [{ name: '' }, { count: 1 }, null, { name: 'ok' }],
+      value: '',
+    });
+    expect(result.options.map((option) => option.name)).toEqual(['ok']);
+    expect(buildCategoryOptions({ value: 'x' }).options).toEqual([]);
+  });
+
+  test('reports overflow when the input sits at the length limit', () => {
+    expect(buildCategoryOptions({ suggestions, value: 'x'.repeat(32) }).overflow).toBe(true);
+    expect(buildCategoryOptions({ suggestions, value: 'x'.repeat(31) }).overflow).toBe(false);
+  });
+});
+
+describe('matchesCategoryFilter', () => {
+  test('null means "all": every item matches', () => {
+    expect(matchesCategoryFilter('运维', ALL_CATEGORIES)).toBe(true);
+    expect(matchesCategoryFilter(null, ALL_CATEGORIES)).toBe(true);
+  });
+
+  test('the empty string means "uncategorized" only', () => {
+    expect(matchesCategoryFilter(null, UNCATEGORIZED)).toBe(true);
+    expect(matchesCategoryFilter('', UNCATEGORIZED)).toBe(true);
+    expect(matchesCategoryFilter('运维', UNCATEGORIZED)).toBe(false);
+  });
+
+  test('named filters compare ignoring case, like the backend does', () => {
+    expect(matchesCategoryFilter('Link', 'link')).toBe(true);
+    expect(matchesCategoryFilter('link', 'Link')).toBe(true);
+    expect(matchesCategoryFilter('Link', 'torrent')).toBe(false);
+    expect(matchesCategoryFilter(null, 'Link')).toBe(false);
   });
 });

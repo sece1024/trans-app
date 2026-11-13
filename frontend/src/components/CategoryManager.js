@@ -178,7 +178,7 @@ function CategoryManager({ open, categories = [], onRename, onClear, onClose }) 
                     <li key={name} className="category-manager-item">
                       {isEditing ? (
                         <CategoryField
-                          compact
+                          variant="manage"
                           autoFocus
                           value={draft}
                           onChange={setDraft}

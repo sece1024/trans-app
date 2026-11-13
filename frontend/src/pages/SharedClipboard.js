@@ -8,8 +8,10 @@ import { formatClipTime, formatClipTimeExact } from '../utils/formatClipTime';
 import { isSelfKeyboardEvent } from '../utils/keyboard';
 import {
   ALL_CATEGORIES,
+  UNCATEGORIZED,
   buildCategoryChips,
   getSafeStorage,
+  matchesCategoryFilter,
   normalizeCategoryInput,
   readStoredCategoryFilter,
   resolveExistingCategory,
@@ -51,7 +53,6 @@ function SharedClipboard() {
   // 卡片内联分类编辑
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [categoryDraft, setCategoryDraft] = useState('');
-  const [savingCategoryId, setSavingCategoryId] = useState(null);
   // 分类管理弹层（重命名 / 合并 / 清空）
   const [isManagingCategories, setIsManagingCategories] = useState(false);
   const toast = useToast();
@@ -150,17 +151,17 @@ function SharedClipboard() {
   useEffect(() => {
     clipsRef.current = clips;
   }, [clips]);
-  const categoryFilterRef = useRef(categoryFilter);
+  const activeCategoryRef = useRef(activeCategory);
   useEffect(() => {
-    categoryFilterRef.current = categoryFilter;
-  }, [categoryFilter]);
+    activeCategoryRef.current = activeCategory;
+  }, [activeCategory]);
 
   // 应用一条剪贴板变更事件：能在本地精确应用的就打补丁，只有「新增」需要重拉。
   const applyEvent = useCallback(
     (event) => {
       const patch = applyClipboardEvent({
         items: clipsRef.current,
-        filter: categoryFilterRef.current,
+        activeCategory: activeCategoryRef.current,
         event,
       });
 
@@ -240,7 +241,7 @@ function SharedClipboard() {
       if (!ok) return;
     }
     try {
-      await api.addClipboard(
+      const saved = await api.addClipboard(
         clipText,
         deviceInfo,
         normalizeCategoryInput(categoryInput) || undefined
@@ -248,8 +249,21 @@ function SharedClipboard() {
       setClipText('');
       setCategoryInput('');
       setCategoryTouched(false);
-      await Promise.all([fetchClips(), refreshCategories()]);
-      toast('已分享', 'success');
+
+      // 新内容若落在当前筛选之外，留在原地只会看到列表毫无变化，用户会以为分享失败
+      const savedCategory = saved?.category ?? null;
+      if (matchesCategoryFilter(savedCategory, activeCategory)) {
+        await Promise.all([fetchClips(), refreshCategories()]);
+        toast('已分享', 'success');
+      } else {
+        // 切到新内容的分类：分享完就能看到它（selectCategory 会触发第一页重载）
+        selectCategory(savedCategory ?? UNCATEGORIZED);
+        refreshCategories();
+        toast(
+          savedCategory ? `已分享，已切换到「${savedCategory}」` : '已分享，已切换到「未分类」',
+          'success'
+        );
+      }
     } catch { toast('分享失败', 'error'); }
   };
 
@@ -293,18 +307,19 @@ function SharedClipboard() {
       setEditingCategoryId(null);
       return;
     }
-    setSavingCategoryId(clip.id);
+
+    const category = next || null;
+    // 乐观更新：先本地应用并收起编辑态，再发请求。请求失败时重拉列表回滚。
+    // 自己的 SSE 回显会被忽略（见 SSE effect），所以这里必须主动应用一次。
+    setEditingCategoryId(null);
+    applyEvent({ type: 'updated', id: clip.id, category });
     try {
-      await api.updateClipboardCategory(clip.id, next || null);
-      setEditingCategoryId(null);
-      // 本地应用同一条变更（自己的 SSE 回显会被忽略），
-      // 避免为了改一个字段重载整页、丢掉分页进度与滚动位置
-      applyEvent({ type: 'updated', id: clip.id, category: next || null });
+      await api.updateClipboardCategory(clip.id, category);
       toast(next ? '分类已更新' : '已清除分类', 'success');
     } catch {
+      // 回滚：服务端未接受这次改动，重拉第一页覆盖乐观结果
+      fetchClipsRef.current();
       toast('分类更新失败', 'error');
-    } finally {
-      setSavingCategoryId(null);
     }
   };
 
@@ -498,7 +513,7 @@ function SharedClipboard() {
                   onKeyDown={(e) => e.stopPropagation()}
                 >
                   <CategoryField
-                    compact
+                    variant="inline"
                     autoFocus
                     value={categoryDraft}
                     onChange={setCategoryDraft}
@@ -509,12 +524,8 @@ function SharedClipboard() {
                     onCancel={() => setEditingCategoryId(null)}
                   />
                   <div className="clip-category-edit-actions">
-                    <button
-                      className="btn--icon"
-                      onClick={() => saveCategory(clip)}
-                      disabled={savingCategoryId === clip.id}
-                    >
-                      {savingCategoryId === clip.id ? '保存中…' : '保存'}
+                    <button className="btn--icon" onClick={() => saveCategory(clip)}>
+                      保存
                     </button>
                     <button className="btn--text" onClick={() => setEditingCategoryId(null)}>
                       取消

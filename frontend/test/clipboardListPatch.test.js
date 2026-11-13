@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { applyClipboardEvent, isOwnClipboardEvent } from '../src/utils/clipboardListPatch';
+import { ALL_CATEGORIES, UNCATEGORIZED } from '../src/utils/clipboardCategories';
 
 const items = [
   { id: 'a', content: 'A', category: '运维' },
@@ -45,7 +46,7 @@ describe('applyClipboardEvent: deleted', () => {
   });
 });
 
-describe('applyClipboardEvent: updated, unfiltered view', () => {
+describe('applyClipboardEvent: updated, all-categories view', () => {
   test('patches the category in place, keeping position and pagination', () => {
     const result = applyClipboardEvent({
       items,
@@ -71,7 +72,7 @@ describe('applyClipboardEvent: updated, filtered view', () => {
   test('removes the row when it leaves the active filter', () => {
     const result = applyClipboardEvent({
       items,
-      filter: '运维',
+      activeCategory: '运维',
       event: { type: 'updated', id: 'a', category: 'Link' },
     });
     expect(result.items.map((item) => item.id)).toEqual(['b', 'c']);
@@ -82,7 +83,7 @@ describe('applyClipboardEvent: updated, filtered view', () => {
   test('keeps the row when it stays inside the active filter', () => {
     const result = applyClipboardEvent({
       items,
-      filter: '运维',
+      activeCategory: '运维',
       event: { type: 'updated', id: 'a', category: '运维' },
     });
     expect(result.items).toHaveLength(3);
@@ -94,7 +95,7 @@ describe('applyClipboardEvent: updated, filtered view', () => {
     // 场景：正在看「运维」，某条原本是 Link 的条目（不在当前页）被改成了运维
     const result = applyClipboardEvent({
       items,
-      filter: '运维',
+      activeCategory: '运维',
       event: { type: 'updated', id: 'not-loaded', category: '运维' },
     });
     expect(result.needsRefetch).toBe(true);
@@ -104,24 +105,34 @@ describe('applyClipboardEvent: updated, filtered view', () => {
   test('stays a no-op when the row is not on the page and still does not match', () => {
     const result = applyClipboardEvent({
       items,
-      filter: '运维',
+      activeCategory: '运维',
       event: { type: 'updated', id: 'not-loaded', category: 'Link' },
     });
     expect(result.needsRefetch).toBe(false);
     expect(result.items).toBe(items);
   });
 
+  test('matches the "all" filter by default (ALL_CATEGORIES)', () => {
+    const result = applyClipboardEvent({
+      items,
+      activeCategory: ALL_CATEGORIES,
+      event: { type: 'updated', id: 'a', category: 'SQL' },
+    });
+    expect(result.items).toHaveLength(3);
+    expect(result.needsRefetch).toBe(false);
+  });
+
   test('uncategorized filter compares against null, not the empty string', () => {
     const leaving = applyClipboardEvent({
       items,
-      filter: '',
+      activeCategory: '',
       event: { type: 'updated', id: 'c', category: 'Link' },
     });
     expect(leaving.items.map((item) => item.id)).toEqual(['a', 'b']);
 
     const entering = applyClipboardEvent({
       items,
-      filter: '',
+      activeCategory: '',
       event: { type: 'updated', id: 'c', category: null },
     });
     expect(entering.items).toHaveLength(3);

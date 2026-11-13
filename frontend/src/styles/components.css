@@ -875,6 +875,26 @@
     white-space: nowrap;
   }
 
+  .category-hint--warn {
+    color: var(--color-danger);
+    font-weight: 600;
+  }
+
+  /* 「＋ 将新建分类 xxx」：告诉用户直接输入就是在创建新分类 */
+  .category-new-hint {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 2px calc(var(--inline-space) * 0.6);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-primary);
+    font-size: 11px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .clip-footer-left {
     display: flex;
     align-items: center;

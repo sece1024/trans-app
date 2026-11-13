@@ -63,6 +63,39 @@ describe('CategoryField', () => {
     expect(html).toMatch(/maxlength="32"/i);
   });
 
+  test('tells the user that typing a new name will create a category', () => {
+    const html = render({ value: '新分类', suggestions: CATEGORIES });
+    expect(html).toContain('将新建分类「新分类」');
+
+    const existing = render({ value: 'torrent', suggestions: CATEGORIES });
+    expect(existing).not.toContain('将新建分类');
+    expect(render({ value: '', suggestions: CATEGORIES })).not.toContain('将新建分类');
+  });
+
+  test('keeps non-matching chips visible while ranking matches first', () => {
+    // 自动识别预填 torrent 后，用户仍能看到并点选其他分类
+    const html = render({ value: 'torrent', suggestions: CATEGORIES });
+    expect(html).toContain('设为分类 运维');
+    expect(html).toContain('取消分类 torrent');
+  });
+
+  test('warns instead of silently swallowing input beyond the length limit', () => {
+    const html = render({ value: 'x'.repeat(32), suggestions: CATEGORIES });
+    expect(html).toContain('已达 32 字上限');
+  });
+
+  test('caps the chip row and says how many are hidden', () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({ name: `c${i}`, count: 1 }));
+    const html = render({ suggestions: many });
+    expect(html.match(/data-category-chip/g)).toHaveLength(8);
+    expect(html).toContain('还有 3 个，输入可筛选');
+  });
+
+  test('explains that tapping a selected chip clears the category', () => {
+    const html = render({ value: 'torrent', suggestions: CATEGORIES });
+    expect(html).toContain('再点一次取消选择');
+  });
+
   test('shows the auto-detected badge only while the value still matches the guess', () => {
     expect(render({ value: 'torrent', autoDetected: 'torrent' })).toContain('自动识别');
     // 用户改成别的分类后提示要消失，避免误导
@@ -76,8 +109,14 @@ describe('CategoryField', () => {
     expect(html).toContain('category-input');
   });
 
-  test('compact mode adds its modifier class for the in-card editor', () => {
-    expect(render({ compact: true })).toContain('category-field--compact');
+  test('compact variants add their modifier class for in-card / manage editors', () => {
+    expect(render({ variant: 'inline' })).toContain('category-field--compact');
+    expect(render({ variant: 'manage' })).toContain('category-field--compact');
     expect(render({})).not.toContain('category-field--compact');
+  });
+
+  test('does not claim a rename will create a category', () => {
+    expect(render({ value: '新名字', variant: 'manage' })).not.toContain('将新建分类');
+    expect(render({ value: '新名字', variant: 'inline' })).toContain('将新建分类');
   });
 });

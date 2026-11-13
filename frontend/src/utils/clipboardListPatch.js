@@ -1,3 +1,5 @@
+import { ALL_CATEGORIES, matchesCategoryFilter } from './clipboardCategories';
+
 // 剪贴板 SSE 事件 → 列表状态的纯函数补丁。
 //
 // 这些函数不依赖 React / DOM，便于单测覆盖边界（当前筛选是否包含该条目、
@@ -32,19 +34,6 @@ export function isOwnClipboardEvent(event, clientId) {
 }
 
 /**
- * 条目是否落在当前筛选里。
- *
- * @param {string|null|undefined} category 条目分类
- * @param {string|undefined} filter 三态筛选：undefined = 全部，'' = 未分类，其余为分类名
- * @returns {boolean}
- */
-function matchesFilter(category, filter) {
-  if (filter === undefined) return true;
-  if (filter === '') return !category;
-  return category === filter;
-}
-
-/**
  * 把一条 SSE 事件应用到当前列表。
  *
  * 返回值：
@@ -54,11 +43,11 @@ function matchesFilter(category, filter) {
  *
  * @param {Object} params
  * @param {Object[]} [params.items]   当前列表
- * @param {string|undefined} [params.filter] 当前三态筛选（同 getClipboard 的 category 参数）
+ * @param {string|null} [params.activeCategory] 当前筛选（三态：null = 全部，'' = 未分类）
  * @param {ClipboardEvent} params.event
  * @returns {{items: Object[], totalDelta: number, needsRefetch: boolean}}
  */
-export function applyClipboardEvent({ items = [], filter, event }) {
+export function applyClipboardEvent({ items = [], activeCategory = ALL_CATEGORIES, event }) {
   const type = event?.type;
 
   // 新增条目会顺带 prune 掉最旧一条（见 ContentItem.create），新的第一页内容
@@ -80,10 +69,10 @@ export function applyClipboardEvent({ items = [], filter, event }) {
     if (index === -1) {
       // 不在当前列表里：可能是刚被改成本筛选分类的条目（位置只有服务端知道），
       // 也可能与当前视图无关。只有会影响当前筛选结果时才需要重拉。
-      return { items, totalDelta: 0, needsRefetch: matchesFilter(category, filter) };
+      return { items, totalDelta: 0, needsRefetch: matchesCategoryFilter(category, activeCategory) };
     }
 
-    if (matchesFilter(category, filter)) {
+    if (matchesCategoryFilter(category, activeCategory)) {
       // 仍在筛选范围内：就地改字段，保持位置、分页进度与滚动位置
       const next = items.map((item, i) => (i === index ? { ...item, category } : item));
       return { items: next, totalDelta: 0, needsRefetch: false };

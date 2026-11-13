@@ -63,6 +63,22 @@ export function resolveExistingCategory(categories, name) {
 }
 
 /**
+ * 某条内容是否会被当前筛选选中。
+ *
+ * 三态筛选值贯穿全应用（localStorage、chip、列表补丁），因此这个谓词只放一处：
+ * `null` = 全部、`''` = 未分类、其余为分类名（忽略大小写，与后端 `COLLATE NOCASE` 一致）。
+ *
+ * @param {string|null} category 内容自身的分类（null / '' = 未分类）
+ * @param {string|null} activeCategory 当前筛选值（三态）
+ * @returns {boolean}
+ */
+export function matchesCategoryFilter(category, activeCategory) {
+  if (activeCategory === ALL_CATEGORIES) return true;
+  if (activeCategory === UNCATEGORIZED) return !normalizeCategoryInput(category);
+  return sameCategory(category, activeCategory);
+}
+
+/**
  * 构建筛选栏 chip 列表。
  *
  * 两条兜底规则保证用户不会「被困在空列表」：
@@ -115,6 +131,70 @@ export function buildCategoryChips({
   }
 
   return chips.map((chip) => ({ ...chip, active: sameValue(chip.value, activeCategory) }));
+}
+
+/**
+ * 构建分类选择 chip 的展示列表（纯逻辑，便于单测）。
+ *
+ * 排序而不是过滤：输入框的语义是「设定一个值」，不是「搜索列表」。
+ * 若把不匹配的 chip 隐掉，自动识别预填了 torrent 时，其余分类就会全消失——
+ * 用户想换成别的分类反而要先清空输入，是个典型的「输入即藏选项」陷阱。
+ * 因此命中项靠前（前缀 > 子串），其余跟在后面，超出上限的用 `hiddenCount` 告知。
+ *
+ * @param {Object} params
+ * @param {{name: string, count?: number}[]} [params.suggestions] 已有分类（按最近使用排序）
+ * @param {unknown} params.value 当前输入值
+ * @param {number} [params.maxItems=8] 一次最多展示多少个 chip
+ * @returns {{
+ *   query: string,
+ *   options: {name: string, count: (number|undefined), selected: boolean}[],
+ *   matched: boolean,
+ *   isNew: boolean,
+ *   hiddenCount: number,
+ *   overflow: boolean,
+ * }}
+ */
+export function buildCategoryOptions({ suggestions = [], value, maxItems = 8 }) {
+  const query = normalizeCategoryInput(value);
+  const key = query.toLowerCase();
+
+  const entries = [];
+  const seen = new Set();
+  for (const category of suggestions ?? []) {
+    const name = typeof category?.name === 'string' ? category.name : '';
+    if (!name) continue;
+    const lower = name.toLowerCase();
+    // 大小写不同算同一个分类，同一批 chip 里不能出现两次
+    if (seen.has(lower)) continue;
+    seen.add(lower);
+    entries.push({
+      name,
+      count: typeof category.count === 'number' ? category.count : undefined,
+      selected: lower === key,
+      score: !key ? 0 : lower === key ? 3 : lower.startsWith(key) ? 2 : lower.includes(key) ? 1 : 0,
+    });
+  }
+
+  // 稳定排序：命中越强越靠前，同分保持汇总的「最近使用」顺序
+  const ranked = entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => b.entry.score - a.entry.score || a.index - b.index)
+    .map(({ entry }) => entry);
+
+  const options = ranked
+    .slice(0, Math.max(0, maxItems))
+    .map(({ name, count, selected }) => ({ name, count, selected }));
+  const matched = entries.some((entry) => entry.selected);
+
+  return {
+    query,
+    options,
+    matched,
+    // 有内容、但不对应任何已有分类 → 保存后会新建一个分类
+    isNew: Boolean(key) && !matched,
+    hiddenCount: Math.max(0, ranked.length - options.length),
+    overflow: typeof value === 'string' && value.length >= MAX_CATEGORY_LENGTH,
+  };
 }
 
 /**
